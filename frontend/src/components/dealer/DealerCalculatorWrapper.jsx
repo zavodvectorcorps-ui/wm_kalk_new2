@@ -179,7 +179,32 @@ function ConfirmOrderDialog({ order, onClose, onConfirmed }) {
             <div className="text-muted-foreground">{order.fullName || order.customerName || '—'}</div>
             <div className="font-semibold text-orange-600 mt-1">
               {Math.round(Number(order.total) || 0).toLocaleString('pl-PL').replace(/,/g, ' ')} PLN
+              <span className="text-xs font-normal text-muted-foreground ml-2">(klient płaci Tobie)</span>
             </div>
+            {(() => {
+              const retail = Number(order.total) || 0;
+              const cost = Number(order.manufacturerTotal);
+              if (!Number.isFinite(cost) || cost <= 0) return null;
+              const margin = retail - cost;
+              const pct = cost > 0 ? (margin / cost) * 100 : 0;
+              return (
+                <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+                  <div className="rounded-md bg-cyan-500/10 border border-cyan-500/20 p-2">
+                    <div className="text-[10px] uppercase tracking-wider text-cyan-700">Zapłacisz WM</div>
+                    <div className="font-mono font-semibold text-cyan-700" data-testid="confirm-manufacturer-total">
+                      {Math.round(cost).toLocaleString('pl-PL').replace(/,/g, ' ')} PLN
+                    </div>
+                  </div>
+                  <div className={`rounded-md p-2 ${margin >= 0 ? 'bg-emerald-500/10 border border-emerald-500/20' : 'bg-red-500/10 border border-red-500/20'}`}>
+                    <div className={`text-[10px] uppercase tracking-wider ${margin >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>Twoja marża</div>
+                    <div className={`font-mono font-semibold ${margin >= 0 ? 'text-emerald-700' : 'text-red-700'}`} data-testid="confirm-margin">
+                      {Math.round(margin).toLocaleString('pl-PL').replace(/,/g, ' ')} PLN
+                      <span className="text-[10px] font-normal ml-1">({pct.toFixed(1)}%)</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
 
           <div>

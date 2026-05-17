@@ -419,11 +419,19 @@ def _recompute_one(order: dict, prices: dict, opt_index: dict) -> dict | None:
     """Recompute totalCost + VAT-aware margin for one order using current prices.
 
     Returns dict with new values to $set, or None if essential data is missing.
+
+    For dealer orders (``source == "dealer"``), WM only collects the B2B
+    ``manufacturerTotal`` from the dealer — NOT the dealer's retail ``total``.
+    So we use ``manufacturerTotal`` as the brutto baseline for VAT/margin.
     """
     model_id = order.get("selectedModel")
     variant_id = order.get("selectedModelVariant")
     selected = order.get("selectedOptions") or []
-    total = float(order.get("total") or 0)
+    is_dealer = (order.get("source") == "dealer")
+    if is_dealer and order.get("manufacturerTotal") is not None:
+        total = float(order.get("manufacturerTotal") or 0)
+    else:
+        total = float(order.get("total") or 0)
 
     model = next((m for m in (prices.get("models") or []) if m.get("id") == model_id), None)
     if not model:
@@ -476,15 +484,33 @@ def _recompute_one(order: dict, prices: dict, opt_index: dict) -> dict | None:
 async def recompute_all_margins(_: dict = Depends(get_admin_user)):
     """Iterate over all sauna orders and refresh totalCost + margin from current
     sauna_prices.costPrice values, using VAT-aware netto margin (total / 1.23 − cost).
+
+    Side effect: for dealer orders, also refreshes ``manufacturerTotal`` from
+    the dealer's current B2B overrides + the current sauna_prices catalog,
+    BEFORE the margin formula runs. That way the same button keeps WM-side
+    margins on dealer orders in sync even after pricing changes.
     """
     prices = await db.sauna_prices.find_one({"_id": "default"}, {"_id": 0}) or {}
     opt_index = _flatten_options(prices)
+
+    # Lazy-import to avoid circular dep at module load.
+    from routes.dealer import _compute_manufacturer_totals  # noqa: WPS433
 
     updated = 0
     skipped = 0
     unchanged = 0
     cursor = db.sauna_orders.find({}, {"_id": 0})
     async for o in cursor:
+        # 0) Dealer orders: refresh manufacturerTotal first.
+        if o.get("source") == "dealer" and o.get("dealerId"):
+            try:
+                mt_patch = await _compute_manufacturer_totals(o["dealerId"], o)
+                if mt_patch:
+                    await db.sauna_orders.update_one({"id": o["id"]}, {"$set": mt_patch})
+                    o.update(mt_patch)
+            except Exception as e:
+                logger.warning(f"manufacturerTotal recompute failed on {o.get('id')}: {e}")
+
         patch = _recompute_one(o, prices, opt_index)
         if patch is None:
             skipped += 1

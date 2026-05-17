@@ -49,52 +49,85 @@ async def dealer_me(dealer: dict = Depends(get_current_dealer)):
 # ==========================================================================
 
 async def _apply_overrides(prices_doc: dict, dealer_id: str) -> dict:
-    """Mutate the prices doc in place: replace every price with dealer's override if any."""
+    """Mutate the prices doc in place.
+
+    For every catalog price we:
+      * Replace the **displayed** price with the dealer's *retail* override
+        (``dealerRetailPrice``) if set — falling back to the original WM Brutto.
+      * Attach a parallel ``b2bPrice`` field equal to the dealer's *B2B*
+        override (``price``) if set, else the same WM Brutto.
+
+    Net effect: the SaunaCalculator (which only reads ``basePrice``/``price``)
+    keeps rendering the dealer's retail like a normal manager catalog, while
+    the dealer panel can also read ``b2bPrice`` from the same response to
+    compute live margins.
+    """
     if not prices_doc:
         return prices_doc
+
+    # 1. Build override lookups
     overrides = await db.dealer_price_overrides.find(
         {"dealerId": dealer_id}, {"_id": 0}
     ).to_list(length=5000)
-    if not overrides:
-        return prices_doc
+    by_model = {}              # modelId -> {retail?, b2b?}
+    by_model_variant = {}      # (modelId, variantId) -> {retail?, b2b?}
+    by_option = {}             # optionId -> {retail?, b2b?}
+    by_opt_variant = {}        # (optionId, optionVariantId) -> {retail?, b2b?}
 
-    # Build lookup tables for O(1) access
-    by_model = {}         # modelId -> price
-    by_model_variant = {} # (modelId, variantId) -> price
-    by_option = {}        # optionId -> price
-    by_opt_variant = {}   # (optionId, optionVariantId) -> price
+    def _pack(o):
+        return {
+            "retail": (int(o["dealerRetailPrice"]) if o.get("dealerRetailPrice") is not None else None),
+            "b2b": (int(o["price"]) if o.get("price") is not None else None),
+        }
+
     for o in overrides:
         kind = o.get("kind")
-        price = int(o.get("price") or 0)
         if kind == "model" and o.get("modelId"):
-            by_model[o["modelId"]] = price
+            by_model[o["modelId"]] = _pack(o)
         elif kind == "model_variant" and o.get("modelId") and o.get("variantId"):
-            by_model_variant[(o["modelId"], o["variantId"])] = price
+            by_model_variant[(o["modelId"], o["variantId"])] = _pack(o)
         elif kind == "option" and o.get("optionId"):
-            by_option[o["optionId"]] = price
+            by_option[o["optionId"]] = _pack(o)
         elif kind == "option_variant" and o.get("optionId") and o.get("optionVariantId"):
-            by_opt_variant[(o["optionId"], o["optionVariantId"])] = price
+            by_opt_variant[(o["optionId"], o["optionVariantId"])] = _pack(o)
 
-    # Apply to models
+    # 2. Apply to models + variants
     for m in prices_doc.get("models", []) or []:
         mid = m.get("id")
-        if mid in by_model:
-            m["basePrice"] = by_model[mid]
-        for v in m.get("variants", []) or []:
-            key = (mid, v.get("id"))
-            if key in by_model_variant:
-                v["price"] = by_model_variant[key]
+        base = int(m.get("basePrice") or 0)
+        ov = by_model.get(mid) or {}
+        if ov.get("retail") is not None:
+            m["basePrice"] = ov["retail"]
+        m["b2bPrice"] = ov.get("b2b") if ov.get("b2b") is not None else base
+        m["baseRetailWm"] = base  # keep original WM Brutto for reference
 
-    # Apply to options (flat and inside categories)
+        for v in m.get("variants", []) or []:
+            vbase = int(v.get("price") or 0)
+            key = (mid, v.get("id"))
+            ovv = by_model_variant.get(key) or {}
+            if ovv.get("retail") is not None:
+                v["price"] = ovv["retail"]
+            v["b2bPrice"] = ovv.get("b2b") if ovv.get("b2b") is not None else vbase
+            v["baseRetailWm"] = vbase
+
+    # 3. Apply to options (flat and inside categories)
     def _fix_options_list(opts: list):
         for opt in opts or []:
             oid = opt.get("id")
-            if oid in by_option:
-                opt["price"] = by_option[oid]
+            obase = int(opt.get("price") or 0)
+            ovo = by_option.get(oid) or {}
+            if ovo.get("retail") is not None:
+                opt["price"] = ovo["retail"]
+            opt["b2bPrice"] = ovo.get("b2b") if ovo.get("b2b") is not None else obase
+            opt["baseRetailWm"] = obase
             for v in opt.get("variants", []) or []:
+                vbase = int(v.get("price") or 0)
                 key = (oid, v.get("id"))
-                if key in by_opt_variant:
-                    v["price"] = by_opt_variant[key]
+                ovv = by_opt_variant.get(key) or {}
+                if ovv.get("retail") is not None:
+                    v["price"] = ovv["retail"]
+                v["b2bPrice"] = ovv.get("b2b") if ovv.get("b2b") is not None else vbase
+                v["baseRetailWm"] = vbase
 
     _fix_options_list(prices_doc.get("options", []))
     for cat in prices_doc.get("categories", []) or []:
@@ -140,23 +173,295 @@ async def dealer_put_overrides(
     body: DealerPriceOverridesBulk,
     dealer: dict = Depends(get_current_dealer),
 ):
-    """Replace all of this dealer's overrides with the given list."""
+    """Replace the dealer's *retail* prices in bulk.
+
+    The dealer can ONLY touch ``dealerRetailPrice`` from this endpoint.
+    The ``price`` (B2B WM→dealer) of each row is preserved if a matching
+    row already exists. Rows with empty retail are removed.
+    """
+    incoming = body.overrides or []
+
+    # 1. Snapshot existing B2B prices keyed by the same compound key.
+    existing = await db.dealer_price_overrides.find(
+        {"dealerId": dealer["id"]}, {"_id": 0}
+    ).to_list(length=5000)
+    b2b_by_key: dict[tuple, int | None] = {}
+    for o in existing:
+        key = (o.get("kind"), o.get("modelId") or None, o.get("variantId") or None,
+               o.get("optionId") or None, o.get("optionVariantId") or None)
+        b2b_by_key[key] = (int(o["price"]) if o.get("price") is not None else None)
+
+    # 2. Wipe and re-insert combined rows
     await db.dealer_price_overrides.delete_many({"dealerId": dealer["id"]})
-    if body.overrides:
-        docs = []
-        for o in body.overrides:
-            doc = o.model_dump()
-            doc["dealerId"] = dealer["id"]
-            doc["updatedAt"] = datetime.now(timezone.utc).isoformat()
-            docs.append(doc)
-        if docs:
-            await db.dealer_price_overrides.insert_many(docs)
-    return {"ok": True, "count": len(body.overrides or [])}
+    keys_seen: set[tuple] = set()
+    docs: list[dict] = []
+    for o in incoming:
+        d = o.model_dump()
+        d["dealerId"] = dealer["id"]
+        retail = d.get("dealerRetailPrice")
+        try:
+            retail = int(retail) if retail not in (None, "") else None
+        except (TypeError, ValueError):
+            retail = None
+        d["dealerRetailPrice"] = retail
+        key = (d.get("kind"), d.get("modelId") or None, d.get("variantId") or None,
+               d.get("optionId") or None, d.get("optionVariantId") or None)
+        keys_seen.add(key)
+        # Preserve existing B2B unless the dealer payload explicitly carries one
+        # (dealers normally don't, but admin-style payloads do).
+        if d.get("price") in (None, ""):
+            d["price"] = b2b_by_key.get(key)
+        else:
+            try:
+                d["price"] = int(d["price"])
+            except (TypeError, ValueError):
+                d["price"] = b2b_by_key.get(key)
+        # Skip rows with no meaningful data at all.
+        if d.get("dealerRetailPrice") is None and d.get("price") is None:
+            continue
+        d["updatedAt"] = datetime.now(timezone.utc).isoformat()
+        docs.append(d)
+
+    # 3. Preserve B2B-only rows the dealer didn't touch.
+    for key, b2b in b2b_by_key.items():
+        if key in keys_seen or b2b is None:
+            continue
+        kind, modelId, variantId, optionId, optionVariantId = key
+        docs.append({
+            "id": str(__import__("uuid").uuid4()),
+            "dealerId": dealer["id"],
+            "kind": kind,
+            "modelId": modelId,
+            "variantId": variantId,
+            "optionId": optionId,
+            "optionVariantId": optionVariantId,
+            "price": b2b,
+            "dealerRetailPrice": None,
+            "updatedAt": datetime.now(timezone.utc).isoformat(),
+        })
+
+    if docs:
+        await db.dealer_price_overrides.insert_many(docs)
+    return {"ok": True, "count": len(docs)}
+
+
+@router.post("/api/dealer/sauna/overrides/bulk-markup")
+async def dealer_bulk_markup(payload: dict, dealer: dict = Depends(get_current_dealer)):
+    """Apply a percentage markup to set ``dealerRetailPrice`` in bulk.
+
+    Body::
+
+        { "percent": 15,
+          "base": "b2b" | "wm",   # markup baseline
+          "scope": "all" | "models" | "options",
+          "overwrite": true }      # if false, only fill blanks
+
+    ``base="b2b"`` → ``retail = b2b * (1 + percent/100)`` for each row that
+    has a B2B price. ``base="wm"`` uses the WM base brutto from sauna_prices.
+    """
+    try:
+        percent = float(payload.get("percent") or 0)
+    except (TypeError, ValueError):
+        raise HTTPException(400, "percent must be a number")
+    base = (payload.get("base") or "b2b").lower()
+    scope = (payload.get("scope") or "all").lower()
+    overwrite = bool(payload.get("overwrite", True))
+    if base not in ("b2b", "wm"):
+        raise HTTPException(400, "base must be 'b2b' or 'wm'")
+    if scope not in ("all", "models", "options"):
+        raise HTTPException(400, "scope must be 'all', 'models' or 'options'")
+
+    factor = 1.0 + (percent / 100.0)
+    prices_doc = await db.sauna_prices.find_one({"_id": "default"}, {"_id": 0}) or {}
+
+    # WM base brutto by key
+    wm_by_key: dict[tuple, int] = {}
+    for m in (prices_doc.get("models") or []):
+        wm_by_key[("model", m.get("id"), None, None, None)] = int(m.get("basePrice") or 0)
+        for v in (m.get("variants") or []):
+            wm_by_key[("model_variant", m.get("id"), v.get("id"), None, None)] = int(v.get("price") or 0)
+    all_opts = list(prices_doc.get("options") or [])
+    for cat in (prices_doc.get("categories") or []):
+        all_opts.extend(cat.get("options") or [])
+    for o in all_opts:
+        wm_by_key[("option", None, None, o.get("id"), None)] = int(o.get("price") or 0)
+        for v in (o.get("variants") or []):
+            wm_by_key[("option_variant", None, None, o.get("id"), v.get("id"))] = int(v.get("price") or 0)
+
+    existing = await db.dealer_price_overrides.find(
+        {"dealerId": dealer["id"]}, {"_id": 0}
+    ).to_list(length=5000)
+    by_key: dict[tuple, dict] = {}
+    for o in existing:
+        key = (o.get("kind"), o.get("modelId") or None, o.get("variantId") or None,
+               o.get("optionId") or None, o.get("optionVariantId") or None)
+        by_key[key] = o
+
+    touched = 0
+
+    def _in_scope(kind: str) -> bool:
+        if scope == "all":
+            return True
+        if scope == "models":
+            return kind in ("model", "model_variant")
+        return kind in ("option", "option_variant")
+
+    # Operate on every WM catalog row (so dealer's blank rows get filled too)
+    for key, wm_brutto in wm_by_key.items():
+        kind = key[0]
+        if not _in_scope(kind):
+            continue
+        existing_row = by_key.get(key)
+        b2b = existing_row.get("price") if existing_row else None
+        baseline = b2b if base == "b2b" else wm_brutto
+        if baseline is None or baseline <= 0:
+            continue
+        new_retail = int(round(baseline * factor))
+
+        cur_retail = existing_row.get("dealerRetailPrice") if existing_row else None
+        if cur_retail is not None and not overwrite:
+            continue
+        if existing_row:
+            existing_row["dealerRetailPrice"] = new_retail
+            existing_row["updatedAt"] = datetime.now(timezone.utc).isoformat()
+        else:
+            by_key[key] = {
+                "id": str(__import__("uuid").uuid4()),
+                "dealerId": dealer["id"],
+                "kind": kind,
+                "modelId": key[1],
+                "variantId": key[2],
+                "optionId": key[3],
+                "optionVariantId": key[4],
+                "price": None,
+                "dealerRetailPrice": new_retail,
+                "updatedAt": datetime.now(timezone.utc).isoformat(),
+            }
+        touched += 1
+
+    # Persist
+    await db.dealer_price_overrides.delete_many({"dealerId": dealer["id"]})
+    docs = [v for v in by_key.values()
+            if v.get("dealerRetailPrice") is not None or v.get("price") is not None]
+    if docs:
+        await db.dealer_price_overrides.insert_many(docs)
+    return {"ok": True, "touched": touched, "total": len(docs)}
 
 
 # ==========================================================================
 # DEALER — ORDERS
 # ==========================================================================
+
+async def _compute_manufacturer_totals(dealer_id: str, order_data: dict) -> dict:
+    """Recompute the *WM-side* (B2B) totals for a dealer order.
+
+    Returns a dict of fields to ``$set`` on the order::
+
+        {
+          "manufacturerBasePrice":   <int>,   # B2B model price
+          "manufacturerVariantPrice":<int>,   # B2B model_variant delta (0 if none)
+          "manufacturerOptionsTotal":<int>,   # sum of B2B option subtotals
+          "manufacturerSubtotal":    <int>,   # base+variant+options (pre-discount, brutto)
+          "manufacturerTotal":       <int>,   # subtotal * (1 - discount%/100)
+        }
+
+    The dealer-facing ``order.total`` (which is the **retail** total shown to
+    the client) is left untouched. The two figures together let the dealer
+    panel show a live margin = total − manufacturerTotal.
+
+    Resilient by design: if a price can't be resolved (missing override AND
+    missing WM catalog entry), it falls back to whatever the order itself
+    stored — never raises.
+    """
+    # 1. Build B2B lookups (override `price` if set, else WM brutto baseline).
+    prices_doc = await db.sauna_prices.find_one({"_id": "default"}, {"_id": 0}) or {}
+    wm_model: dict[str, int] = {}
+    wm_variant: dict[tuple, int] = {}
+    wm_option: dict[str, int] = {}
+    wm_opt_variant: dict[tuple, int] = {}
+    for m in (prices_doc.get("models") or []):
+        wm_model[m.get("id")] = int(m.get("basePrice") or 0)
+        for v in (m.get("variants") or []):
+            wm_variant[(m.get("id"), v.get("id"))] = int(v.get("price") or 0)
+    all_opts = list(prices_doc.get("options") or [])
+    for cat in (prices_doc.get("categories") or []):
+        all_opts.extend(cat.get("options") or [])
+    for o in all_opts:
+        wm_option[o.get("id")] = int(o.get("price") or 0)
+        for v in (o.get("variants") or []):
+            wm_opt_variant[(o.get("id"), v.get("id"))] = int(v.get("price") or 0)
+
+    overrides = await db.dealer_price_overrides.find(
+        {"dealerId": dealer_id}, {"_id": 0}
+    ).to_list(length=5000)
+    ov_model: dict[str, int] = {}
+    ov_variant: dict[tuple, int] = {}
+    ov_option: dict[str, int] = {}
+    ov_opt_variant: dict[tuple, int] = {}
+    for o in overrides:
+        if o.get("price") is None:
+            continue  # retail-only row — no B2B value
+        p = int(o["price"])
+        kind = o.get("kind")
+        if kind == "model" and o.get("modelId"):
+            ov_model[o["modelId"]] = p
+        elif kind == "model_variant" and o.get("modelId") and o.get("variantId"):
+            ov_variant[(o["modelId"], o["variantId"])] = p
+        elif kind == "option" and o.get("optionId"):
+            ov_option[o["optionId"]] = p
+        elif kind == "option_variant" and o.get("optionId") and o.get("optionVariantId"):
+            ov_opt_variant[(o["optionId"], o["optionVariantId"])] = p
+
+    def b2b_model(mid: str) -> int:
+        if mid in ov_model:
+            return ov_model[mid]
+        return wm_model.get(mid, 0)
+
+    def b2b_variant(mid: str, vid: str) -> int:
+        key = (mid, vid)
+        if key in ov_variant:
+            return ov_variant[key]
+        return wm_variant.get(key, 0)
+
+    def b2b_option(oid: str, vid: str | None) -> int:
+        if vid:
+            key = (oid, vid)
+            if key in ov_opt_variant:
+                return ov_opt_variant[key]
+            base = ov_option.get(oid, wm_option.get(oid, 0))
+            return base + wm_opt_variant.get(key, 0)
+        if oid in ov_option:
+            return ov_option[oid]
+        return wm_option.get(oid, 0)
+
+    # 2. Resolve model + variant + options from the order payload
+    model_id = order_data.get("selectedModel") or order_data.get("modelId") or ""
+    variant_id = order_data.get("selectedModelVariant") or order_data.get("variantId") or None
+    m_base = b2b_model(model_id) if model_id else int(order_data.get("basePrice") or 0)
+    m_variant = b2b_variant(model_id, variant_id) if (model_id and variant_id) else 0
+
+    options_total = 0
+    for opt in (order_data.get("selectedOptions") or []):
+        oid = opt.get("optionId") or opt.get("id")
+        if not oid:
+            continue
+        v_id = opt.get("optionVariantId") or opt.get("variantId")
+        unit = b2b_option(oid, v_id)
+        qty = int(opt.get("quantity") or 1)
+        options_total += unit * qty
+
+    subtotal = int(m_base) + int(m_variant) + int(options_total)
+    discount_pct = int(order_data.get("discountPercent") or 0)
+    total = int(round(subtotal * (1.0 - discount_pct / 100.0)))
+
+    return {
+        "manufacturerBasePrice": int(m_base),
+        "manufacturerVariantPrice": int(m_variant),
+        "manufacturerOptionsTotal": int(options_total),
+        "manufacturerSubtotal": int(subtotal),
+        "manufacturerTotal": int(total),
+    }
+
 
 @router.post("/api/dealer/sauna/orders")
 async def dealer_create_order(order: dict, dealer: dict = Depends(get_current_dealer)):
@@ -189,6 +494,11 @@ async def dealer_create_order(order: dict, dealer: dict = Depends(get_current_de
     order_data.pop("_id", None)
     order_data.pop("totalCost", None)
     order_data.pop("margin", None)
+    # Compute WM-side (B2B) totals so the dealer panel can show live margin.
+    try:
+        order_data.update(await _compute_manufacturer_totals(dealer["id"], order_data))
+    except Exception as e:
+        logger.warning(f"manufacturerTotal calc failed on create {order_data.get('id')}: {e}")
     await db.sauna_orders.insert_one(order_data)
     order_data.pop("_id", None)
 
@@ -211,9 +521,17 @@ async def dealer_update_order(order_id: str, order: dict, dealer: dict = Depends
     # Strip immutable / sensitive fields
     for k in ("id", "dealerId", "dealerName", "dealerUsername", "createdBy",
               "createdAt", "source", "status", "confirmedAt", "_id",
-              "totalCost", "margin", "dealerContractNumber"):
+              "totalCost", "margin", "dealerContractNumber",
+              "manufacturerBasePrice", "manufacturerVariantPrice",
+              "manufacturerOptionsTotal", "manufacturerSubtotal", "manufacturerTotal"):
         update.pop(k, None)
     update["updatedAt"] = datetime.now(timezone.utc).isoformat()
+    # Recompute WM-side totals from the merged latest order body.
+    try:
+        merged = {**existing, **update}
+        update.update(await _compute_manufacturer_totals(dealer["id"], merged))
+    except Exception as e:
+        logger.warning(f"manufacturerTotal calc failed on update {order_id}: {e}")
     await db.sauna_orders.update_one(
         {"id": order_id, "dealerId": dealer["id"]},
         {"$set": update},
@@ -529,13 +847,16 @@ async def admin_dealers_comparison(_: dict = Depends(get_admin_user)):
     # Build override lookup: {dealerId: {(kind,modelId,variantId,optionId,optionVariantId): price}}
     ov_by_dealer: dict[str, dict] = {}
     for o in overrides:
+        p = o.get("price")
+        if p is None:
+            continue  # retail-only override row — not relevant to B2B comparison
         ov_by_dealer.setdefault(o.get("dealerId"), {})[(
             o.get("kind"),
             o.get("modelId") or "",
             o.get("variantId") or "",
             o.get("optionId") or "",
             o.get("optionVariantId") or "",
-        )] = int(o.get("price") or 0)
+        )] = int(p)
 
     rows: list[dict] = []
 
@@ -658,19 +979,73 @@ async def admin_put_dealer_overrides(
     body: DealerPriceOverridesBulk,
     _: dict = Depends(get_admin_user),
 ):
+    """Replace the dealer's *B2B* (WM→dealer) prices in bulk.
+
+    Admin can only touch ``price``. Any ``dealerRetailPrice`` already set by
+    the dealer is preserved.
+    """
     if not await db.dealers.find_one({"id": dealer_id}):
         raise HTTPException(404, "Dealer not found")
+
+    # Snapshot existing dealer-set retail prices.
+    existing = await db.dealer_price_overrides.find(
+        {"dealerId": dealer_id}, {"_id": 0}
+    ).to_list(length=5000)
+    retail_by_key: dict[tuple, int | None] = {}
+    for o in existing:
+        key = (o.get("kind"), o.get("modelId") or None, o.get("variantId") or None,
+               o.get("optionId") or None, o.get("optionVariantId") or None)
+        retail_by_key[key] = (int(o["dealerRetailPrice"]) if o.get("dealerRetailPrice") is not None else None)
+
     await db.dealer_price_overrides.delete_many({"dealerId": dealer_id})
-    if body.overrides:
-        docs = []
-        for o in body.overrides:
-            doc = o.model_dump()
-            doc["dealerId"] = dealer_id
-            doc["updatedAt"] = datetime.now(timezone.utc).isoformat()
-            docs.append(doc)
-        if docs:
-            await db.dealer_price_overrides.insert_many(docs)
-    return {"ok": True, "count": len(body.overrides or [])}
+    keys_seen: set[tuple] = set()
+    docs: list[dict] = []
+    for o in (body.overrides or []):
+        d = o.model_dump()
+        d["dealerId"] = dealer_id
+        key = (d.get("kind"), d.get("modelId") or None, d.get("variantId") or None,
+               d.get("optionId") or None, d.get("optionVariantId") or None)
+        keys_seen.add(key)
+        # Admin payload carries `price` (B2B). Coerce to int or None.
+        try:
+            d["price"] = int(d["price"]) if d.get("price") not in (None, "") else None
+        except (TypeError, ValueError):
+            d["price"] = None
+        # Preserve dealer's retail if admin didn't explicitly set one.
+        if d.get("dealerRetailPrice") in (None, ""):
+            d["dealerRetailPrice"] = retail_by_key.get(key)
+        else:
+            try:
+                d["dealerRetailPrice"] = int(d["dealerRetailPrice"])
+            except (TypeError, ValueError):
+                d["dealerRetailPrice"] = retail_by_key.get(key)
+        if d.get("price") is None and d.get("dealerRetailPrice") is None:
+            continue
+        d["updatedAt"] = datetime.now(timezone.utc).isoformat()
+        docs.append(d)
+
+    # Preserve retail-only rows admin didn't touch.
+    import uuid as _uuid
+    for key, retail in retail_by_key.items():
+        if key in keys_seen or retail is None:
+            continue
+        kind, modelId, variantId, optionId, optionVariantId = key
+        docs.append({
+            "id": str(_uuid.uuid4()),
+            "dealerId": dealer_id,
+            "kind": kind,
+            "modelId": modelId,
+            "variantId": variantId,
+            "optionId": optionId,
+            "optionVariantId": optionVariantId,
+            "price": None,
+            "dealerRetailPrice": retail,
+            "updatedAt": datetime.now(timezone.utc).isoformat(),
+        })
+
+    if docs:
+        await db.dealer_price_overrides.insert_many(docs)
+    return {"ok": True, "count": len(docs)}
 
 
 @router.post("/api/admin/dealers/{dealer_id}/overrides/upsert")
@@ -679,10 +1054,11 @@ async def admin_upsert_dealer_overrides(
     body: dict,
     _: dict = Depends(get_admin_user),
 ):
-    """Add or update specific dealer overrides without wiping the rest.
+    """Add or update specific dealer B2B overrides without wiping the rest.
 
-    Matches existing overrides on (dealerId, kind, modelId, variantId, optionId, optionVariantId)
-    and replaces the price; inserts new ones if not found.
+    Matches existing overrides on (dealerId, kind, modelId, variantId, optionId,
+    optionVariantId) and replaces ONLY the ``price`` (B2B) field. Any
+    ``dealerRetailPrice`` already set by the dealer himself is preserved.
     """
     if not await db.dealers.find_one({"id": dealer_id}):
         raise HTTPException(404, "Dealer not found")
@@ -703,26 +1079,19 @@ async def admin_upsert_dealer_overrides(
             price = int(raw.get("price") or 0)
         except (TypeError, ValueError):
             raise HTTPException(400, "price must be an integer")
-        doc = {
+        key = {
             "dealerId": dealer_id,
             "kind": kind,
             "modelId": raw.get("modelId") or None,
             "variantId": raw.get("variantId") or None,
             "optionId": raw.get("optionId") or None,
             "optionVariantId": raw.get("optionVariantId") or None,
-            "price": price,
-            "updatedAt": now,
         }
-        key = {
-            "dealerId": dealer_id,
-            "kind": doc["kind"],
-            "modelId": doc["modelId"],
-            "variantId": doc["variantId"],
-            "optionId": doc["optionId"],
-            "optionVariantId": doc["optionVariantId"],
-        }
+        # Only touch the B2B `price` field — leave dealerRetailPrice as-is.
         res = await db.dealer_price_overrides.update_one(
-            key, {"$set": doc}, upsert=True,
+            key,
+            {"$set": {**key, "price": price, "updatedAt": now}},
+            upsert=True,
         )
         if res.upserted_id is not None:
             inserted += 1
@@ -805,6 +1174,31 @@ async def admin_list_dealer_orders(
         {"_id": 0},
     ).sort("createdAt", -1).to_list(length=2000)
     return {"orders": orders}
+
+
+@router.post("/api/admin/dealer-orders/recompute-manufacturer-totals")
+async def admin_recompute_manufacturer_totals(_: dict = Depends(get_admin_user)):
+    """Backfill `manufacturerTotal` (and siblings) for every dealer order.
+
+    Useful after enabling the two-price model or after bulk price changes —
+    refreshes the WM-side B2B totals based on each dealer's *current* overrides
+    + the *current* sauna_prices catalog.
+    """
+    updated = 0
+    skipped = 0
+    cursor = db.sauna_orders.find(
+        {"source": "dealer", "dealerId": {"$exists": True, "$ne": None}},
+        {"_id": 0},
+    )
+    async for o in cursor:
+        try:
+            patch = await _compute_manufacturer_totals(o.get("dealerId"), o)
+        except Exception:
+            skipped += 1
+            continue
+        await db.sauna_orders.update_one({"id": o["id"]}, {"$set": patch})
+        updated += 1
+    return {"ok": True, "updated": updated, "skipped": skipped}
 
 
 

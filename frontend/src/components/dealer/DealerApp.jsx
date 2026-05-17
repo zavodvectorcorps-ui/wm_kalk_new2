@@ -236,7 +236,9 @@ function OrdersTab({ onEditDraft, reloadKey = 0 }) {
                 <th className="text-left px-4 py-3">Numer / Status</th>
                 <th className="text-left px-4 py-3">Klient</th>
                 <th className="text-left px-4 py-3">Model</th>
-                <th className="text-right px-4 py-3">Kwota</th>
+                <th className="text-right px-4 py-3">Klient płaci</th>
+                <th className="text-right px-4 py-3" title="Kwota, którą zapłacisz WM">Koszt WM</th>
+                <th className="text-right px-4 py-3">Marża</th>
                 <th className="text-left px-4 py-3">Data</th>
                 <th className="text-right px-4 py-3">Akcje</th>
               </tr>
@@ -244,6 +246,11 @@ function OrdersTab({ onEditDraft, reloadKey = 0 }) {
             <tbody>
               {filtered.map((o) => {
                 const isDraft = (o.status || 'draft').toLowerCase() === 'draft';
+                const retail = Number(o.total) || 0;
+                const cost = Number(o.manufacturerTotal);
+                const hasCost = Number.isFinite(cost) && cost > 0;
+                const margin = hasCost ? retail - cost : null;
+                const marginPct = hasCost && cost > 0 ? (margin / cost) * 100 : null;
                 return (
                   <tr key={o.id} className="border-t border-white/5 hover:bg-white/[0.02]" data-testid={`dealer-order-${o.id}`}>
                     <td className="px-4 py-3">
@@ -258,7 +265,20 @@ function OrdersTab({ onEditDraft, reloadKey = 0 }) {
                     </td>
                     <td className="px-4 py-3 text-slate-200">{o.customerName || o.clientName || o.fullName || '—'}</td>
                     <td className="px-4 py-3 text-slate-300">{o.modelName || o.model?.name || '—'}</td>
-                    <td className="px-4 py-3 text-right text-white font-medium">{fmtPLN(o.total)}</td>
+                    <td className="px-4 py-3 text-right text-white font-medium">{fmtPLN(retail)}</td>
+                    <td className="px-4 py-3 text-right text-cyan-300 font-mono text-xs">
+                      {hasCost ? fmtPLN(cost) : <span className="text-slate-600">—</span>}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      {margin === null ? (
+                        <span className="text-slate-600 text-xs">—</span>
+                      ) : (
+                        <div className={margin >= 0 ? 'text-emerald-300' : 'text-red-300'}>
+                          <div className="font-semibold">{fmtPLN(margin)}</div>
+                          {marginPct !== null && <div className="text-[10px]">{marginPct.toFixed(1)}%</div>}
+                        </div>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-slate-400">{fmtDate(o.createdAt)}</td>
                     <td className="px-4 py-3 text-right">
                       <div className="inline-flex gap-1">
@@ -340,12 +360,24 @@ function OrdersTab({ onEditDraft, reloadKey = 0 }) {
 export { downloadOrderPdf };
 
 // ==================== Price Editor Tab ====================
+// Two-price model:
+//   • `b2bPrice`  — what the dealer pays to WM (B2B Brutto). Read-only here.
+//                   Owned by admin (Price Simulator → "Apply to dealer").
+//   • `dealerRetailPrice` — what the dealer charges his client. Editable here.
+//                           Saved as the override `dealerRetailPrice` field.
 function PricesTab() {
-  const [prices, setPrices] = useState(null);
-  const [overrides, setOverrides] = useState({});  // key -> price (string while editing)
+  const [prices, setPrices] = useState(null);     // /api/dealer/sauna/prices (carries b2bPrice + baseRetailWm per row)
+  const [retailMap, setRetailMap] = useState({}); // key -> dealerRetailPrice as string (editing buffer)
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
+
+  // Bulk markup controls
+  const [markupOpen, setMarkupOpen] = useState(false);
+  const [markupPct, setMarkupPct] = useState('15');
+  const [markupBase, setMarkupBase] = useState('b2b'); // 'b2b' | 'wm'
+  const [markupScope, setMarkupScope] = useState('all'); // 'all' | 'models' | 'options'
+  const [markupOverwrite, setMarkupOverwrite] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -357,9 +389,11 @@ function PricesTab() {
       setPrices(pricesRes.data);
       const map = {};
       (ovrRes.data.overrides || []).forEach((o) => {
-        map[keyOf(o)] = String(o.price);
+        if (o.dealerRetailPrice !== null && o.dealerRetailPrice !== undefined) {
+          map[keyOf(o)] = String(o.dealerRetailPrice);
+        }
       });
-      setOverrides(map);
+      setRetailMap(map);
     } catch (e) {
       setMsg(e?.response?.data?.detail || 'Błąd ładowania');
     } finally {
@@ -368,25 +402,47 @@ function PricesTab() {
   }, []);
   useEffect(() => { load(); }, [load]);
 
-  const setPrice = (key, val) => {
-    setOverrides((prev) => ({ ...prev, [key]: val }));
-  };
+  const setRetail = (key, val) => setRetailMap((prev) => ({ ...prev, [key]: val }));
 
   const handleSave = async () => {
     setSaving(true);
     setMsg('');
     try {
       const payload = { overrides: [] };
-      for (const [key, val] of Object.entries(overrides)) {
+      for (const [key, val] of Object.entries(retailMap)) {
         const num = parseInt(val, 10);
         if (!Number.isFinite(num) || num < 0) continue;
-        payload.overrides.push({ ...unkeyOf(key), price: num, dealerId: '' });
+        payload.overrides.push({ ...unkeyOf(key), dealerRetailPrice: num, dealerId: '' });
       }
       await axios.put(`${API}/api/dealer/sauna/overrides`, payload, { headers: dealerAuthHeaders() });
       setMsg(`Zapisano (${payload.overrides.length} pozycji)`);
       setTimeout(() => setMsg(''), 3000);
+      await load();
     } catch (e) {
       setMsg(e?.response?.data?.detail || 'Błąd zapisu');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleApplyMarkup = async () => {
+    const pct = parseFloat(markupPct);
+    if (!Number.isFinite(pct)) {
+      toast.error('Podaj poprawny procent');
+      return;
+    }
+    setSaving(true);
+    try {
+      const r = await axios.post(
+        `${API}/api/dealer/sauna/overrides/bulk-markup`,
+        { percent: pct, base: markupBase, scope: markupScope, overwrite: markupOverwrite },
+        { headers: dealerAuthHeaders() },
+      );
+      toast.success(`Narzut ${pct}% zastosowany`, { description: `Pozycji: ${r.data?.touched ?? 0}` });
+      setMarkupOpen(false);
+      await load();
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || 'Nie udało się zastosować narzutu');
     } finally {
       setSaving(false);
     }
@@ -395,15 +451,52 @@ function PricesTab() {
   if (loading) return <div className="flex items-center justify-center py-20 text-slate-400"><Loader2 className="h-5 w-5 animate-spin" /></div>;
   if (!prices) return <div className="text-slate-400 py-10">Nie udało się załadować cennika.</div>;
 
+  // Compute total margin preview for visible rows where retail is set
+  const allRows = [];
+  (prices.models || []).forEach((m) => {
+    allRows.push({ kind: 'model', key: keyOf({ kind: 'model', modelId: m.id }), b2b: m.b2bPrice, baseWm: m.baseRetailWm });
+    (m.variants || []).forEach((v) =>
+      allRows.push({ kind: 'model_variant', key: keyOf({ kind: 'model_variant', modelId: m.id, variantId: v.id }), b2b: v.b2bPrice, baseWm: v.baseRetailWm }),
+    );
+  });
+  [
+    ...(prices.options || []),
+    ...(prices.categories || []).flatMap((c) => c.options || []),
+  ].forEach((o) => {
+    allRows.push({ kind: 'option', key: keyOf({ kind: 'option', optionId: o.id }), b2b: o.b2bPrice, baseWm: o.baseRetailWm });
+    (o.variants || []).forEach((v) =>
+      allRows.push({ kind: 'option_variant', key: keyOf({ kind: 'option_variant', optionId: o.id, optionVariantId: v.id }), b2b: v.b2bPrice, baseWm: v.baseRetailWm }),
+    );
+  });
+  let coveredRows = 0;
+  let avgMarginPct = 0;
+  allRows.forEach((r) => {
+    const retail = parseInt(retailMap[r.key], 10);
+    if (!Number.isFinite(retail) || !r.b2b) return;
+    coveredRows += 1;
+    avgMarginPct += ((retail - r.b2b) / r.b2b) * 100;
+  });
+  avgMarginPct = coveredRows ? (avgMarginPct / coveredRows) : 0;
+
   return (
     <div className="space-y-6" data-testid="dealer-prices-editor">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className="text-xl font-bold text-white mb-1">Mój cennik</h2>
-          <p className="text-sm text-slate-400">Ustaw własne ceny. Puste pole = używana jest cena bazowa.</p>
+          <h2 className="text-xl font-bold text-white mb-1">Moje ceny detaliczne</h2>
+          <p className="text-sm text-slate-400 max-w-2xl">
+            Ustaw własne ceny dla klientów. Puste pole = używana jest cena bazowa WM (Brutto).
+            Kolumna „B2B" to Twój koszt zakupu od WM — różnica = Twoja marża.
+          </p>
         </div>
-        <div className="flex gap-2 items-center">
+        <div className="flex gap-2 items-center flex-wrap">
           {msg && <span className="text-xs text-emerald-400 mr-2">{msg}</span>}
+          <button
+            onClick={() => setMarkupOpen((v) => !v)}
+            className="px-3 py-2 rounded-lg border border-cyan-500/30 text-cyan-300 text-sm hover:bg-cyan-500/10 flex items-center gap-2"
+            data-testid="prices-bulk-markup"
+          >
+            <TrendingUp className="h-3.5 w-3.5" /> Narzut hurtowo
+          </button>
           <button onClick={load} className="px-3 py-2 rounded-lg border border-white/10 text-slate-300 text-sm hover:bg-white/5 flex items-center gap-2" data-testid="prices-reload">
             <RefreshCw className="h-3.5 w-3.5" /> Odśwież
           </button>
@@ -413,47 +506,107 @@ function PricesTab() {
         </div>
       </div>
 
+      {/* Summary card */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+        <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+          <div className="text-[10px] uppercase tracking-[0.18em] text-slate-500 mb-1">Pozycji z marżą</div>
+          <div className="text-2xl font-bold text-white">{coveredRows} <span className="text-xs font-normal text-slate-500">/ {allRows.length}</span></div>
+        </div>
+        <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+          <div className="text-[10px] uppercase tracking-[0.18em] text-slate-500 mb-1">Średnia marża %</div>
+          <div className={`text-2xl font-bold ${avgMarginPct >= 0 ? 'text-emerald-300' : 'text-red-300'}`}>
+            {avgMarginPct.toFixed(1)}%
+          </div>
+        </div>
+        <div className="rounded-xl border border-orange-500/30 bg-orange-500/5 p-4">
+          <div className="text-[10px] uppercase tracking-[0.18em] text-orange-300 mb-1">Wskazówka</div>
+          <div className="text-xs text-slate-300 leading-relaxed">
+            Ceny B2B ustawia WM. Twoja marża = retail − B2B. Po zapisaniu używamy Twoich cen w kalkulatorze.
+          </div>
+        </div>
+      </div>
+
+      {/* Bulk markup panel */}
+      {markupOpen && (
+        <div className="rounded-2xl border border-cyan-500/30 bg-cyan-500/5 p-4 space-y-3" data-testid="bulk-markup-panel">
+          <div className="flex items-center gap-2 text-cyan-300 font-medium">
+            <TrendingUp className="h-4 w-4" /> Narzut hurtowo
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+            <div>
+              <label className="text-[10px] uppercase tracking-wider text-slate-400 block mb-1">Procent %</label>
+              <input
+                type="number"
+                value={markupPct}
+                onChange={(e) => setMarkupPct(e.target.value)}
+                className="w-full px-3 py-2 rounded-md bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-cyan-400"
+                data-testid="bulk-markup-percent"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] uppercase tracking-wider text-slate-400 block mb-1">Od ceny</label>
+              <select value={markupBase} onChange={(e) => setMarkupBase(e.target.value)} className="w-full px-3 py-2 rounded-md bg-slate-800 border border-white/10 text-white text-sm" data-testid="bulk-markup-base">
+                <option value="b2b">B2B (Twoja cena zakupu)</option>
+                <option value="wm">Bazowa WM Brutto</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-[10px] uppercase tracking-wider text-slate-400 block mb-1">Zakres</label>
+              <select value={markupScope} onChange={(e) => setMarkupScope(e.target.value)} className="w-full px-3 py-2 rounded-md bg-slate-800 border border-white/10 text-white text-sm" data-testid="bulk-markup-scope">
+                <option value="all">Wszystko</option>
+                <option value="models">Tylko modele</option>
+                <option value="options">Tylko opcje</option>
+              </select>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="markup-overwrite"
+                checked={markupOverwrite}
+                onChange={(e) => setMarkupOverwrite(e.target.checked)}
+                data-testid="bulk-markup-overwrite"
+              />
+              <label htmlFor="markup-overwrite" className="text-xs text-slate-300">Nadpisz istniejące</label>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <button onClick={() => setMarkupOpen(false)} className="px-3 py-2 rounded-lg border border-white/10 text-slate-300 text-sm hover:bg-white/5">Anuluj</button>
+            <button onClick={handleApplyMarkup} disabled={saving} className="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-medium disabled:opacity-50" data-testid="bulk-markup-apply">
+              {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Zastosuj'}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Models */}
       <section>
         <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-400 mb-3">Modele saun</h3>
         <div className="rounded-2xl border border-white/10 bg-white/[0.03] divide-y divide-white/5">
           {(prices.models || []).map((m) => (
-            <div key={m.id} className="p-4">
-              <div className="flex items-center gap-3 flex-wrap">
-                <div className="flex-1 min-w-[200px]">
-                  <div className="text-white font-medium">{m.name}</div>
-                  <div className="text-xs text-slate-500">id: {m.id}</div>
-                </div>
-                <PriceInput
-                  label="Cena bazowa"
-                  value={overrides[keyOf({ kind: 'model', modelId: m.id })] ?? ''}
-                  placeholder={String(m.basePrice || 0)}
-                  onChange={(v) => setPrice(keyOf({ kind: 'model', modelId: m.id }), v)}
-                  testid={`model-price-${m.id}`}
-                />
-              </div>
-              {(m.variants || []).length > 0 && (
-                <div className="mt-3 ml-4 space-y-2 border-l border-white/10 pl-4">
-                  {m.variants.map((v) => (
-                    <div key={v.id} className="flex items-center gap-3 flex-wrap">
-                      <div className="flex-1 min-w-[200px] text-sm text-slate-300">└ {v.name}</div>
-                      <PriceInput
-                        label="Wariant"
-                        value={overrides[keyOf({ kind: 'model_variant', modelId: m.id, variantId: v.id })] ?? ''}
-                        placeholder={String(v.price || 0)}
-                        onChange={(val) => setPrice(keyOf({ kind: 'model_variant', modelId: m.id, variantId: v.id }), val)}
-                        testid={`variant-price-${m.id}-${v.id}`}
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            <PriceRow
+              key={m.id}
+              kind="model"
+              name={m.name}
+              hint={`id: ${m.id}`}
+              b2b={m.b2bPrice}
+              baseWm={m.baseRetailWm}
+              retailKey={keyOf({ kind: 'model', modelId: m.id })}
+              retailMap={retailMap}
+              onChange={setRetail}
+              testid={`row-model-${m.id}`}
+              variants={(m.variants || []).map((v) => ({
+                name: v.name,
+                b2b: v.b2bPrice,
+                baseWm: v.baseRetailWm,
+                key: keyOf({ kind: 'model_variant', modelId: m.id, variantId: v.id }),
+                testid: `row-variant-${m.id}-${v.id}`,
+              }))}
+            />
           ))}
         </div>
       </section>
 
-      {/* Options (flat + from categories) */}
+      {/* Options */}
       {(() => {
         const allOpts = [
           ...(prices.options || []),
@@ -465,37 +618,25 @@ function PricesTab() {
             <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-400 mb-3">Opcje</h3>
             <div className="rounded-2xl border border-white/10 bg-white/[0.03] divide-y divide-white/5">
               {allOpts.map((o) => (
-                <div key={o.id} className="p-4">
-                  <div className="flex items-center gap-3 flex-wrap">
-                    <div className="flex-1 min-w-[200px]">
-                      <div className="text-white text-sm font-medium">{o.name}</div>
-                      <div className="text-xs text-slate-500">id: {o.id}</div>
-                    </div>
-                    <PriceInput
-                      label="Cena"
-                      value={overrides[keyOf({ kind: 'option', optionId: o.id })] ?? ''}
-                      placeholder={String(o.price || 0)}
-                      onChange={(v) => setPrice(keyOf({ kind: 'option', optionId: o.id }), v)}
-                      testid={`option-price-${o.id}`}
-                    />
-                  </div>
-                  {(o.variants || []).length > 0 && (
-                    <div className="mt-3 ml-4 space-y-2 border-l border-white/10 pl-4">
-                      {o.variants.map((v) => (
-                        <div key={v.id} className="flex items-center gap-3 flex-wrap">
-                          <div className="flex-1 min-w-[200px] text-sm text-slate-300">└ {v.name}</div>
-                          <PriceInput
-                            label="Wariant"
-                            value={overrides[keyOf({ kind: 'option_variant', optionId: o.id, optionVariantId: v.id })] ?? ''}
-                            placeholder={String(v.price || 0)}
-                            onChange={(val) => setPrice(keyOf({ kind: 'option_variant', optionId: o.id, optionVariantId: v.id }), val)}
-                            testid={`option-variant-price-${o.id}-${v.id}`}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                <PriceRow
+                  key={o.id}
+                  kind="option"
+                  name={o.name}
+                  hint={`id: ${o.id}`}
+                  b2b={o.b2bPrice}
+                  baseWm={o.baseRetailWm}
+                  retailKey={keyOf({ kind: 'option', optionId: o.id })}
+                  retailMap={retailMap}
+                  onChange={setRetail}
+                  testid={`row-option-${o.id}`}
+                  variants={(o.variants || []).map((v) => ({
+                    name: v.name,
+                    b2b: v.b2bPrice,
+                    baseWm: v.baseRetailWm,
+                    key: keyOf({ kind: 'option_variant', optionId: o.id, optionVariantId: v.id }),
+                    testid: `row-option-variant-${o.id}-${v.id}`,
+                  }))}
+                />
               ))}
             </div>
           </section>
@@ -505,20 +646,61 @@ function PricesTab() {
   );
 }
 
-function PriceInput({ label, value, placeholder, onChange, testid }) {
+function PriceRow({ name, hint, b2b, baseWm, retailKey, retailMap, onChange, variants = [], testid }) {
   return (
-    <div className="flex items-center gap-2">
-      <span className="text-[10px] uppercase tracking-wider text-slate-500">{label}</span>
-      <input
-        type="number"
-        min="0"
-        value={value}
-        placeholder={placeholder}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-28 px-3 py-1.5 rounded-md bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-orange-400"
-        data-testid={testid}
-      />
-      <span className="text-xs text-slate-500">PLN</span>
+    <div className="p-4" data-testid={testid}>
+      <PriceRowInner name={name} hint={hint} b2b={b2b} baseWm={baseWm} retailKey={retailKey} retailMap={retailMap} onChange={onChange} />
+      {variants.length > 0 && (
+        <div className="mt-3 ml-4 space-y-3 border-l border-white/10 pl-4">
+          {variants.map((v) => (
+            <PriceRowInner key={v.key} variant name={v.name} hint="" b2b={v.b2b} baseWm={v.baseWm} retailKey={v.key} retailMap={retailMap} onChange={onChange} testid={v.testid} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PriceRowInner({ name, hint, b2b, baseWm, retailKey, retailMap, onChange, variant = false, testid }) {
+  const retailStr = retailMap[retailKey] ?? '';
+  const retailNum = parseInt(retailStr, 10);
+  const hasRetail = Number.isFinite(retailNum);
+  const margin = (hasRetail && b2b) ? retailNum - b2b : null;
+  const marginPct = (hasRetail && b2b) ? ((retailNum - b2b) / b2b) * 100 : null;
+  return (
+    <div className="flex items-center gap-3 flex-wrap" data-testid={testid}>
+      <div className="flex-1 min-w-[180px]">
+        <div className={`text-${variant ? 'sm' : 'base'} text-${variant ? 'slate-300' : 'white'} font-medium`}>
+          {variant ? '└ ' : ''}{name}
+        </div>
+        {hint && <div className="text-[10px] text-slate-500">{hint}</div>}
+      </div>
+      <div className="flex items-center gap-1.5 text-xs">
+        <span className="text-slate-500 uppercase tracking-wider">B2B</span>
+        <span className="px-2 py-1 rounded-md bg-slate-800 border border-white/10 text-cyan-300 font-mono">
+          {b2b ? Number(b2b).toLocaleString('pl-PL').replace(/,/g, ' ') : '—'}
+        </span>
+      </div>
+      <div className="flex items-center gap-1.5">
+        <span className="text-[10px] uppercase tracking-wider text-slate-500">Retail</span>
+        <input
+          type="number"
+          min="0"
+          value={retailStr}
+          placeholder={String(baseWm || 0)}
+          onChange={(e) => onChange(retailKey, e.target.value)}
+          className="w-28 px-3 py-1.5 rounded-md bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-orange-400"
+          data-testid={`retail-input-${retailKey}`}
+        />
+      </div>
+      <div className={`min-w-[110px] text-right text-xs font-mono ${
+        margin === null ? 'text-slate-600' : margin >= 0 ? 'text-emerald-300' : 'text-red-300'
+      }`}>
+        {margin === null ? '—' : `${margin >= 0 ? '+' : ''}${margin.toLocaleString('pl-PL').replace(/,/g, ' ')} PLN`}
+        {marginPct !== null && (
+          <div className="text-[10px] text-slate-500">{marginPct.toFixed(1)}%</div>
+        )}
+      </div>
     </div>
   );
 }

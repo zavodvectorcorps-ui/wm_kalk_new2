@@ -56,6 +56,15 @@ class DealerPriceOverride(BaseModel):
 
     Lookup key: (dealerId, kind, modelId, variantId?, optionId?, optionVariantId?)
     Only one of {model, model_variant, option, option_variant} is meaningful per row.
+
+    Two independent prices are tracked per override row:
+      * ``price`` (B2B Brutto) — what the dealer pays to WM.
+        Owned/edited by admin only (via Price Simulator → "Apply to dealer").
+        Dealer never edits this directly.
+      * ``dealerRetailPrice`` (Retail Brutto) — what the dealer charges his client.
+        Owned/edited by the dealer himself in "Moje ceny detaliczne".
+
+    Either side may be ``None`` (= fallback to the base WM Brutto from sauna_prices).
     """
     model_config = ConfigDict(extra="allow")
 
@@ -66,7 +75,8 @@ class DealerPriceOverride(BaseModel):
     variantId: Optional[str] = None  # for model_variant
     optionId: Optional[str] = None  # for option + option_variant
     optionVariantId: Optional[str] = None  # for option_variant
-    price: int = 0
+    price: Optional[int] = None        # B2B Brutto (manufacturer→dealer). None = use base.
+    dealerRetailPrice: Optional[int] = None  # Retail Brutto (dealer→client). None = use base.
     updatedAt: str = Field(default_factory=_now_iso)
 
 
