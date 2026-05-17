@@ -889,3 +889,43 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
 - Live margin badge inside the calculator (user declined for now).
 - Bulk-write atomicity in `dealer_put_overrides` / `admin_hard_delete_dealer`.
 
+---
+
+## Session — Feb 18, 2026: Warehouse "С водителем" multi-stage + Voice input in Planner
+
+### What shipped
+1. **New Dovoz Kanban column «С водителем»** (orange, `UserCheck` icon)
+   between «Довоз отправлен» and «Довоз доставлен», with full multi-stage
+   amoCRM mapping.
+   - `dovozByStage` in `WarehousePage.jsx` extended with `with_driver` bucket.
+   - Initial `settingsForm.dovoz_config` now seeds `with_driver_status_ids: []`.
+   - Selecting a different source pipeline now also clears
+     `with_driver_status_ids` (consistent with sent/source/delivered reset).
+   - Manual fallback (when amoCRM pipelines aren't loaded) gained a
+     comma-separated input `with-driver-status-ids-input`.
+2. **`PUT /api/dovoz/orders/{id}/stage?stage=with_driver`** now also pushes
+   to amoCRM (was previously skipped). Targets the FIRST id from
+   `with_driver_status_ids`.
+3. **«Обновить» button fix** — `handleRefreshDovoz` wraps both fetches with
+   a disabled spinner state and success toast `Обновлено · N довозов`.
+4. **Voice input in AI Task Parser** (Web Speech API, `ru-RU`):
+   - New mic button in `AITaskParser.jsx` (`data-testid='ai-parse-voice-start'`
+     / `ai-parse-voice-stop`). Toggles continuous recognition with interim
+     results merged live into the textarea.
+   - Final transcripts appended to existing text; interim shows live but
+     never duplicated.
+   - Graceful degradation: button hidden when neither
+     `SpeechRecognition` nor `webkitSpeechRecognition` exists.
+   - Toasts for permission denied / errors. Auto-cleanup on dialog close
+     and unmount.
+
+### Tests
+- `/app/backend/tests/test_dovoz_with_driver.py` — 7/7 PASS.
+- Frontend (testing agent): kanban OK, refresh toast OK, voice toggle OK.
+
+### Known follow-ups (P3 / P2)
+- Driver picker dialog when dragging into «С водителем» (pick which of the
+  N configured driver-stages to push to in amoCRM, instead of always the
+  first).
+- `WarehousePage.jsx` still 1400+ lines — refactor into sub-components.
+

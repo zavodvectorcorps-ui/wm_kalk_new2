@@ -1138,6 +1138,27 @@ const WarehousePage = ({ onBack }) => {
                       <Label className="text-xs">Delivered Status ID</Label>
                       <Input value={settingsForm.dovoz_config.delivered_status_id} onChange={(e) => setSettingsForm(prev => ({ ...prev, dovoz_config: { ...prev.dovoz_config, delivered_status_id: e.target.value } }))} placeholder="ID этапа 'доставлен'" data-testid="delivered-status-input" />
                     </div>
+                    <div className="col-span-2">
+                      <Label className="text-xs">With-Driver Status IDs (через запятую)</Label>
+                      <Input
+                        value={(settingsForm.dovoz_config.with_driver_status_ids || []).join(',')}
+                        onChange={(e) => setSettingsForm(prev => ({
+                          ...prev,
+                          dovoz_config: {
+                            ...prev.dovoz_config,
+                            with_driver_status_ids: e.target.value
+                              .split(',')
+                              .map(s => s.trim())
+                              .filter(Boolean),
+                          },
+                        }))}
+                        placeholder="ID этапов 'с водителем' через запятую (один на каждого водителя)"
+                        data-testid="with-driver-status-ids-input"
+                      />
+                      <p className="text-[11px] text-muted-foreground mt-1">
+                        Можно указать несколько ID этапов — лиды из любого из них попадут в колонку «С водителем».
+                      </p>
+                    </div>
                   </div>
                   <div className="pt-2 border-t">
                     <Label className="text-xs font-semibold">Товары (ID полей amoCRM)</Label>
