@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Checkbox } from './ui/checkbox';
-import { Save, Loader2, Flame, Eye, User, FileText, Settings, Percent, TrendingUp, Table, Plus, Trash2, Package } from 'lucide-react';
+import { Save, Loader2, Flame, Eye, User, FileText, Settings, Percent, TrendingUp, Table, Plus, Trash2, Package, Cloud, CloudOff, RefreshCw } from 'lucide-react';
 import { CustomerFieldsManager } from './CustomerFieldsManager';
 import { TechSpecAdminPage } from './TechSpecAdminPage';
 import { WizardStepsAdmin } from './sauna-pricing/WizardStepsAdmin';
@@ -31,6 +31,7 @@ export const SaunaPricingPage = () => {
     txt,
     techSpecCategories,
     handleSaveAll,
+    autoSaveStatus,
     // Models
     handleAddModel,
     handleSaveEditModel,
@@ -98,11 +99,13 @@ export const SaunaPricingPage = () => {
         </h1>
         {canEdit() && (
           <div className="flex items-center gap-2 flex-wrap">
+            <AutoSavePill status={autoSaveStatus} />
             <PriceImportExport onImported={() => window.location.reload()} />
             <Button
               onClick={handleSaveAll}
               disabled={saving}
               className="bg-amber-600 hover:bg-amber-700"
+              data-testid="cennik-save-all"
             >
               {saving ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -374,3 +377,41 @@ export const SaunaPricingPage = () => {
     </div>
   );
 };
+
+/**
+ * Compact pill that surfaces the debounced auto-save state next to the
+ * manual "Zapisz cennik" button. Same visual language as the TechCardEditor
+ * badge for consistency.
+ */
+function AutoSavePill({ status }) {
+  if (status === 'pending') {
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider px-2 py-1 rounded-md bg-amber-100 text-amber-800 border border-amber-300" data-testid="cennik-autosave-pending">
+        <RefreshCw className="h-3 w-3" /> Не сохранено
+      </span>
+    );
+  }
+  if (status === 'saving') {
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider px-2 py-1 rounded-md bg-blue-100 text-blue-800 border border-blue-300" data-testid="cennik-autosave-saving">
+        <Loader2 className="h-3 w-3 animate-spin" /> Сохранение
+      </span>
+    );
+  }
+  if (status === 'saved') {
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider px-2 py-1 rounded-md bg-emerald-100 text-emerald-800 border border-emerald-300" data-testid="cennik-autosave-saved">
+        <Cloud className="h-3 w-3" /> Авто-сохранено
+      </span>
+    );
+  }
+  if (status === 'error') {
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider px-2 py-1 rounded-md bg-red-100 text-red-800 border border-red-300" data-testid="cennik-autosave-error">
+        <CloudOff className="h-3 w-3" /> Ошибка
+      </span>
+    );
+  }
+  return null;
+}
+

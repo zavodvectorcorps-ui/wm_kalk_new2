@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import axios from 'axios';
@@ -19,6 +19,13 @@ export const useSaunaPricing = () => {
   const [saving, setSaving] = useState(false);
   const [prices, setPrices] = useState({ models: [], categories: [] });
   const [techSpecCategories, setTechSpecCategories] = useState([]);
+  // Auto-save: tracks the JSON snapshot of the last persisted prices, plus a
+  // 4-state status the page surfaces as a badge next to the manual Save button.
+  const [autoSaveStatus, setAutoSaveStatus] = useState('idle'); // idle | pending | saving | saved | error
+  const lastSavedRef = useRef('');
+  const debounceRef = useRef(null);
+  const isMountedRef = useRef(true);
+  useEffect(() => () => { isMountedRef.current = false; }, []);
 
   const texts = {
     ru: {
@@ -165,6 +172,10 @@ export const useSaunaPricing = () => {
     try {
       const response = await axios.get(`${API_URL}/api/sauna/prices`);
       setPrices(response.data);
+      // Seed the auto-save baseline so the first edit is what triggers a save,
+      // not the initial load.
+      lastSavedRef.current = JSON.stringify(response.data || {});
+      setAutoSaveStatus('saved');
     } catch (error) {
       console.error('Error fetching prices:', error);
       toast.error(t('error'));
@@ -182,18 +193,76 @@ export const useSaunaPricing = () => {
     }
   };
 
-  const handleSaveAll = async () => {
-    setSaving(true);
+  // Internal helper used by both the manual Save button and the silent
+  // debounced auto-save. Persists the FULL prices doc and updates the saved
+  // snapshot so subsequent edits are detected correctly.
+  const doSavePrices = useCallback(async ({ silent } = {}) => {
     try {
+      if (!silent) setSaving(true);
+      else setAutoSaveStatus('saving');
       await axios.post(`${API_URL}/api/sauna/prices`, prices);
-      toast.success(txt.saved);
+      if (!isMountedRef.current) return;
+      lastSavedRef.current = JSON.stringify(prices);
+      if (silent) setAutoSaveStatus('saved');
+      else toast.success(txt.saved);
     } catch (error) {
       console.error('Error saving prices:', error);
-      toast.error(t('error'));
+      if (silent) setAutoSaveStatus('error');
+      else toast.error(t('error'));
+      throw error;
     } finally {
-      setSaving(false);
+      if (!silent && isMountedRef.current) setSaving(false);
     }
+  }, [prices, txt.saved, t]);
+
+  const handleSaveAll = async () => {
+    // Manual save → flush any pending debounce first, then loud save with toast.
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+    }
+    try { await doSavePrices({ silent: false }); } catch (_e) { /* toast shown */ }
   };
+
+  // Debounced auto-save: when `prices` changes, schedule a silent save in 1.5s.
+  // Resets the timer on every edit so rapid typing only fires once at the end.
+  useEffect(() => {
+    if (loading) return;
+    const snap = JSON.stringify(prices);
+    if (snap === lastSavedRef.current) {
+      setAutoSaveStatus('saved');
+      return;
+    }
+    setAutoSaveStatus('pending');
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      if (JSON.stringify(prices) !== lastSavedRef.current) {
+        doSavePrices({ silent: true }).catch(() => { /* status='error' set above */ });
+      }
+    }, 1500);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [prices, loading, doSavePrices]);
+
+  // On unmount: if there's a pending debounced save, fire fire-and-forget so
+  // user navigation away never loses last-second edits.
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+        const snap = JSON.stringify(pricesRef.current);
+        if (snap !== lastSavedRef.current) {
+          axios.post(`${API_URL}/api/sauna/prices`, pricesRef.current).catch(() => { /* best effort */ });
+        }
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Mirror of `prices` for the unmount handler (closure-safe).
+  const pricesRef = useRef(prices);
+  useEffect(() => { pricesRef.current = prices; }, [prices]);
 
   const handleUpdatePdfSettings = async (updates) => {
     const newPrices = { ...prices, ...updates };
@@ -650,6 +719,7 @@ export const useSaunaPricing = () => {
     txt,
     techSpecCategories,
     handleSaveAll,
+    autoSaveStatus,
     // Models
     handleAddModel,
     handleSaveEditModel,
