@@ -2,6 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { Calculator } from 'lucide-react';
+import GlobalSyncPill from './GlobalSyncPill';
 
 export const LandingHeader = () => {
   const { i18n } = useTranslation();
@@ -23,7 +24,10 @@ export const LandingHeader = () => {
           <h1 className="text-lg md:text-xl font-bold tracking-tight">{titles[lang]}</h1>
         </div>
         
-        <LanguageSwitcher />
+        <div className="flex items-center gap-3">
+          <GlobalSyncPill compact />
+          <LanguageSwitcher />
+        </div>
       </div>
     </header>
   );

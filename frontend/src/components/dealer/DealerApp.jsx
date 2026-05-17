@@ -8,6 +8,8 @@ import {
 import { getApiUrl } from '../../utils/api';
 import { dealerAuthHeaders, clearDealerSession, getDealerInfo, fetchDealerMe } from '../../utils/dealerAuth';
 import DealerCalculatorWrapper from './DealerCalculatorWrapper';
+import { setSyncStatus, clearSyncStatus } from '../../utils/syncStatus';
+import GlobalSyncPill from '../GlobalSyncPill';
 
 const API = getApiUrl();
 
@@ -391,6 +393,9 @@ function PricesTab() {
   useEffect(() => { retailMapRef.current = retailMap; }, [retailMap]);
   const isMountedRef = useRef(true);
   useEffect(() => () => { isMountedRef.current = false; }, []);
+  // Surface this tab's state to the global Sync indicator in the header.
+  useEffect(() => { setSyncStatus('dealer-prices', autoSaveStatus); }, [autoSaveStatus]);
+  useEffect(() => () => { clearSyncStatus('dealer-prices'); }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -990,9 +995,12 @@ export default function DealerApp() {
               <div className="text-[10px] uppercase tracking-[0.2em] text-slate-400">{dealer?.name || dealer?.username || 'dealer'}</div>
             </div>
           </div>
-          <button onClick={handleLogout} data-testid="dealer-logout" className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-white/10 text-sm text-slate-300 hover:bg-white/5">
-            <LogOut className="h-4 w-4" /> Wyloguj
-          </button>
+          <div className="flex items-center gap-3">
+            <GlobalSyncPill />
+            <button onClick={handleLogout} data-testid="dealer-logout" className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-white/10 text-sm text-slate-300 hover:bg-white/5">
+              <LogOut className="h-4 w-4" /> Wyloguj
+            </button>
+          </div>
         </div>
       </header>
 

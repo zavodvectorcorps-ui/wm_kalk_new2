@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import axios from 'axios';
+import { setSyncStatus, clearSyncStatus } from '../../utils/syncStatus';
 
 // Smart API URL - auto-detect on production
 const getApiUrl = () => { 
@@ -26,6 +27,9 @@ export const useSaunaPricing = () => {
   const debounceRef = useRef(null);
   const isMountedRef = useRef(true);
   useEffect(() => () => { isMountedRef.current = false; }, []);
+  // Also report into the global sync registry so the header pill aggregates us.
+  useEffect(() => { setSyncStatus('cennik', autoSaveStatus); }, [autoSaveStatus]);
+  useEffect(() => () => { clearSyncStatus('cennik'); }, []);
 
   const texts = {
     ru: {

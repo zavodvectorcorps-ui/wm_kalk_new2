@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import axios from 'axios';
 import { Plus, Trash2, Loader2, Save, X, Calculator, TrendingUp, TrendingDown, AlertTriangle, CheckCircle2, Copy, CloudOff, Cloud, RefreshCw } from 'lucide-react';
+import { setSyncStatus, clearSyncStatus } from '../../utils/syncStatus';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../ui/select';
@@ -36,6 +37,10 @@ export default function TechCardEditor({ target, prices, onClose, onSaved }) {
   const debounceRef = useRef(null);
   const isMountedRef = useRef(true);
   useEffect(() => () => { isMountedRef.current = false; }, []);
+  // Surface this editor's state to the global Sync indicator in the header.
+  const scopeId = `techcard:${target?.scope || ''}:${target?.modelId || target?.optionId || ''}:${target?.variantId || target?.optionVariantId || ''}`;
+  useEffect(() => { setSyncStatus(scopeId, autoSaveStatus); }, [scopeId, autoSaveStatus]);
+  useEffect(() => () => { clearSyncStatus(scopeId); }, [scopeId]);
 
   const targetKey = useMemo(() => ({
     scope: target.scope,

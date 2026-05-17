@@ -301,6 +301,14 @@ export default function DealerCalculatorWrapper({ initialDraft = null, onDone = 
     }
   }, [initialDraft]);
 
+  // Gate the SaunaCalculator behind interceptor readiness. Without this gate
+  // the child's `fetchPrices` effect fires BEFORE the parent's `useEffect`
+  // installs the request interceptor (React runs child effects first), so the
+  // very first GET /api/sauna/prices bypasses the dealer rewrite and serves
+  // public WM base prices instead of the dealer's retail. That manifests as
+  // "calculator shows WM prices even after I saved retail overrides".
+  const [interceptorReady, setInterceptorReady] = useState(false);
+
   useEffect(() => {
     const dealerToken = getDealerToken() || '';
     if (!dealerToken) {
@@ -318,7 +326,11 @@ export default function DealerCalculatorWrapper({ initialDraft = null, onDone = 
         }
       },
     });
-    return teardown;
+    setInterceptorReady(true);
+    return () => {
+      setInterceptorReady(false);
+      teardown();
+    };
   }, []);
 
   return (
@@ -338,8 +350,18 @@ export default function DealerCalculatorWrapper({ initialDraft = null, onDone = 
         </div>
       </div>
 
-      {/* The full manager calculator. `editingOrder` triggers edit mode in the hook. */}
-      <SaunaCalculator editingOrder={initialDraft} />
+      {/* The full manager calculator. `editingOrder` triggers edit mode in the hook.
+          Mounted only after the dealer axios interceptor is installed — otherwise
+          the calculator's initial /api/sauna/prices fetch races the parent effect
+          and gets PUBLIC WM prices instead of the dealer's overrides. */}
+      {interceptorReady ? (
+        <SaunaCalculator editingOrder={initialDraft} />
+      ) : (
+        <div className="flex items-center justify-center py-20 text-slate-400" data-testid="dealer-calc-bootstrapping">
+          <Loader2 className="h-5 w-5 animate-spin mr-2" />
+          <span className="text-sm">Łączenie z Twoim cennikiem…</span>
+        </div>
+      )}
 
       {confirmOpen && lastSavedOrder && (
         <ConfirmOrderDialog
