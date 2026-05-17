@@ -13,7 +13,7 @@ import {
   Box, CheckCircle, History, RefreshCw,
   Calendar, ChevronDown, ChevronUp, GripVertical, Phone, Copy,
   Settings, TruckIcon, PackageCheck, PackageX,
-  ArrowDownToLine, Send, CircleCheckBig, Loader2, Trash2
+  ArrowDownToLine, Send, CircleCheckBig, Loader2, Trash2, UserCheck
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getApiUrl } from '../utils/api';
@@ -28,10 +28,11 @@ const WAREHOUSE_STATUSES = {
   ready: { label: 'Готов к загрузке', color: 'bg-green-100 text-green-800 border-green-300', icon: CheckCircle }
 };
 
-// Dovoz stages
+// Dovoz stages (ordered: accepted → sent → with_driver → delivered)
 const DOVOZ_STAGES = {
   accepted: { label: 'Довоз принят', color: 'bg-indigo-100 text-indigo-800 border-indigo-300', icon: ArrowDownToLine, bgLight: 'bg-indigo-50/50', bgActive: 'bg-indigo-100 ring-2 ring-indigo-400', textColor: 'text-indigo-800' },
   sent: { label: 'Довоз отправлен', color: 'bg-amber-100 text-amber-800 border-amber-300', icon: Send, bgLight: 'bg-amber-50/50', bgActive: 'bg-amber-100 ring-2 ring-amber-400', textColor: 'text-amber-800' },
+  with_driver: { label: 'С водителем', color: 'bg-orange-100 text-orange-800 border-orange-300', icon: UserCheck, bgLight: 'bg-orange-50/50', bgActive: 'bg-orange-100 ring-2 ring-orange-400', textColor: 'text-orange-800' },
   delivered: { label: 'Довоз доставлен', color: 'bg-emerald-100 text-emerald-800 border-emerald-300', icon: CircleCheckBig, bgLight: 'bg-emerald-50/50', bgActive: 'bg-emerald-100 ring-2 ring-emerald-400', textColor: 'text-emerald-800' }
 };
 
@@ -427,6 +428,8 @@ const WarehousePage = ({ onBack }) => {
     } catch (e) { console.error(e); }
   }, [token]);
 
+  const [refreshingDovoz, setRefreshingDovoz] = useState(false);
+
   const fetchDovozOrders = useCallback(async () => {
     try {
       let url = `${API_URL}/api/dovoz/orders`;
@@ -435,16 +438,46 @@ const WarehousePage = ({ onBack }) => {
       if (res.ok) {
         const data = await res.json();
         setDovozOrders(data.orders || []);
+        return data.orders || [];
+      } else {
+        const text = await res.text();
+        throw new Error(`HTTP ${res.status}: ${text.slice(0, 120)}`);
       }
-    } catch (e) { toast.error('Ошибка загрузки довозов'); }
+    } catch (e) {
+      toast.error('Ошибка загрузки довозов', { description: String(e.message || e) });
+      throw e;
+    }
   }, [token, dovozSearch]);
 
   const fetchDovozStats = useCallback(async () => {
     try {
       const res = await fetch(`${API_URL}/api/dovoz/stats`, { headers: { 'Authorization': `Bearer ${token}` } });
-      if (res.ok) { const data = await res.json(); setDovozStats(data); }
-    } catch (e) { console.error(e); }
+      if (res.ok) { const data = await res.json(); setDovozStats(data); return data; }
+      else throw new Error(`HTTP ${res.status}`);
+    } catch (e) {
+      console.error(e);
+      throw e;
+    }
   }, [token]);
+
+  /**
+   * User-facing refresh for the Dovoz section. Surfaces loading state and a
+   * success toast so the user sees something happen — silent success was the
+   * reported "кнопка обновить не работает" complaint.
+   */
+  const handleRefreshDovoz = useCallback(async () => {
+    if (refreshingDovoz) return;
+    setRefreshingDovoz(true);
+    try {
+      const orders = await fetchDovozOrders();
+      await fetchDovozStats();
+      toast.success(`Обновлено · ${Array.isArray(orders) ? orders.length : 0} довозов`);
+    } catch (_e) {
+      // toast already shown inside fetchDovozOrders
+    } finally {
+      setRefreshingDovoz(false);
+    }
+  }, [refreshingDovoz, fetchDovozOrders, fetchDovozStats]);
 
   const fetchPipelines = async () => {
     setLoadingPipelines(true);
@@ -1002,6 +1035,43 @@ const WarehousePage = ({ onBack }) => {
                         </Select>
                       </div>
                       <div>
+                        <Label className="text-xs text-muted-foreground">
+                          Этапы «Отправлено с водителем» (можно выбрать несколько — по одному на каждого водителя)
+                        </Label>
+                        <div className="space-y-2 mt-1 rounded-md border border-input p-2 bg-background max-h-48 overflow-auto" data-testid="with-driver-statuses-multiselect">
+                          {pipelineStatuses.length === 0 ? (
+                            <p className="text-xs text-muted-foreground">Выберите воронку сверху, чтобы загрузить этапы</p>
+                          ) : (
+                            pipelineStatuses.map((s) => {
+                              const ids = settingsForm.dovoz_config.with_driver_status_ids || [];
+                              const sid = String(s.id);
+                              const checked = ids.map(String).includes(sid);
+                              return (
+                                <label key={sid} className="flex items-center gap-2 cursor-pointer text-sm hover:bg-muted/40 px-2 py-1 rounded">
+                                  <input
+                                    type="checkbox"
+                                    checked={checked}
+                                    onChange={(e) => setSettingsForm((prev) => {
+                                      const cur = (prev.dovoz_config.with_driver_status_ids || []).map(String);
+                                      const next = e.target.checked
+                                        ? Array.from(new Set([...cur, sid]))
+                                        : cur.filter((x) => x !== sid);
+                                      return { ...prev, dovoz_config: { ...prev.dovoz_config, with_driver_status_ids: next } };
+                                    })}
+                                    data-testid={`with-driver-status-${sid}`}
+                                  />
+                                  <span>{s.name}</span>
+                                </label>
+                              );
+                            })
+                          )}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground mt-1">
+                          Лиды из любого из выбранных этапов будут залетать в колонку «С водителем».
+                          При перетаскивании карточки сюда — лид уйдёт в <b>первый</b> выбранный этап (основной водитель).
+                        </p>
+                      </div>
+                      <div>
                         <Label className="text-xs text-muted-foreground">Этап "Довоз доставлен" (куда перемещать в amoCRM)</Label>
                         <Select
                           value={settingsForm.dovoz_config.delivered_status_id || 'none'}
@@ -1218,8 +1288,9 @@ const WarehousePage = ({ onBack }) => {
                   {syncing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <RefreshCw className="w-4 h-4 mr-2" />}
                   Синхронизировать с amoCRM
                 </Button>
-                <Button variant="outline" onClick={() => { fetchDovozOrders(); fetchDovozStats(); }} data-testid="refresh-dovoz-btn">
-                  <RefreshCw className="w-4 h-4 mr-2" />Обновить
+                <Button variant="outline" onClick={handleRefreshDovoz} disabled={refreshingDovoz} data-testid="refresh-dovoz-btn">
+                  <RefreshCw className={`w-4 h-4 mr-2 ${refreshingDovoz ? 'animate-spin' : ''}`} />
+                  {refreshingDovoz ? 'Обновление…' : 'Обновить'}
                 </Button>
               </div>
 
