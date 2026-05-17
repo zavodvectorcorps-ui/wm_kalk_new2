@@ -431,10 +431,11 @@ const WarehousePage = ({ onBack }) => {
   const [refreshingDovoz, setRefreshingDovoz] = useState(false);
 
   const fetchDovozOrders = useCallback(async () => {
+    // Always fetches the full list; search filtering happens client-side
+    // in dovozByStage to avoid re-fetching on every keystroke (which used
+    // to flicker the entire page through the loading spinner).
     try {
-      let url = `${API_URL}/api/dovoz/orders`;
-      if (dovozSearch) url += `?search=${encodeURIComponent(dovozSearch)}`;
-      const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+      const res = await fetch(`${API_URL}/api/dovoz/orders`, { headers: { 'Authorization': `Bearer ${token}` } });
       if (res.ok) {
         const data = await res.json();
         setDovozOrders(data.orders || []);
@@ -447,7 +448,7 @@ const WarehousePage = ({ onBack }) => {
       toast.error('Ошибка загрузки довозов', { description: String(e.message || e) });
       throw e;
     }
-  }, [token, dovozSearch]);
+  }, [token]);
 
   const fetchDovozStats = useCallback(async () => {
     try {
@@ -654,12 +655,26 @@ const WarehousePage = ({ onBack }) => {
     ready: orders.filter(o => o.warehouseStatus === 'ready')
   };
 
-  const dovozByStage = {
-    accepted: dovozOrders.filter(o => (o.dovozStage || 'accepted') === 'accepted'),
-    sent: dovozOrders.filter(o => o.dovozStage === 'sent'),
-    with_driver: dovozOrders.filter(o => o.dovozStage === 'with_driver'),
-    delivered: dovozOrders.filter(o => o.dovozStage === 'delivered')
-  };
+  const dovozByStage = (() => {
+    const q = (dovozSearch || '').trim().toLowerCase();
+    const matches = (o) => {
+      if (!q) return true;
+      return (
+        (o.client_name || '').toLowerCase().includes(q) ||
+        (o.amocrm_id || '').toString().toLowerCase().includes(q) ||
+        (o.id || '').toLowerCase().includes(q) ||
+        (o.lead_name || '').toLowerCase().includes(q) ||
+        (o.phone || '').toLowerCase().includes(q)
+      );
+    };
+    const filtered = dovozOrders.filter(matches);
+    return {
+      accepted: filtered.filter(o => (o.dovozStage || 'accepted') === 'accepted'),
+      sent: filtered.filter(o => o.dovozStage === 'sent'),
+      with_driver: filtered.filter(o => o.dovozStage === 'with_driver'),
+      delivered: filtered.filter(o => o.dovozStage === 'delivered'),
+    };
+  })();
 
   const sectionsEnabled = warehouseSettings?.sections_enabled || { orders: true, trips: true, dovoz: true };
 
