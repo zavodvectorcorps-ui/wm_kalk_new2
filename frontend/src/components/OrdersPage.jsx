@@ -681,7 +681,7 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
                                           <div className="text-muted-foreground text-[10px] uppercase tracking-wider mb-1">Формула</div>
                                           <span className="text-amber-600 dark:text-amber-400">(Брутто/1.23)</span>
                                           {' − '}<span className="text-blue-600 dark:text-blue-400">Cost</span>
-                                          {extras > 0 && <>{' − '}<span className="text-purple-600 dark:text-purple-400">RetailExtra</span></>}
+                                          {' − '}<span className="text-purple-600 dark:text-purple-400">RetailExtra</span>
                                           {' = '}<span className={isLoss ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}>Маржа</span>
                                         </div>
                                         <div className="space-y-1">
@@ -707,10 +707,16 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
                                             <span className="text-muted-foreground">− Себестоимость</span>
                                             <span className="font-mono text-blue-600 dark:text-blue-400">−{fmtPL(order.totalCost)} PLN</span>
                                           </div>
-                                          {extras > 0 && (
-                                            <div className="flex justify-between gap-3">
-                                              <span className="text-muted-foreground">− Розничные расходы</span>
-                                              <span className="font-mono text-purple-600 dark:text-purple-400">−{fmtPL(extras)} PLN</span>
+                                          {/* Always show retail extras row so it's clear whether they were applied. */}
+                                          <div className="flex justify-between gap-3">
+                                            <span className="text-muted-foreground">− Розничные расходы</span>
+                                            <span className={`font-mono ${extras > 0 ? 'text-purple-600 dark:text-purple-400' : 'text-muted-foreground'}`}>
+                                              {extras > 0 ? `−${fmtPL(extras)} PLN` : '0 PLN'}
+                                            </span>
+                                          </div>
+                                          {extras === 0 && (
+                                            <div className="text-[10px] text-amber-700 dark:text-amber-400 pl-1 italic">
+                                              ⚠ Если у модели/опций задано retailExtraCost — нажмите «Пересчитать маржи» сверху.
                                             </div>
                                           )}
                                           <div className="flex justify-between gap-3 pt-1.5 border-t font-semibold">
