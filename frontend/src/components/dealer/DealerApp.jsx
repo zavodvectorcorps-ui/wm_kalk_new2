@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import {
   Calculator as CalcIcon, Package, BarChart3, Settings, LogOut,
-  TrendingUp, DollarSign, ShoppingCart, Building2, Loader2, Save, RefreshCw, AlertCircle, FileText, Link2, Eye, Pencil, Bookmark, Plus, X
+  TrendingUp, DollarSign, ShoppingCart, Building2, Loader2, Save, RefreshCw, AlertCircle, FileText, Link2, Eye, Pencil, Bookmark, Plus, X, Cloud, CloudOff
 } from 'lucide-react';
 import { getApiUrl } from '../../utils/api';
 import { dealerAuthHeaders, clearDealerSession, getDealerInfo, fetchDealerMe } from '../../utils/dealerAuth';
@@ -383,6 +383,15 @@ function PricesTab() {
   const [presets, setPresets] = useState([]);
   const [presetName, setPresetName] = useState('');
 
+  // Auto-save (debounced 1.5s) so dealers never lose retail edits by forgetting to click Zapisz.
+  const [autoSaveStatus, setAutoSaveStatus] = useState('idle'); // idle | pending | saving | saved | error
+  const lastSavedRef = useRef('');
+  const debounceRef = useRef(null);
+  const retailMapRef = useRef(retailMap);
+  useEffect(() => { retailMapRef.current = retailMap; }, [retailMap]);
+  const isMountedRef = useRef(true);
+  useEffect(() => () => { isMountedRef.current = false; }, []);
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -399,6 +408,10 @@ function PricesTab() {
         }
       });
       setRetailMap(map);
+      // Seed auto-save baseline so the first real edit triggers a save,
+      // not the initial load.
+      lastSavedRef.current = _normalizeRetailMap(map);
+      setAutoSaveStatus('saved');
       setPresets(presetsRes.data?.presets || []);
     } catch (e) {
       setMsg(e?.response?.data?.detail || 'Błąd ładowania');
@@ -410,26 +423,99 @@ function PricesTab() {
 
   const setRetail = (key, val) => setRetailMap((prev) => ({ ...prev, [key]: val }));
 
-  const handleSave = async () => {
-    setSaving(true);
-    setMsg('');
-    try {
-      const payload = { overrides: [] };
-      for (const [key, val] of Object.entries(retailMap)) {
-        const num = parseInt(val, 10);
-        if (!Number.isFinite(num) || num < 0) continue;
-        payload.overrides.push({ ...unkeyOf(key), dealerRetailPrice: num, dealerId: '' });
-      }
-      await axios.put(`${API}/api/dealer/sauna/overrides`, payload, { headers: dealerAuthHeaders() });
-      setMsg(`Zapisano (${payload.overrides.length} pozycji)`);
-      setTimeout(() => setMsg(''), 3000);
-      await load();
-    } catch (e) {
-      setMsg(e?.response?.data?.detail || 'Błąd zapisu');
-    } finally {
-      setSaving(false);
+  // Build a stable, normalized snapshot of the retail map so "5" and 5 don't
+  // count as different and removed entries (empty strings) drop out.
+  function _normalizeRetailMap(map) {
+    const out = {};
+    Object.keys(map || {})
+      .sort()
+      .forEach((k) => {
+        const n = parseInt(map[k], 10);
+        if (Number.isFinite(n) && n > 0) out[k] = n;
+      });
+    return JSON.stringify(out);
+  }
+
+  // Internal save: builds the overrides array from current retailMap and
+  // pushes to the backend. Used by both manual `handleSave` (loud) and the
+  // debounced auto-saver (silent).
+  const doSave = useCallback(async ({ silent } = {}) => {
+    const map = retailMapRef.current;
+    const payload = { overrides: [] };
+    for (const [key, val] of Object.entries(map)) {
+      const num = parseInt(val, 10);
+      if (!Number.isFinite(num) || num < 0) continue;
+      payload.overrides.push({ ...unkeyOf(key), dealerRetailPrice: num, dealerId: '' });
     }
+    try {
+      if (!silent) { setSaving(true); setMsg(''); }
+      else setAutoSaveStatus('saving');
+      await axios.put(`${API}/api/dealer/sauna/overrides`, payload, { headers: dealerAuthHeaders() });
+      if (!isMountedRef.current) return;
+      lastSavedRef.current = _normalizeRetailMap(map);
+      if (silent) setAutoSaveStatus('saved');
+      else {
+        setMsg(`Zapisano (${payload.overrides.length} pozycji)`);
+        setTimeout(() => { if (isMountedRef.current) setMsg(''); }, 3000);
+      }
+    } catch (e) {
+      if (silent) setAutoSaveStatus('error');
+      else setMsg(e?.response?.data?.detail || 'Błąd zapisu');
+      throw e;
+    } finally {
+      if (!silent && isMountedRef.current) setSaving(false);
+    }
+  }, []);
+
+  const handleSave = async () => {
+    // Manual save → flush any pending debounce, then loud save.
+    if (debounceRef.current) { clearTimeout(debounceRef.current); debounceRef.current = null; }
+    try { await doSave({ silent: false }); await load(); } catch (_e) { /* msg already set */ }
   };
+
+  // Debounced auto-save: every retailMap change schedules a silent save in 1.5s.
+  useEffect(() => {
+    if (loading) return;
+    const snap = _normalizeRetailMap(retailMap);
+    if (snap === lastSavedRef.current) {
+      setAutoSaveStatus('saved');
+      return;
+    }
+    setAutoSaveStatus('pending');
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      if (_normalizeRetailMap(retailMapRef.current) !== lastSavedRef.current) {
+        doSave({ silent: true }).catch(() => { /* status set */ });
+      }
+    }, 1500);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [retailMap, loading, doSave]);
+
+  // Flush on tab unmount (e.g. dealer switches to Calculator tab) so the
+  // pending debounced save fires immediately, otherwise the calculator would
+  // load stale retail prices.
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+        const snap = _normalizeRetailMap(retailMapRef.current);
+        if (snap !== lastSavedRef.current) {
+          const payload = { overrides: [] };
+          for (const [key, val] of Object.entries(retailMapRef.current || {})) {
+            const num = parseInt(val, 10);
+            if (!Number.isFinite(num) || num < 0) continue;
+            payload.overrides.push({ ...unkeyOf(key), dealerRetailPrice: num, dealerId: '' });
+          }
+          // fire-and-forget — best effort so the calculator sees fresh data.
+          axios.put(`${API}/api/dealer/sauna/overrides`, payload, { headers: dealerAuthHeaders() })
+            .catch(() => { /* ignore */ });
+        }
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleApplyMarkup = async () => {
     const pct = parseFloat(markupPct);
@@ -550,6 +636,7 @@ function PricesTab() {
         </div>
         <div className="flex gap-2 items-center flex-wrap">
           {msg && <span className="text-xs text-emerald-400 mr-2">{msg}</span>}
+          <DealerAutoSavePill status={autoSaveStatus} />
           <button
             onClick={() => setMarkupOpen((v) => !v)}
             className="px-3 py-2 rounded-lg border border-cyan-500/30 text-cyan-300 text-sm hover:bg-cyan-500/10 flex items-center gap-2"
@@ -939,3 +1026,41 @@ export default function DealerApp() {
     </div>
   );
 }
+
+/**
+ * Dealer-themed (dark) variant of the auto-save status pill. Mirrors the
+ * one in TechCardEditor / Cennik for UX consistency. Sits next to the manual
+ * "Zapisz" button on the "Moje ceny detaliczne" tab.
+ */
+function DealerAutoSavePill({ status }) {
+  if (status === 'pending') {
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider px-2 py-1 rounded-md bg-amber-500/15 text-amber-300 border border-amber-500/30" data-testid="dealer-prices-autosave-pending">
+        <RefreshCw className="h-3 w-3" /> Nie zapisano
+      </span>
+    );
+  }
+  if (status === 'saving') {
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider px-2 py-1 rounded-md bg-blue-500/15 text-blue-300 border border-blue-500/30" data-testid="dealer-prices-autosave-saving">
+        <Loader2 className="h-3 w-3 animate-spin" /> Zapisywanie
+      </span>
+    );
+  }
+  if (status === 'saved') {
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider px-2 py-1 rounded-md bg-emerald-500/15 text-emerald-300 border border-emerald-500/30" data-testid="dealer-prices-autosave-saved">
+        <Cloud className="h-3 w-3" /> Auto-zapis
+      </span>
+    );
+  }
+  if (status === 'error') {
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider px-2 py-1 rounded-md bg-red-500/15 text-red-300 border border-red-500/30" data-testid="dealer-prices-autosave-error">
+        <CloudOff className="h-3 w-3" /> Błąd
+      </span>
+    );
+  }
+  return null;
+}
+
