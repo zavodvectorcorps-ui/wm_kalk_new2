@@ -13,7 +13,7 @@ import os
 import pytest
 import requests
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://sauna-config-5.preview.emergentagent.com").rstrip("/")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://margin-popup-next.preview.emergentagent.com").rstrip("/")
 API = f"{BASE_URL}/api"
 COST = f"{API}/sauna-production/cost"
 

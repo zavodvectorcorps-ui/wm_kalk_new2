@@ -10,7 +10,7 @@
 - Marketer: `marketer` / `marketer123`
 
 ## Dealer Portal access
-- Preview: https://sauna-config-5.preview.emergentagent.com/dealer
+- Preview: https://margin-popup-next.preview.emergentagent.com/dealer
 - Production after deploy: https://wm-kalkulator.pl/dealer
   (or on separate domain when DNS configured: dealer.wm-kalkulator.pl, wm-dealers.pl, etc.)
 
