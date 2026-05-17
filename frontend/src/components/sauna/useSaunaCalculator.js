@@ -884,16 +884,24 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
       // === COST PRICE CALCULATION (admin-only field) ===
       // Sum: model.costPrice + variant.costPrice + sum(selectedOption.costPrice * qty)
       const modelCost = (model?.costPrice || 0) + (modelVariant?.costPrice || 0);
+      const modelExtra = (model?.retailExtraCost || 0) + (modelVariant?.retailExtraCost || 0);
       const optionsCost = (selectedOptions || []).reduce((acc, opt) => {
         const qty = opt.quantity || 1;
         // If option has variant chosen, prefer variant cost; otherwise option's own cost
         const cp = (opt.variantCostPrice != null ? opt.variantCostPrice : opt.costPrice) || 0;
         return acc + cp * qty;
       }, 0);
+      const optionsExtra = (selectedOptions || []).reduce((acc, opt) => {
+        const qty = opt.quantity || 1;
+        const ex = (opt.variantRetailExtraCost != null ? opt.variantRetailExtraCost : opt.retailExtraCost) || 0;
+        return acc + ex * qty;
+      }, 0);
       const totalCost = Math.round(modelCost + optionsCost);
+      const retailExtraCost = Math.round(modelExtra + optionsExtra);
       // VAT-aware margin: retail is brutto (incl. 23% VAT), cost is netto.
+      // Also subtract retailExtraCost (delivery, packaging, sales commission).
       const totalNetto = (total || 0) / 1.23;
-      const margin = Math.max(0, Math.round(totalNetto - totalCost));
+      const margin = Math.round(totalNetto - totalCost - retailExtraCost);
 
       const orderData = {
         ...(orderId && { id: orderId }),
@@ -921,6 +929,7 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
         subtotal,
         total,
         totalCost,
+        retailExtraCost,
         margin,
         createdBy: user?.username || '',
         adminGifts,

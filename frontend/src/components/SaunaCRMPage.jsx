@@ -1262,12 +1262,19 @@ const SaunaCRMPage = () => {
                           </div>
                           {(() => {
                             const totalNetto = Number(calcOrder.total || 0) / 1.23;
-                            const marginNetto = totalNetto - Number(calcOrder.totalCost || 0);
+                            const extras = Number(calcOrder.retailExtraCost || 0);
+                            const marginNetto = totalNetto - Number(calcOrder.totalCost || 0) - extras;
                             const marginPct = totalNetto > 0 ? (marginNetto / totalNetto) * 100 : 0;
                             const isLoss = marginNetto < 0;
                             const cls = isLoss ? 'text-red-600' : 'text-emerald-700';
                             return (
                               <>
+                                {extras > 0 && (
+                                  <div>
+                                    <div className="text-muted-foreground">Розн. расходы</div>
+                                    <div className="font-semibold text-red-600">−{extras.toLocaleString()} PLN</div>
+                                  </div>
+                                )}
                                 <div>
                                   <div className="text-muted-foreground">Маржа (netto)</div>
                                   <div className={`font-semibold ${cls}`}>

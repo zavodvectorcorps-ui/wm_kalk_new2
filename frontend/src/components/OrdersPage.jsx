@@ -630,9 +630,10 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
                       {isAdmin && isAdmin() && (
                         <TableCell className="text-right" data-testid={`margin-cell-${order.id}`}>
                           {order.totalCost ? (() => {
-                            // VAT-aware margin: retail brutto → netto (÷1.23), then minus cost
+                            // VAT-aware margin: retail brutto → netto (÷1.23), then minus cost AND retail extras (if any)
                             const totalNetto = isSauna ? (order.total || 0) / 1.23 : (order.total || 0);
-                            const marginNetto = totalNetto - order.totalCost;
+                            const extras = isSauna ? Number(order.retailExtraCost || 0) : 0;
+                            const marginNetto = totalNetto - order.totalCost - extras;
                             const marginPct = totalNetto > 0 ? (marginNetto / totalNetto) * 100 : 0;
                             const isLoss = marginNetto < 0;
                             return (
@@ -643,7 +644,7 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
                                     : `${marginNetto.toFixed(0)}€`}
                                 </div>
                                 <div className={`text-[11px] ${isLoss ? 'text-red-500' : 'text-muted-foreground'}`}>
-                                  {marginPct.toFixed(0)}%{isSauna ? ' · netto' : ''}
+                                  {marginPct.toFixed(0)}%{isSauna ? (extras > 0 ? ' · netto −розн.' : ' · netto') : ''}
                                 </div>
                               </div>
                             );

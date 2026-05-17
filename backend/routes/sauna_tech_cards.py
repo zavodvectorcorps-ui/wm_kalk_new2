@@ -254,8 +254,12 @@ async def _compute_totals(card: dict) -> dict:
     }
 
 
-async def _sync_cost_price_to_sauna_prices(card: dict, total_cost: int):
-    """Write totalCost into the target entity's costPrice field in sauna_prices."""
+async def _sync_cost_price_to_sauna_prices(card: dict, total_cost: int, retail_extra: int = 0):
+    """Write totalCost into the target entity's costPrice field in sauna_prices.
+
+    Also writes retailExtraCost so order-margin recomputation can subtract retail-only
+    overhead (delivery, packaging, sales commission) when computing real retail margin.
+    """
     scope = card.get("scope")
     model_id = card.get("modelId")
     variant_id = card.get("variantId")
@@ -268,42 +272,59 @@ async def _sync_cost_price_to_sauna_prices(card: dict, total_cost: int):
     options = list(prices.get("options", []) or [])
 
     changed = False
+
+    def _maybe_set(obj: dict, key: str, val: int) -> bool:
+        if int(obj.get(key) or 0) != int(val):
+            obj[key] = int(val)
+            return True
+        return False
+
     if scope == "model":
         for m in models:
             if m.get("id") == model_id:
-                if int(m.get("costPrice") or 0) != total_cost:
-                    m["costPrice"] = total_cost; changed = True
+                if _maybe_set(m, "costPrice", total_cost):
+                    changed = True
+                if _maybe_set(m, "retailExtraCost", retail_extra):
+                    changed = True
                 break
     elif scope == "variant":
         for m in models:
             if m.get("id") == model_id:
                 for v in m.get("variants", []) or []:
                     if v.get("id") == variant_id:
-                        if int(v.get("costPrice") or 0) != total_cost:
-                            v["costPrice"] = total_cost; changed = True
+                        if _maybe_set(v, "costPrice", total_cost):
+                            changed = True
+                        if _maybe_set(v, "retailExtraCost", retail_extra):
+                            changed = True
                         break
                 break
     elif scope in ("option", "option_variant"):
         target_opt = None
         for o in options:
             if o.get("id") == option_id:
-                target_opt = o; break
+                target_opt = o
+                break
         if target_opt is None:
             for cat in categories:
                 for o in (cat.get("options") or []):
                     if o.get("id") == option_id:
-                        target_opt = o; break
+                        target_opt = o
+                        break
                 if target_opt:
                     break
         if target_opt:
             if scope == "option":
-                if int(target_opt.get("costPrice") or 0) != total_cost:
-                    target_opt["costPrice"] = total_cost; changed = True
+                if _maybe_set(target_opt, "costPrice", total_cost):
+                    changed = True
+                if _maybe_set(target_opt, "retailExtraCost", retail_extra):
+                    changed = True
             else:
                 for v in (target_opt.get("variants") or []):
                     if v.get("id") == option_variant_id:
-                        if int(v.get("costPrice") or 0) != total_cost:
-                            v["costPrice"] = total_cost; changed = True
+                        if _maybe_set(v, "costPrice", total_cost):
+                            changed = True
+                        if _maybe_set(v, "retailExtraCost", retail_extra):
+                            changed = True
                         break
 
     if changed:
@@ -341,7 +362,9 @@ async def _recompute_and_sync(card_id: str):
     await db.sauna_tech_cards.update_one({"id": card_id}, {"$set": set_doc})
     synced = False
     if card.get("syncToCostPrice"):
-        synced = await _sync_cost_price_to_sauna_prices(card, totals["totalCost"])
+        synced = await _sync_cost_price_to_sauna_prices(
+            card, totals["totalCost"], totals.get("retailExtraCost", 0),
+        )
     return {"card": {**card, **set_doc}, "synced": synced}
 
 

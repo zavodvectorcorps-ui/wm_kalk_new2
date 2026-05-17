@@ -676,7 +676,8 @@ export const OrderFullEditModal = ({
                   </div>
                   {isAdminUser && formData.totalCost ? (() => {
                     const totalNetto = (total || 0) / 1.23;
-                    const marginNetto = totalNetto - (formData.totalCost || 0);
+                    const extras = Number(formData.retailExtraCost || 0);
+                    const marginNetto = totalNetto - (formData.totalCost || 0) - extras;
                     const marginPct = totalNetto > 0 ? (marginNetto / totalNetto) * 100 : 0;
                     const isLoss = marginNetto < 0;
                     const cls = isLoss ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400';
@@ -689,12 +690,18 @@ export const OrderFullEditModal = ({
                           <span className="text-muted-foreground">Себестоимость:</span>
                           <span className="font-medium">{formatPrice(formData.totalCost)}</span>
                         </div>
+                        {extras > 0 && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Розн. расходы:</span>
+                            <span className="font-medium text-red-600">−{formatPrice(extras)}</span>
+                          </div>
+                        )}
                         <div className="flex justify-between text-sm">
                           <span className="text-muted-foreground">Brutto → netto:</span>
                           <span className="text-xs text-muted-foreground">{formatPrice(total)} → {formatPrice(Math.round(totalNetto))}</span>
                         </div>
                         <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Маржа (netto − cost):</span>
+                          <span className="text-muted-foreground">Маржа (netto − cost{extras > 0 ? ' − расходы' : ''}):</span>
                           <span className={`font-semibold ${cls}`} data-testid="margin-value">
                             {formatPrice(Math.round(marginNetto))}
                             <span className="text-xs text-muted-foreground ml-2">

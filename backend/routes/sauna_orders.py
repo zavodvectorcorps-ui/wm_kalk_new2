@@ -430,10 +430,12 @@ def _recompute_one(order: dict, prices: dict, opt_index: dict) -> dict | None:
         return None
 
     model_cost = float(model.get("costPrice") or 0)
+    retail_extra = float(model.get("retailExtraCost") or 0)
     if variant_id:
         v = next((v for v in (model.get("variants") or []) if v.get("id") == variant_id), None)
         if v:
             model_cost += float(v.get("costPrice") or 0)
+            retail_extra += float(v.get("retailExtraCost") or 0)
 
     opts_cost = 0.0
     for sel in selected:
@@ -447,14 +449,27 @@ def _recompute_one(order: dict, prices: dict, opt_index: dict) -> dict | None:
         chosen_var = None
         if chosen_var_id:
             chosen_var = next((v for v in (o.get("variants") or []) if v.get("id") == chosen_var_id), None)
-        cost = float(chosen_var.get("costPrice") or 0) if chosen_var else float(o.get("costPrice") or 0)
-        opts_cost += cost * max(1, qty)
+        if chosen_var:
+            cost = float(chosen_var.get("costPrice") or 0)
+            extra = float(chosen_var.get("retailExtraCost") or 0)
+        else:
+            cost = float(o.get("costPrice") or 0)
+            extra = float(o.get("retailExtraCost") or 0)
+        q = max(1, qty)
+        opts_cost += cost * q
+        retail_extra += extra * q
 
     total_cost = int(round(model_cost + opts_cost))
-    # VAT-aware margin: brutto → netto, then subtract cost.
+    retail_extra_int = int(round(retail_extra))
+    # VAT-aware margin: brutto → netto, then subtract production cost AND retail-only extras.
     total_netto = total / (1 + VAT_RATE) if total > 0 else 0
-    margin = int(round(max(0, total_netto - total_cost)))
-    return {"totalCost": total_cost, "margin": margin, "marginRecomputedAt": datetime.now(timezone.utc).isoformat()}
+    margin = int(round(total_netto - total_cost - retail_extra_int))
+    return {
+        "totalCost": total_cost,
+        "retailExtraCost": retail_extra_int,
+        "margin": margin,
+        "marginRecomputedAt": datetime.now(timezone.utc).isoformat(),
+    }
 
 
 @router.post("/orders/recompute-margins")
@@ -474,7 +489,11 @@ async def recompute_all_margins(_: dict = Depends(get_admin_user)):
         if patch is None:
             skipped += 1
             continue
-        if int(o.get("totalCost") or 0) == patch["totalCost"] and int(o.get("margin") or 0) == patch["margin"]:
+        if (
+            int(o.get("totalCost") or 0) == patch["totalCost"]
+            and int(o.get("margin") or 0) == patch["margin"]
+            and int(o.get("retailExtraCost") or 0) == patch["retailExtraCost"]
+        ):
             unchanged += 1
             continue
         await db.sauna_orders.update_one({"id": o["id"]}, {"$set": patch})
