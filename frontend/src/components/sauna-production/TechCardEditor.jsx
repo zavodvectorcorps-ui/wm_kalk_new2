@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import axios from 'axios';
-import { Plus, Trash2, Loader2, Save, X, Calculator, TrendingUp, TrendingDown, AlertTriangle, CheckCircle2, Copy } from 'lucide-react';
+import { Plus, Trash2, Loader2, Save, X, Calculator, TrendingUp, TrendingDown, AlertTriangle, CheckCircle2, Copy, CloudOff, Cloud, RefreshCw } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../ui/select';
@@ -29,6 +29,13 @@ export default function TechCardEditor({ target, prices, onClose, onSaved }) {
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  // Auto-save plumbing: tracks a JSON snapshot of the last persisted draft
+  // and a status badge for the user. Auto-saves on a 1.5s debounce.
+  const [autoSaveStatus, setAutoSaveStatus] = useState('idle'); // idle | pending | saving | saved | error
+  const lastSavedRef = useRef('');
+  const debounceRef = useRef(null);
+  const isMountedRef = useRef(true);
+  useEffect(() => () => { isMountedRef.current = false; }, []);
 
   const targetKey = useMemo(() => ({
     scope: target.scope,
@@ -62,7 +69,7 @@ export default function TechCardEditor({ target, prices, onClose, onSaved }) {
           const r = await axios.get(`${COST_BASE}/tech-cards/${existing.id}`, { headers: authHeaders() });
           if (!cancelled) {
             setCard(r.data);
-            setDraft({
+            const loadedDraft = {
               items: (r.data.items || []).map((i) => ({ id: i.id, componentId: i.componentId, qty: i.qty || 0, note: i.note || '' })),
               laborCost: r.data.laborCost || 0,
               overheadPct: r.data.overheadPct || 0,
@@ -70,10 +77,18 @@ export default function TechCardEditor({ target, prices, onClose, onSaved }) {
               retailExtraCost: r.data.retailExtraCost || 0,
               syncToCostPrice: r.data.syncToCostPrice !== false,
               note: r.data.note || '',
-            });
+            };
+            setDraft(loadedDraft);
+            // Seed snapshot AFTER React batches the setDraft so auto-save knows
+            // the freshly loaded state IS the saved baseline.
+            lastSavedRef.current = JSON.stringify(_normalizeDraft(loadedDraft));
+            setAutoSaveStatus('saved');
           }
         } else {
           setCard(null);
+          // New card → mark as unsaved so first real edit triggers auto-save.
+          lastSavedRef.current = '';
+          setAutoSaveStatus('idle');
         }
       } catch (e) {
         toast.error('Ошибка загрузки');
@@ -119,9 +134,28 @@ export default function TechCardEditor({ target, prices, onClose, onSaved }) {
     setDraft({ ...draft, items: draft.items.filter((i) => i.id !== id) });
   };
 
-  const save = async () => {
-    setSaving(true);
+  // ---- auto-save ----
+  // Normalize a draft for change detection: strip items with empty componentId
+  // (they're skipped on save anyway) and coerce numbers so 5 vs "5" don't
+  // count as a change.
+  function _normalizeDraft(d) {
+    return {
+      items: (d.items || [])
+        .filter((i) => i.componentId)
+        .map((i) => ({ componentId: i.componentId, qty: Number(i.qty) || 0, note: i.note || '' })),
+      laborCost: Number(d.laborCost) || 0,
+      overheadPct: Number(d.overheadPct) || 0,
+      manualAdjustment: Number(d.manualAdjustment) || 0,
+      retailExtraCost: Number(d.retailExtraCost) || 0,
+      syncToCostPrice: !!d.syncToCostPrice,
+      note: d.note || '',
+    };
+  }
+
+  const doSave = useCallback(async ({ silent } = {}) => {
     try {
+      if (!silent) setSaving(true);
+      else setAutoSaveStatus('saving');
       const r = await axios.post(`${COST_BASE}/tech-cards`, {
         ...targetKey,
         items: draft.items.filter((i) => i.componentId),
@@ -132,14 +166,90 @@ export default function TechCardEditor({ target, prices, onClose, onSaved }) {
         syncToCostPrice: draft.syncToCostPrice,
         note: draft.note,
       }, { headers: authHeaders() });
-      toast.success(`Сохранено. Себестоимость: ${fmtMoney(r.data.totalCost)}` + (draft.syncToCostPrice ? ' (синхронизирована в прайс)' : ''));
-      onSaved?.(r.data);
-      onClose();
+      if (!isMountedRef.current) return r.data;
+      lastSavedRef.current = JSON.stringify(_normalizeDraft(draft));
+      if (silent) {
+        setAutoSaveStatus('saved');
+        // Quietly notify parent so its row totals refresh.
+        onSaved?.(r.data);
+      } else {
+        toast.success(`Сохранено. Себестоимость: ${fmtMoney(r.data.totalCost)}` + (draft.syncToCostPrice ? ' (синхронизирована в прайс)' : ''));
+        onSaved?.(r.data);
+      }
+      return r.data;
     } catch (e) {
+      if (silent) setAutoSaveStatus('error');
       toast.error(e?.response?.data?.detail || 'Ошибка сохранения');
+      throw e;
     } finally {
-      setSaving(false);
+      if (!silent && isMountedRef.current) setSaving(false);
     }
+  }, [draft, targetKey, onSaved]);
+
+  // Debounced auto-save: every time `draft` changes, if it differs from the
+  // last saved snapshot, schedule a silent save 1.5s later. Cancels the prior
+  // timer on each edit (resets the wait).
+  useEffect(() => {
+    if (loading) return;
+    const snap = JSON.stringify(_normalizeDraft(draft));
+    if (snap === lastSavedRef.current) {
+      setAutoSaveStatus('saved');
+      return;
+    }
+    setAutoSaveStatus('pending');
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      // Re-check inside the timeout in case status changed.
+      if (JSON.stringify(_normalizeDraft(draft)) !== lastSavedRef.current) {
+        doSave({ silent: true }).catch(() => { /* surfaced via setAutoSaveStatus */ });
+      }
+    }, 1500);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [draft, loading, doSave]);
+
+  // On unmount: if there's a pending debounced save, fire it synchronously so
+  // the user never loses last-second edits when they close the dialog.
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+        const snap = JSON.stringify(_normalizeDraft(draftRef.current));
+        if (snap !== lastSavedRef.current) {
+          // Fire-and-forget — component is unmounting, we just need the POST
+          // to leave the client. Use a navigator.sendBeacon-style detached call.
+          const body = {
+            ...targetKey,
+            items: (draftRef.current.items || []).filter((i) => i.componentId),
+            laborCost: Number(draftRef.current.laborCost) || 0,
+            overheadPct: Number(draftRef.current.overheadPct) || 0,
+            manualAdjustment: Number(draftRef.current.manualAdjustment) || 0,
+            retailExtraCost: Number(draftRef.current.retailExtraCost) || 0,
+            syncToCostPrice: draftRef.current.syncToCostPrice,
+            note: draftRef.current.note,
+          };
+          axios.post(`${COST_BASE}/tech-cards`, body, { headers: authHeaders() }).catch(() => { /* best effort */ });
+        }
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // mount-only — closure captures refs so we always read latest values
+
+  // Keep a ref to the latest draft for the unmount handler above.
+  const draftRef = useRef(draft);
+  useEffect(() => { draftRef.current = draft; }, [draft]);
+
+  const save = async () => {
+    // Manual save → flush any pending debounce first, then do a loud save.
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+    }
+    try {
+      await doSave({ silent: false });
+      onClose();
+    } catch (_e) { /* toast already shown */ }
   };
 
   const remove = async () => {
@@ -178,6 +288,7 @@ export default function TechCardEditor({ target, prices, onClose, onSaved }) {
           <DialogTitle className="flex items-center gap-2">
             <Calculator className="w-5 h-5 text-orange-600" />
             Тех.карта: {target.name}
+            <AutoSaveBadge status={autoSaveStatus} hasCard={!!card?.id} />
           </DialogTitle>
           <DialogDescription>
             Розничная цена: <b className="text-foreground">{fmtMoney(target.retailPrice)}</b>
@@ -520,4 +631,45 @@ function DuplicateButton({ card, prices, onDuplicated }) {
       )}
     </>
   );
+}
+
+
+/**
+ * Compact pill showing the live auto-save status next to the card title.
+ *  - pending: amber  "✏ Несохранённые изменения"
+ *  - saving:  blue   "⏳ Сохранение..."
+ *  - saved:   green  "✓ Сохранено"  (only if card already exists)
+ *  - error:   red    "⚠ Ошибка автосохранения"
+ */
+function AutoSaveBadge({ status, hasCard }) {
+  if (status === 'idle' && !hasCard) return null;
+  if (status === 'pending') {
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-700 border border-amber-500/30" data-testid="autosave-pending">
+        <RefreshCw className="h-3 w-3" /> Не сохранено
+      </span>
+    );
+  }
+  if (status === 'saving') {
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-blue-500/15 text-blue-700 border border-blue-500/30" data-testid="autosave-saving">
+        <Loader2 className="h-3 w-3 animate-spin" /> Сохранение
+      </span>
+    );
+  }
+  if (status === 'saved' && hasCard) {
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-emerald-500/15 text-emerald-700 border border-emerald-500/30" data-testid="autosave-saved">
+        <Cloud className="h-3 w-3" /> Авто-сохранено
+      </span>
+    );
+  }
+  if (status === 'error') {
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-red-500/15 text-red-700 border border-red-500/30" data-testid="autosave-error">
+        <CloudOff className="h-3 w-3" /> Ошибка
+      </span>
+    );
+  }
+  return null;
 }
