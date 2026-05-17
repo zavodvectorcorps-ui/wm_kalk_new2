@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
-import { FileDown, Eye, Package, Flame, Search, Trash2, Gift, Percent, UserCircle, Wrench, Download, Edit, Shield, Calculator, Globe } from 'lucide-react';
+import { FileDown, Eye, Package, Flame, Search, Trash2, Gift, Percent, UserCircle, Wrench, Download, Edit, Shield, Calculator, Globe, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
 import { TechSpecModal } from './tech-spec';
@@ -44,8 +44,28 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
   // Edit Modal state
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editOrder, setEditOrder] = useState(null);
+  const [recomputing, setRecomputing] = useState(false);
 
   const isSauna = calculatorType === 'sauna';
+
+  // Admin-only: recompute margins for all orders from current sauna_prices.costPrice
+  const recomputeMargins = async () => {
+    if (!window.confirm('Пересчитать себестоимость и маржу для всех заказов? Будут взяты текущие значения costPrice из прайса.')) return;
+    setRecomputing(true);
+    try {
+      const token = localStorage.getItem('token');
+      const r = await axios.post(`${API_URL}/api/sauna/orders/recompute-margins`, {}, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      toast.success(`Готово: обновлено ${r.data.updated}, без изменений ${r.data.unchanged}, пропущено ${r.data.skipped}`);
+      // reload orders so the new numbers show
+      window.location.reload();
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || 'Ошибка пересчёта');
+    } finally {
+      setRecomputing(false);
+    }
+  };
 
   // Use filtering hook
   const {
@@ -458,9 +478,24 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
                 <Icon className={`h-6 w-6 ${isSauna ? 'text-green-600' : 'text-primary'}`} />
                 {txt.ordersList}
               </CardTitle>
-              <Badge variant="secondary" className="text-lg px-3 py-1" data-testid="orders-count-badge">
-                {filteredAndSortedOrders.length}
-              </Badge>
+              <div className="flex items-center gap-2">
+                {isSauna && isAdmin && isAdmin() && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={recomputeMargins}
+                    disabled={recomputing}
+                    title="Пересчитать себестоимость и маржу всех заказов из текущих цен (admin only)"
+                    data-testid="recompute-margins-btn"
+                  >
+                    <RefreshCw className={`h-4 w-4 mr-1 ${recomputing ? 'animate-spin' : ''}`} />
+                    Пересчитать маржи
+                  </Button>
+                )}
+                <Badge variant="secondary" className="text-lg px-3 py-1" data-testid="orders-count-badge">
+                  {filteredAndSortedOrders.length}
+                </Badge>
+              </div>
             </div>
             
             {/* Filters */}
@@ -594,21 +629,25 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
                       </TableCell>
                       {isAdmin && isAdmin() && (
                         <TableCell className="text-right" data-testid={`margin-cell-${order.id}`}>
-                          {order.totalCost ? (
-                            <div className="text-sm">
-                              <div className="font-semibold text-emerald-600 dark:text-emerald-400">
-                                {isSauna
-                                  ? `${Math.max(0, (order.total || 0) - order.totalCost).toLocaleString('pl-PL', { maximumFractionDigits: 0 })}`
-                                  : `${Math.max(0, (order.total || 0) - order.totalCost).toFixed(0)}`}
-                                {isSauna ? ' PLN' : '€'}
-                              </div>
-                              {order.total > 0 && (
-                                <div className="text-[11px] text-muted-foreground">
-                                  {Math.round(((order.total - order.totalCost) / order.total) * 100)}%
+                          {order.totalCost ? (() => {
+                            // VAT-aware margin: retail brutto → netto (÷1.23), then minus cost
+                            const totalNetto = isSauna ? (order.total || 0) / 1.23 : (order.total || 0);
+                            const marginNetto = totalNetto - order.totalCost;
+                            const marginPct = totalNetto > 0 ? (marginNetto / totalNetto) * 100 : 0;
+                            const isLoss = marginNetto < 0;
+                            return (
+                              <div className="text-sm">
+                                <div className={`font-semibold ${isLoss ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                                  {isSauna
+                                    ? `${Math.round(marginNetto).toLocaleString('pl-PL')} PLN`
+                                    : `${marginNetto.toFixed(0)}€`}
                                 </div>
-                              )}
-                            </div>
-                          ) : <span className="text-muted-foreground text-xs">—</span>}
+                                <div className={`text-[11px] ${isLoss ? 'text-red-500' : 'text-muted-foreground'}`}>
+                                  {marginPct.toFixed(0)}%{isSauna ? ' · netto' : ''}
+                                </div>
+                              </div>
+                            );
+                          })() : <span className="text-muted-foreground text-xs">—</span>}
                         </TableCell>
                       )}
                       <TableCell className="text-right">

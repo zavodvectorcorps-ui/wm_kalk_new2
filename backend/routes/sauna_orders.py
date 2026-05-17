@@ -1,5 +1,5 @@
 """Sauna orders CRUD operations."""
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from datetime import datetime, timezone
 from typing import Optional
 import logging
@@ -7,6 +7,7 @@ import logging
 from database import db
 from models.sauna import SaunaOrder, SaunaPDFRequest
 from services.telegram_service import notify_new_order
+from services.auth_service import get_admin_user
 from routes.amocrm import add_note_to_amocrm, get_amocrm_settings
 
 logger = logging.getLogger(__name__)
@@ -395,3 +396,104 @@ async def get_certificate_history(limit: int = 50, skip: int = 0):
     items = await cursor.to_list(length=limit)
     total = await db.certificate_history.count_documents({})
     return {"items": items, "total": total}
+
+
+# ============================================================
+# RECOMPUTE MARGINS — refresh totalCost from current sauna_prices.
+# ============================================================
+VAT_RATE = 0.23
+
+
+def _flatten_options(prices: dict) -> dict:
+    """Return {optionId: {price, costPrice, variants:{varId: {price, costPrice}}}}."""
+    out: dict[str, dict] = {}
+    for o in (prices.get("options") or []):
+        out[o["id"]] = o
+    for cat in (prices.get("categories") or []):
+        for o in (cat.get("options") or []):
+            out[o["id"]] = o
+    return out
+
+
+def _recompute_one(order: dict, prices: dict, opt_index: dict) -> dict | None:
+    """Recompute totalCost + VAT-aware margin for one order using current prices.
+
+    Returns dict with new values to $set, or None if essential data is missing.
+    """
+    model_id = order.get("selectedModel")
+    variant_id = order.get("selectedModelVariant")
+    selected = order.get("selectedOptions") or []
+    total = float(order.get("total") or 0)
+
+    model = next((m for m in (prices.get("models") or []) if m.get("id") == model_id), None)
+    if not model:
+        return None
+
+    model_cost = float(model.get("costPrice") or 0)
+    if variant_id:
+        v = next((v for v in (model.get("variants") or []) if v.get("id") == variant_id), None)
+        if v:
+            model_cost += float(v.get("costPrice") or 0)
+
+    opts_cost = 0.0
+    for sel in selected:
+        opt_id = sel.get("optionId") or sel.get("id")
+        qty = int(sel.get("quantity") or 1)
+        o = opt_index.get(opt_id)
+        if not o:
+            continue
+        # Variant-cost if present, else option cost
+        chosen_var_id = sel.get("variantId") or sel.get("optionVariantId")
+        chosen_var = None
+        if chosen_var_id:
+            chosen_var = next((v for v in (o.get("variants") or []) if v.get("id") == chosen_var_id), None)
+        cost = float(chosen_var.get("costPrice") or 0) if chosen_var else float(o.get("costPrice") or 0)
+        opts_cost += cost * max(1, qty)
+
+    total_cost = int(round(model_cost + opts_cost))
+    # VAT-aware margin: brutto → netto, then subtract cost.
+    total_netto = total / (1 + VAT_RATE) if total > 0 else 0
+    margin = int(round(max(0, total_netto - total_cost)))
+    return {"totalCost": total_cost, "margin": margin, "marginRecomputedAt": datetime.now(timezone.utc).isoformat()}
+
+
+@router.post("/orders/recompute-margins")
+async def recompute_all_margins(_: dict = Depends(get_admin_user)):
+    """Iterate over all sauna orders and refresh totalCost + margin from current
+    sauna_prices.costPrice values, using VAT-aware netto margin (total / 1.23 − cost).
+    """
+    prices = await db.sauna_prices.find_one({"_id": "default"}, {"_id": 0}) or {}
+    opt_index = _flatten_options(prices)
+
+    updated = 0
+    skipped = 0
+    unchanged = 0
+    cursor = db.sauna_orders.find({}, {"_id": 0})
+    async for o in cursor:
+        patch = _recompute_one(o, prices, opt_index)
+        if patch is None:
+            skipped += 1
+            continue
+        if int(o.get("totalCost") or 0) == patch["totalCost"] and int(o.get("margin") or 0) == patch["margin"]:
+            unchanged += 1
+            continue
+        await db.sauna_orders.update_one({"id": o["id"]}, {"$set": patch})
+        updated += 1
+    return {"ok": True, "updated": updated, "unchanged": unchanged, "skipped": skipped}
+
+
+@router.get("/orders/{order_id}/recompute-preview")
+async def recompute_one_preview(order_id: str, _: dict = Depends(get_admin_user)):
+    """Preview the refreshed totalCost/margin for a single order without saving."""
+    o = await db.sauna_orders.find_one({"id": order_id}, {"_id": 0})
+    if not o:
+        raise HTTPException(404, "Order not found")
+    prices = await db.sauna_prices.find_one({"_id": "default"}, {"_id": 0}) or {}
+    patch = _recompute_one(o, prices, _flatten_options(prices))
+    if not patch:
+        raise HTTPException(400, "Cannot recompute — model not found in current prices")
+    return {
+        "current": {"totalCost": o.get("totalCost"), "margin": o.get("margin")},
+        "recomputed": patch,
+        "total": o.get("total"),
+    }

@@ -891,7 +891,9 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
         return acc + cp * qty;
       }, 0);
       const totalCost = Math.round(modelCost + optionsCost);
-      const margin = Math.max(0, Math.round((total || 0) - totalCost));
+      // VAT-aware margin: retail is brutto (incl. 23% VAT), cost is netto.
+      const totalNetto = (total || 0) / 1.23;
+      const margin = Math.max(0, Math.round(totalNetto - totalCost));
 
       const orderData = {
         ...(orderId && { id: orderId }),

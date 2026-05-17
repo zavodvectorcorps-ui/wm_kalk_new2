@@ -674,28 +674,42 @@ export const OrderFullEditModal = ({
                     <span>{text.total}:</span>
                     <span className="text-blue-600">{formatPrice(total)}</span>
                   </div>
-                  {isAdminUser && formData.totalCost ? (
-                    <div className="pt-3 mt-2 border-t border-amber-200/60 dark:border-amber-700/40 space-y-1.5" data-testid="margin-block">
-                      <div className="text-[10px] uppercase tracking-[0.2em] text-amber-700 dark:text-amber-400 font-semibold">
-                        Маржа · admin only
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Себестоимость:</span>
-                        <span className="font-medium">{formatPrice(formData.totalCost)}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Маржа:</span>
-                        <span className="font-semibold text-emerald-600 dark:text-emerald-400" data-testid="margin-value">
-                          {formatPrice(Math.max(0, (total || 0) - (formData.totalCost || 0)))}
-                          {total > 0 && (
+                  {isAdminUser && formData.totalCost ? (() => {
+                    const totalNetto = (total || 0) / 1.23;
+                    const marginNetto = totalNetto - (formData.totalCost || 0);
+                    const marginPct = totalNetto > 0 ? (marginNetto / totalNetto) * 100 : 0;
+                    const isLoss = marginNetto < 0;
+                    const cls = isLoss ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400';
+                    return (
+                      <div className="pt-3 mt-2 border-t border-amber-200/60 dark:border-amber-700/40 space-y-1.5" data-testid="margin-block">
+                        <div className="text-[10px] uppercase tracking-[0.2em] text-amber-700 dark:text-amber-400 font-semibold">
+                          Маржа · admin only · netto (НДС 23%)
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Себестоимость:</span>
+                          <span className="font-medium">{formatPrice(formData.totalCost)}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Brutto → netto:</span>
+                          <span className="text-xs text-muted-foreground">{formatPrice(total)} → {formatPrice(Math.round(totalNetto))}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Маржа (netto − cost):</span>
+                          <span className={`font-semibold ${cls}`} data-testid="margin-value">
+                            {formatPrice(Math.round(marginNetto))}
                             <span className="text-xs text-muted-foreground ml-2">
-                              ({Math.round(((total - formData.totalCost) / total) * 100)}%)
+                              ({marginPct.toFixed(0)}%)
                             </span>
-                          )}
-                        </span>
+                          </span>
+                        </div>
+                        {isLoss && (
+                          <div className="text-[11px] text-red-600 dark:text-red-400 font-medium">
+                            ⚠ Продажа в убыток
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ) : null}
+                    );
+                  })() : null}
                 </div>
               </CardContent>
             </Card>

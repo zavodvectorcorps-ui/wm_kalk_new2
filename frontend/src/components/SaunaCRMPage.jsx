@@ -1260,20 +1260,29 @@ const SaunaCRMPage = () => {
                             <div className="text-muted-foreground">Себестоимость</div>
                             <div className="font-semibold text-amber-800">{Number(calcOrder.totalCost).toLocaleString()} PLN</div>
                           </div>
-                          <div>
-                            <div className="text-muted-foreground">Маржа</div>
-                            <div className="font-semibold text-emerald-700">
-                              {Math.max(0, Number(calcOrder.total || 0) - Number(calcOrder.totalCost || 0)).toLocaleString()} PLN
-                            </div>
-                          </div>
-                          <div>
-                            <div className="text-muted-foreground">Маржа %</div>
-                            <div className="font-semibold text-emerald-700">
-                              {calcOrder.total > 0
-                                ? Math.round(((calcOrder.total - calcOrder.totalCost) / calcOrder.total) * 100)
-                                : 0}%
-                            </div>
-                          </div>
+                          {(() => {
+                            const totalNetto = Number(calcOrder.total || 0) / 1.23;
+                            const marginNetto = totalNetto - Number(calcOrder.totalCost || 0);
+                            const marginPct = totalNetto > 0 ? (marginNetto / totalNetto) * 100 : 0;
+                            const isLoss = marginNetto < 0;
+                            const cls = isLoss ? 'text-red-600' : 'text-emerald-700';
+                            return (
+                              <>
+                                <div>
+                                  <div className="text-muted-foreground">Маржа (netto)</div>
+                                  <div className={`font-semibold ${cls}`}>
+                                    {Math.round(marginNetto).toLocaleString()} PLN
+                                  </div>
+                                </div>
+                                <div>
+                                  <div className="text-muted-foreground">Маржа %</div>
+                                  <div className={`font-semibold ${cls}`}>
+                                    {marginPct.toFixed(0)}%
+                                  </div>
+                                </div>
+                              </>
+                            );
+                          })()}
                         </div>
                       )}
                       {calcOrder.techSpec && (
