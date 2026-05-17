@@ -3,7 +3,7 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import {
   Calculator as CalcIcon, Package, BarChart3, Settings, LogOut,
-  TrendingUp, DollarSign, ShoppingCart, Building2, Loader2, Save, RefreshCw, AlertCircle, FileText, Link2, Eye, Pencil
+  TrendingUp, DollarSign, ShoppingCart, Building2, Loader2, Save, RefreshCw, AlertCircle, FileText, Link2, Eye, Pencil, Bookmark, Plus, X
 } from 'lucide-react';
 import { getApiUrl } from '../../utils/api';
 import { dealerAuthHeaders, clearDealerSession, getDealerInfo, fetchDealerMe } from '../../utils/dealerAuth';
@@ -379,12 +379,17 @@ function PricesTab() {
   const [markupScope, setMarkupScope] = useState('all'); // 'all' | 'models' | 'options'
   const [markupOverwrite, setMarkupOverwrite] = useState(true);
 
+  // Markup presets
+  const [presets, setPresets] = useState([]);
+  const [presetName, setPresetName] = useState('');
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [pricesRes, ovrRes] = await Promise.all([
+      const [pricesRes, ovrRes, presetsRes] = await Promise.all([
         axios.get(`${API}/api/dealer/sauna/prices`, { headers: dealerAuthHeaders() }),
         axios.get(`${API}/api/dealer/sauna/overrides`, { headers: dealerAuthHeaders() }),
+        axios.get(`${API}/api/dealer/markup-presets`, { headers: dealerAuthHeaders() }),
       ]);
       setPrices(pricesRes.data);
       const map = {};
@@ -394,6 +399,7 @@ function PricesTab() {
         }
       });
       setRetailMap(map);
+      setPresets(presetsRes.data?.presets || []);
     } catch (e) {
       setMsg(e?.response?.data?.detail || 'Błąd ładowania');
     } finally {
@@ -445,6 +451,60 @@ function PricesTab() {
       toast.error(e?.response?.data?.detail || 'Nie udało się zastosować narzutu');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSavePreset = async () => {
+    const name = presetName.trim();
+    if (!name) {
+      toast.error('Podaj nazwę presetu');
+      return;
+    }
+    const pct = parseFloat(markupPct);
+    if (!Number.isFinite(pct)) {
+      toast.error('Najpierw ustaw procent w panelu narzutu');
+      return;
+    }
+    try {
+      await axios.post(
+        `${API}/api/dealer/markup-presets`,
+        { name, percent: pct, base: markupBase, scope: markupScope },
+        { headers: dealerAuthHeaders() },
+      );
+      toast.success(`Preset „${name}" zapisany`);
+      setPresetName('');
+      await load();
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || 'Nie udało się zapisać');
+    }
+  };
+
+  const handleApplyPreset = async (preset) => {
+    if (!window.confirm(`Zastosować preset „${preset.name}" (${preset.percent}% od ${preset.base === 'b2b' ? 'B2B' : 'WM Brutto'})? Twoje obecne ceny zostaną nadpisane.`)) return;
+    setSaving(true);
+    try {
+      const r = await axios.post(
+        `${API}/api/dealer/markup-presets/${preset.id}/apply`,
+        { overwrite: true },
+        { headers: dealerAuthHeaders() },
+      );
+      toast.success(`Preset „${preset.name}" zastosowany`, { description: `Pozycji: ${r.data?.touched ?? 0}` });
+      await load();
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || 'Nie udało się zastosować');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeletePreset = async (preset) => {
+    if (!window.confirm(`Usunąć preset „${preset.name}"?`)) return;
+    try {
+      await axios.delete(`${API}/api/dealer/markup-presets/${preset.id}`, { headers: dealerAuthHeaders() });
+      toast.success('Preset usunięty');
+      await load();
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || 'Nie udało się usunąć');
     }
   };
 
@@ -574,6 +634,68 @@ function PricesTab() {
             <button onClick={handleApplyMarkup} disabled={saving} className="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-medium disabled:opacity-50" data-testid="bulk-markup-apply">
               {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Zastosuj'}
             </button>
+          </div>
+          {/* Save current settings as preset */}
+          <div className="pt-3 mt-2 border-t border-white/10 flex items-center gap-2 flex-wrap">
+            <Bookmark className="h-3.5 w-3.5 text-slate-400" />
+            <input
+              type="text"
+              value={presetName}
+              onChange={(e) => setPresetName(e.target.value)}
+              placeholder="Nazwa presetu (np. +15% ekonom)"
+              className="flex-1 min-w-[180px] px-3 py-1.5 rounded-md bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-cyan-400"
+              data-testid="preset-name-input"
+              maxLength={80}
+            />
+            <button
+              onClick={handleSavePreset}
+              disabled={!presetName.trim()}
+              className="px-3 py-1.5 rounded-md border border-cyan-500/40 text-cyan-300 text-xs hover:bg-cyan-500/10 disabled:opacity-40 flex items-center gap-1"
+              data-testid="preset-save-btn"
+            >
+              <Plus className="h-3 w-3" /> Zapisz jako preset
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Saved presets */}
+      {presets.length > 0 && (
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4" data-testid="presets-list">
+          <div className="flex items-center gap-2 mb-3">
+            <Bookmark className="h-4 w-4 text-cyan-400" />
+            <span className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-400">Zapisane presety</span>
+            <span className="ml-auto text-[10px] text-slate-500">jedno kliknięcie zastosuje narzut</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {presets.map((p) => (
+              <div
+                key={p.id}
+                className="group inline-flex items-center gap-1 rounded-full border border-cyan-500/30 bg-cyan-500/5 hover:bg-cyan-500/10 text-sm transition-colors"
+                data-testid={`preset-chip-${p.id}`}
+              >
+                <button
+                  onClick={() => handleApplyPreset(p)}
+                  disabled={saving}
+                  className="px-3 py-1.5 text-cyan-200 hover:text-white flex items-center gap-1.5 disabled:opacity-50"
+                  data-testid={`preset-apply-${p.id}`}
+                  title={`${p.percent}% od ${p.base === 'b2b' ? 'B2B' : 'WM Brutto'} · ${p.scope}`}
+                >
+                  <span className="font-medium">{p.name}</span>
+                  <span className="text-[10px] text-cyan-400/70 font-mono">
+                    {p.percent >= 0 ? '+' : ''}{p.percent}%
+                  </span>
+                </button>
+                <button
+                  onClick={() => handleDeletePreset(p)}
+                  className="px-2 py-1.5 text-cyan-400/50 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                  data-testid={`preset-delete-${p.id}`}
+                  title="Usuń preset"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
           </div>
         </div>
       )}

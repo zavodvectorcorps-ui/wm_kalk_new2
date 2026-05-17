@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { Building2, Plus, Trash2, Save, Loader2, Power, PowerOff, Copy, ShoppingCart, Pencil, LineChart, Users } from 'lucide-react';
+import { Building2, Plus, Trash2, Save, Loader2, Power, PowerOff, Copy, ShoppingCart, Pencil, LineChart, Users, AlertTriangle } from 'lucide-react';
 import { getApiUrl } from '../utils/api';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
+import { Checkbox } from './ui/checkbox';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from './ui/dialog';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs';
 import { toast } from 'sonner';
 import PriceImportExport from './sauna-pricing/PriceImportExport';
@@ -24,6 +25,7 @@ export default function DealersAdminPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [editDealer, setEditDealer] = useState(null); // dealer being edited
   const [pricesModal, setPricesModal] = useState(null); // {dealer}
+  const [hardDeleteDealer, setHardDeleteDealer] = useState(null); // dealer to permanently delete
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -148,6 +150,16 @@ export default function DealersAdminPage() {
                             <Button size="sm" variant={d.isActive ? 'outline' : 'default'} onClick={() => toggleActive(d)} data-testid={`toggle-${d.id}`}>
                               {d.isActive ? <Trash2 className="h-3.5 w-3.5" /> : <Power className="h-3.5 w-3.5" />}
                             </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-red-300 text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
+                              onClick={() => setHardDeleteDealer(d)}
+                              title="Удалить навсегда"
+                              data-testid={`hard-delete-${d.id}`}
+                            >
+                              <AlertTriangle className="h-3.5 w-3.5" />
+                            </Button>
                           </div>
                         </td>
                       </tr>
@@ -176,7 +188,109 @@ export default function DealersAdminPage() {
           onClose={() => setPricesModal(null)}
         />
       )}
+      {hardDeleteDealer && (
+        <HardDeleteDealerDialog
+          dealer={hardDeleteDealer}
+          onClose={() => setHardDeleteDealer(null)}
+          onDeleted={() => { setHardDeleteDealer(null); load(); }}
+        />
+      )}
     </div>
+  );
+}
+
+function HardDeleteDealerDialog({ dealer, onClose, onDeleted }) {
+  const [confirmText, setConfirmText] = useState('');
+  const [deleteConfirmed, setDeleteConfirmed] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const canDelete = confirmText.trim() === dealer.username && !busy;
+
+  const handleDelete = async () => {
+    if (!canDelete) return;
+    setBusy(true);
+    try {
+      const r = await axios.delete(
+        `${API}/api/admin/dealers/${dealer.id}/hard-delete?delete_confirmed=${deleteConfirmed}`,
+        { headers: authHeaders() },
+      );
+      const d = r.data || {};
+      toast.success('Дилер удалён', {
+        description: `overrides: ${d.overridesDeleted || 0}, пресеты: ${d.presetsDeleted || 0}, заказов удалено: ${d.ordersDeleted || 0}${
+          d.confirmedOrdersArchived ? `, подтверждённых архивировано: ${d.confirmedOrdersArchived}` : ''
+        }`,
+      });
+      onDeleted?.();
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || 'Ошибка удаления');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Dialog open={true} onOpenChange={(v) => !v && !busy && onClose()}>
+      <DialogContent className="max-w-lg" data-testid="hard-delete-dialog">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-red-600">
+            <AlertTriangle className="h-5 w-5" /> Удалить дилера навсегда?
+          </DialogTitle>
+          <DialogDescription>
+            Это действие <b>необратимо</b>. Будут удалены: профиль дилера, все его кастомные цены и пресеты наценок, все черновики заказов.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-2">
+          <div className="rounded-md border border-red-200 bg-red-50 dark:bg-red-950/20 p-3 text-sm">
+            <div className="font-semibold">{dealer.name || '—'}</div>
+            <div className="text-xs text-muted-foreground font-mono">@{dealer.username}</div>
+            <div className="text-xs text-muted-foreground mt-1">Заказов: {dealer.orderCount || 0}</div>
+          </div>
+
+          <div className="flex items-start gap-2 rounded-md border bg-muted/30 p-3">
+            <Checkbox
+              id="delete-confirmed-orders"
+              checked={deleteConfirmed}
+              onCheckedChange={(v) => setDeleteConfirmed(!!v)}
+              data-testid="delete-confirmed-orders-checkbox"
+            />
+            <Label htmlFor="delete-confirmed-orders" className="text-sm font-normal cursor-pointer">
+              Также удалить <b>подтверждённые</b> заказы (нельзя восстановить).
+              <div className="text-[11px] text-muted-foreground mt-1">
+                По умолчанию подтверждённые заказы сохраняются в WM как история выручки, но помечаются как «удалённый дилер».
+              </div>
+            </Label>
+          </div>
+
+          <div>
+            <Label htmlFor="confirm-username">
+              Для подтверждения введите логин дилера: <code className="font-mono text-red-600">{dealer.username}</code>
+            </Label>
+            <Input
+              id="confirm-username"
+              value={confirmText}
+              onChange={(e) => setConfirmText(e.target.value)}
+              placeholder={dealer.username}
+              autoComplete="off"
+              className="font-mono"
+              data-testid="hard-delete-confirm-input"
+            />
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={busy}>Отмена</Button>
+          <Button
+            variant="destructive"
+            onClick={handleDelete}
+            disabled={!canDelete}
+            data-testid="hard-delete-confirm-btn"
+          >
+            {busy ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Trash2 className="h-4 w-4 mr-1" />}
+            Удалить навсегда
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

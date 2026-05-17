@@ -758,3 +758,64 @@ Either side may be `None` → falls back to base WM Brutto from `sauna_prices`.
 - Bulk-write atomicity in `dealer_put_overrides` (currently DELETE+INSERT).
 - Migration script removed; new orders auto-compute manufacturerTotal,
   legacy orders backfilled via admin endpoint.
+
+
+---
+
+## Session — Feb 17, 2026 (cont.): Hard-delete + Margin Popover + Markup Presets
+
+### What shipped
+1. **Hard-delete dealer** (replaces soft-delete-only).
+   - `DELETE /api/admin/dealers/{id}/hard-delete?delete_confirmed=false|true`
+   - Always removes: dealer profile, all `dealer_price_overrides`, all
+     `dealer_markup_presets`, all DRAFT orders.
+   - `delete_confirmed=false` (default) — confirmed orders are *archived in
+     place* with `dealerDeleted=true`, `deletedDealerName`,
+     `deletedDealerAt`.
+   - `delete_confirmed=true` — full cascade incl. confirmed orders.
+   - UI: red triangle button on each dealer row → `HardDeleteDealerDialog`
+     requires typing dealer username + checkbox for confirmed-orders option.
+
+2. **Margin breakdown popover** on admin Orders list.
+   - Click margin cell → shadcn Popover shows the full formula
+     `(Брутто/1.23) − Cost − RetailExtra = Margin` with each substituted
+     number on its own row.
+   - For dealer orders (`source==="dealer"`) uses `manufacturerTotal` as the
+     Brutto baseline (instead of `total`), displays a cyan "Дилер" badge,
+     and adds an informational line showing the dealer's retail
+     (`order.total`) for transparency.
+   - Shows `marginRecomputedAt` timestamp when present.
+   - data-testids: `margin-popover-trigger-{id}`, `margin-popover-{id}`.
+
+3. **Dealer markup presets** (one-click apply).
+   - New collection `dealer_markup_presets` with fields:
+     `{id, dealerId, name, percent, base, scope, createdAt}`.
+   - Endpoints:
+     - `GET  /api/dealer/markup-presets`
+     - `POST /api/dealer/markup-presets` (name/percent/base/scope; validates)
+     - `DELETE /api/dealer/markup-presets/{id}`
+     - `POST /api/dealer/markup-presets/{id}/apply` (reuses
+       `dealer_bulk_markup`)
+   - UI inside "Mój cennik" → bulk-markup panel → "Zapisz jako preset" row,
+     plus a "Zapisane presety" chip strip below the panel.
+   - data-testids: `preset-name-input`, `preset-save-btn`, `presets-list`,
+     `preset-chip-{id}`, `preset-apply-{id}`, `preset-delete-{id}`.
+
+### DB hardening (housekeeping)
+- Cleaned 2 stray duplicate rows of `test-order-tech-spec-001` (was causing
+  React duplicate-key warning in admin Orders list).
+- Added unique index `id_unique` on `sauna_orders.id` to prevent future
+  duplicates.
+
+### Tests
+- `/app/backend/tests/test_dealer_hard_delete_and_presets.py` (new) —
+  **18/18 PASS**: hard-delete empty / cascade / archive-confirmed / full
+  cascade / 404 / auth; preset CRUD + validation + isolation + apply.
+- Regression `test_dealer_two_price_model.py` + `test_dealer_overrides_upsert.py`
+  — **17/17 PASS**. Cumulative iteration 97: **35/35 PASS**.
+
+### Known follow-ups (still deferred)
+- Live margin badge inside the calculator (deprioritized — user said not
+  needed for now).
+- Bulk-write atomicity in `dealer_put_overrides` (currently DELETE+INSERT).
+- Bulk-write atomicity in `admin_hard_delete_dealer` (4 separate writes).

@@ -5,9 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
-import { FileDown, Eye, Package, Flame, Search, Trash2, Gift, Percent, UserCircle, Wrench, Download, Edit, Shield, Calculator, Globe, RefreshCw } from 'lucide-react';
+import { FileDown, Eye, Package, Flame, Search, Trash2, Gift, Percent, UserCircle, Wrench, Download, Edit, Shield, Calculator, Globe, RefreshCw, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { TechSpecModal } from './tech-spec';
 import { OrderPreviewModal } from './OrderPreviewModal';
 import { OrderFullEditModal } from './OrderFullEditModal';
@@ -630,23 +631,122 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
                       {isAdmin && isAdmin() && (
                         <TableCell className="text-right" data-testid={`margin-cell-${order.id}`}>
                           {order.totalCost ? (() => {
-                            // VAT-aware margin: retail brutto → netto (÷1.23), then minus cost AND retail extras (if any)
-                            const totalNetto = isSauna ? (order.total || 0) / 1.23 : (order.total || 0);
+                            // VAT-aware margin: retail brutto → netto (÷1.23), then minus cost AND retail extras (if any).
+                            // For dealer orders, WM only collects manufacturerTotal (B2B), not the retail.
+                            const isDealerOrder = order.source === 'dealer';
+                            const bruttoRaw = isSauna
+                              ? (isDealerOrder && Number.isFinite(Number(order.manufacturerTotal))
+                                  ? Number(order.manufacturerTotal)
+                                  : (order.total || 0))
+                              : (order.total || 0);
+                            const totalNetto = isSauna ? bruttoRaw / 1.23 : bruttoRaw;
                             const extras = isSauna ? Number(order.retailExtraCost || 0) : 0;
                             const marginNetto = totalNetto - order.totalCost - extras;
                             const marginPct = totalNetto > 0 ? (marginNetto / totalNetto) * 100 : 0;
                             const isLoss = marginNetto < 0;
+                            const fmtPL = (n) => Math.round(Number(n) || 0).toLocaleString('pl-PL').replace(/,/g, ' ');
                             return (
-                              <div className="text-sm">
-                                <div className={`font-semibold ${isLoss ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
-                                  {isSauna
-                                    ? `${Math.round(marginNetto).toLocaleString('pl-PL')} PLN`
-                                    : `${marginNetto.toFixed(0)}€`}
-                                </div>
-                                <div className={`text-[11px] ${isLoss ? 'text-red-500' : 'text-muted-foreground'}`}>
-                                  {marginPct.toFixed(0)}%{isSauna ? (extras > 0 ? ' · netto −розн.' : ' · netto') : ''}
-                                </div>
-                              </div>
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <button
+                                    type="button"
+                                    className="text-sm group inline-flex items-center gap-1 rounded-md hover:bg-muted/40 px-1.5 py-0.5 -mx-1.5 transition-colors cursor-help"
+                                    data-testid={`margin-popover-trigger-${order.id}`}
+                                    title="Подробности расчёта маржи"
+                                  >
+                                    <div className="text-right">
+                                      <div className={`font-semibold ${isLoss ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                                        {isSauna ? `${fmtPL(marginNetto)} PLN` : `${marginNetto.toFixed(0)}€`}
+                                      </div>
+                                      <div className={`text-[11px] ${isLoss ? 'text-red-500' : 'text-muted-foreground'}`}>
+                                        {marginPct.toFixed(0)}%{isSauna ? (extras > 0 ? ' · netto −розн.' : ' · netto') : ''}
+                                      </div>
+                                    </div>
+                                    <Info className="h-3 w-3 text-muted-foreground opacity-50 group-hover:opacity-100 transition-opacity" />
+                                  </button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-80 text-xs" align="end" data-testid={`margin-popover-${order.id}`}>
+                                  <div className="space-y-2">
+                                    <div className="font-semibold flex items-center justify-between gap-2 pb-2 border-b">
+                                      <span>Расчёт маржи</span>
+                                      {isDealerOrder && (
+                                        <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30">
+                                          Дилер
+                                        </span>
+                                      )}
+                                    </div>
+                                    {isSauna ? (
+                                      <>
+                                        <div className="font-mono bg-muted/40 rounded p-2 leading-relaxed">
+                                          <div className="text-muted-foreground text-[10px] uppercase tracking-wider mb-1">Формула</div>
+                                          <span className="text-amber-600 dark:text-amber-400">(Брутто/1.23)</span>
+                                          {' − '}<span className="text-blue-600 dark:text-blue-400">Cost</span>
+                                          {extras > 0 && <>{' − '}<span className="text-purple-600 dark:text-purple-400">RetailExtra</span></>}
+                                          {' = '}<span className={isLoss ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}>Маржа</span>
+                                        </div>
+                                        <div className="space-y-1">
+                                          {isDealerOrder && Number.isFinite(Number(order.manufacturerTotal)) && (
+                                            <div className="flex justify-between gap-3 text-[11px] text-muted-foreground italic">
+                                              <span>Розница дилера (информ.)</span>
+                                              <span className="font-mono">{fmtPL(order.total)} PLN</span>
+                                            </div>
+                                          )}
+                                          <div className="flex justify-between gap-3">
+                                            <span className="text-muted-foreground">
+                                              {isDealerOrder ? 'WM получает (Брутто)' : 'Брутто заказа'}
+                                            </span>
+                                            <span className="font-mono font-semibold text-amber-600 dark:text-amber-400">
+                                              {fmtPL(bruttoRaw)} PLN
+                                            </span>
+                                          </div>
+                                          <div className="flex justify-between gap-3">
+                                            <span className="text-muted-foreground">÷ 1.23 (VAT) = Нетто</span>
+                                            <span className="font-mono">{fmtPL(totalNetto)} PLN</span>
+                                          </div>
+                                          <div className="flex justify-between gap-3">
+                                            <span className="text-muted-foreground">− Себестоимость</span>
+                                            <span className="font-mono text-blue-600 dark:text-blue-400">−{fmtPL(order.totalCost)} PLN</span>
+                                          </div>
+                                          {extras > 0 && (
+                                            <div className="flex justify-between gap-3">
+                                              <span className="text-muted-foreground">− Розничные расходы</span>
+                                              <span className="font-mono text-purple-600 dark:text-purple-400">−{fmtPL(extras)} PLN</span>
+                                            </div>
+                                          )}
+                                          <div className="flex justify-between gap-3 pt-1.5 border-t font-semibold">
+                                            <span>= Маржа</span>
+                                            <span className={`font-mono ${isLoss ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                                              {fmtPL(marginNetto)} PLN ({marginPct.toFixed(1)}%)
+                                            </span>
+                                          </div>
+                                        </div>
+                                        {order.marginRecomputedAt && (
+                                          <div className="text-[10px] text-muted-foreground pt-1 italic">
+                                            Пересчитано: {new Date(order.marginRecomputedAt).toLocaleString('ru-RU')}
+                                          </div>
+                                        )}
+                                      </>
+                                    ) : (
+                                      <div className="space-y-1">
+                                        <div className="flex justify-between gap-3">
+                                          <span className="text-muted-foreground">Итог</span>
+                                          <span className="font-mono">{fmtPL(bruttoRaw)}€</span>
+                                        </div>
+                                        <div className="flex justify-between gap-3">
+                                          <span className="text-muted-foreground">− Себестоимость</span>
+                                          <span className="font-mono">−{fmtPL(order.totalCost)}€</span>
+                                        </div>
+                                        <div className="flex justify-between gap-3 pt-1.5 border-t font-semibold">
+                                          <span>= Маржа</span>
+                                          <span className={`font-mono ${isLoss ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                                            {fmtPL(marginNetto)}€ ({marginPct.toFixed(1)}%)
+                                          </span>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                </PopoverContent>
+                              </Popover>
                             );
                           })() : <span className="text-muted-foreground text-xs">—</span>}
                         </TableCell>

@@ -965,6 +965,159 @@ async def admin_delete_dealer(dealer_id: str, _: dict = Depends(get_admin_user))
     return {"ok": True}
 
 
+@router.delete("/api/admin/dealers/{dealer_id}/hard-delete")
+async def admin_hard_delete_dealer(
+    dealer_id: str,
+    delete_confirmed: bool = False,
+    _: dict = Depends(get_admin_user),
+):
+    """**Permanently** remove a dealer.
+
+    Always deletes:
+      * the dealer profile (`dealers`)
+      * all of the dealer's price overrides (`dealer_price_overrides`)
+      * all of the dealer's markup presets (`dealer_markup_presets`)
+      * all DRAFT dealer orders (`sauna_orders` where status='draft' / missing)
+
+    Confirmed orders are preserved as historical revenue records BUT marked
+    with ``dealerDeleted=true`` + snapshot ``deletedDealerName`` so WM-side
+    reports still attribute the revenue correctly.
+
+    Pass ``?delete_confirmed=true`` to ALSO delete confirmed orders
+    (full cascade — use with caution).
+    """
+    dealer = await db.dealers.find_one({"id": dealer_id}, {"_id": 0})
+    if not dealer:
+        raise HTTPException(404, "Dealer not found")
+
+    snapshot_name = dealer.get("name") or dealer.get("username") or dealer_id
+    now_iso = datetime.now(timezone.utc).isoformat()
+
+    overrides_deleted = (await db.dealer_price_overrides.delete_many({"dealerId": dealer_id})).deleted_count
+    presets_deleted = (await db.dealer_markup_presets.delete_many({"dealerId": dealer_id})).deleted_count
+
+    if delete_confirmed:
+        orders_affected = (await db.sauna_orders.delete_many({"dealerId": dealer_id})).deleted_count
+        orders_archived = 0
+    else:
+        # Delete drafts only
+        drafts_deleted = (await db.sauna_orders.delete_many({
+            "dealerId": dealer_id,
+            "$or": [{"status": "draft"}, {"status": {"$exists": False}}],
+        })).deleted_count
+        # Mark confirmed as detached
+        archive_res = await db.sauna_orders.update_many(
+            {"dealerId": dealer_id, "status": "confirmed"},
+            {"$set": {
+                "dealerDeleted": True,
+                "deletedDealerName": snapshot_name,
+                "deletedDealerAt": now_iso,
+            }},
+        )
+        orders_affected = drafts_deleted
+        orders_archived = archive_res.modified_count
+
+    dealer_deleted = (await db.dealers.delete_one({"id": dealer_id})).deleted_count
+
+    return {
+        "ok": True,
+        "dealerDeleted": bool(dealer_deleted),
+        "overridesDeleted": overrides_deleted,
+        "presetsDeleted": presets_deleted,
+        "ordersDeleted": orders_affected,
+        "confirmedOrdersArchived": orders_archived,
+    }
+
+
+# ==========================================================================
+# DEALER — MARKUP PRESETS
+# ==========================================================================
+
+@router.get("/api/dealer/markup-presets")
+async def dealer_list_presets(dealer: dict = Depends(get_current_dealer)):
+    presets = await db.dealer_markup_presets.find(
+        {"dealerId": dealer["id"]}, {"_id": 0}
+    ).sort("createdAt", 1).to_list(length=100)
+    return {"presets": presets}
+
+
+@router.post("/api/dealer/markup-presets")
+async def dealer_create_preset(body: dict, dealer: dict = Depends(get_current_dealer)):
+    """Save a named markup preset for the current dealer.
+
+    Body::
+
+        { "name": "+15% эконом",
+          "percent": 15,
+          "base": "b2b" | "wm",
+          "scope": "all" | "models" | "options" }
+    """
+    import uuid as _uuid
+    name = (body.get("name") or "").strip()
+    if not name:
+        raise HTTPException(400, "name is required")
+    try:
+        percent = float(body.get("percent") or 0)
+    except (TypeError, ValueError):
+        raise HTTPException(400, "percent must be a number")
+    base = (body.get("base") or "b2b").lower()
+    scope = (body.get("scope") or "all").lower()
+    if base not in ("b2b", "wm"):
+        raise HTTPException(400, "base must be 'b2b' or 'wm'")
+    if scope not in ("all", "models", "options"):
+        raise HTTPException(400, "scope must be 'all', 'models' or 'options'")
+
+    preset = {
+        "id": str(_uuid.uuid4()),
+        "dealerId": dealer["id"],
+        "name": name[:80],
+        "percent": percent,
+        "base": base,
+        "scope": scope,
+        "createdAt": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.dealer_markup_presets.insert_one(preset)
+    preset.pop("_id", None)
+    return preset
+
+
+@router.delete("/api/dealer/markup-presets/{preset_id}")
+async def dealer_delete_preset(preset_id: str, dealer: dict = Depends(get_current_dealer)):
+    res = await db.dealer_markup_presets.delete_one(
+        {"id": preset_id, "dealerId": dealer["id"]},
+    )
+    if res.deleted_count == 0:
+        raise HTTPException(404, "Preset not found")
+    return {"ok": True}
+
+
+@router.post("/api/dealer/markup-presets/{preset_id}/apply")
+async def dealer_apply_preset(
+    preset_id: str,
+    body: dict | None = None,
+    dealer: dict = Depends(get_current_dealer),
+):
+    """Apply a saved preset by reusing the bulk-markup logic.
+
+    Optional body: ``{"overwrite": true|false}`` — default true.
+    """
+    preset = await db.dealer_markup_presets.find_one(
+        {"id": preset_id, "dealerId": dealer["id"]}, {"_id": 0},
+    )
+    if not preset:
+        raise HTTPException(404, "Preset not found")
+    overwrite = bool((body or {}).get("overwrite", True))
+    return await dealer_bulk_markup(
+        {
+            "percent": preset["percent"],
+            "base": preset["base"],
+            "scope": preset["scope"],
+            "overwrite": overwrite,
+        },
+        dealer,
+    )
+
+
 @router.get("/api/admin/dealers/{dealer_id}/overrides")
 async def admin_get_dealer_overrides(dealer_id: str, _: dict = Depends(get_admin_user)):
     overrides = await db.dealer_price_overrides.find(
