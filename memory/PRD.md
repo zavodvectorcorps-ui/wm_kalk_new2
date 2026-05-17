@@ -819,3 +819,73 @@ Either side may be `None` → falls back to base WM Brutto from `sauna_prices`.
   needed for now).
 - Bulk-write atomicity in `dealer_put_overrides` (currently DELETE+INSERT).
 - Bulk-write atomicity in `admin_hard_delete_dealer` (4 separate writes).
+
+---
+
+## Session — Feb 17, 2026 (3rd): First-Login Onboarding Markup
+
+### What shipped
+Admin sets a default markup directly on the dealer profile. On the dealer's
+FIRST successful login, the backend auto-applies that markup once and
+stamps `onboardedAt`. Subsequent logins are no-ops.
+
+### Backend changes
+- `models/dealer.py`:
+  - `Dealer`/`DealerCreate`/`DealerUpdate` gained:
+    `defaultMarkupPercent: Optional[float]`,
+    `defaultMarkupBase: Optional[str]`,
+    `defaultMarkupScope: Optional[str]`,
+    `onboardedAt: Optional[str]` (set automatically on first login),
+    `DealerUpdate.resetOnboarding: Optional[bool]` (admin escape hatch).
+- `routes/dealer.py`:
+  - `dealer_login` — if `defaultMarkupPercent is not None` AND
+    `onboardedAt is None`, invoke `dealer_bulk_markup(..., overwrite=False)`
+    and stamp `onboardedAt`. Returns
+    `{token, dealer, onboardingApplied: {percent, base, scope, touched}}`.
+    Failures are logged but **never** block login (try/except).
+  - `admin_create_dealer` & `admin_update_dealer` — pass-through for the
+    new fields. `resetOnboarding=True` clears `onboardedAt`.
+
+### Frontend changes
+- `DealersAdminPage.jsx`:
+  - `CreateDealerDialog` — new "Авто-наценка при первом входе"
+    section with percent/base/scope fields.
+  - `EditDealerDialog` — same section + status badge ("✓ Применён <date>" /
+    "Ожидает первого входа") + reset checkbox.
+  - Dealer list row gets a coloured chip:
+    green `✓ +X%` (onboarded) or amber `⏳ +X%` (pending).
+  - data-testids: `onboarding-markup-section`,
+    `create-onboarding-percent/base/scope`, `edit-onboarding-section`,
+    `edit-onboarding-percent/base/scope`, `reset-onboarding-checkbox`,
+    `onboard-applied-{id}`, `onboard-pending-{id}`.
+- `utils/dealerAuth.js`:
+  - `dealerLogin` shows a friendly sonner toast on first login if
+    `onboardingApplied` is present in the response (dynamically imports
+    sonner so the helper stays optional).
+
+### DB hardening
+- Added unique index `id_unique` on `dealers.id` (mirrors the one already
+  added on `sauna_orders.id` last iteration).
+
+### Tests
+- `/app/backend/tests/test_dealer_onboarding_markup.py` (new) —
+  **7/7 PASS** covering: create-echo, first-login apply+stamp,
+  second-login no-op, reset-via-PUT, independent markup PUT, invalid
+  base/scope coercion, b2b-with-no-prices touched=0 still succeeds.
+- Cumulative regression: 17 (two-price) + 18 (hard-delete/presets) +
+  7 (onboarding) = **42/42 PASS**.
+
+### Use case (now wired end-to-end)
+1. Admin creates dealer with `defaultMarkupPercent=15`, `base=wm`,
+   `scope=all`.
+2. Admin (optionally) uses Simulator → "Apply to dealer" to seed B2B
+   prices.
+3. Dealer logs in → sees toast "Witaj! Twoje ceny zostały automatycznie
+   ustawione (+15% from WM Brutto, 56 pozycji)". Goes straight to a
+   pre-populated "Moje ceny detaliczne".
+4. Dealer can tweak individual rows or apply a saved preset on top.
+
+### Known follow-ups (still deferred)
+- Live margin badge inside the calculator (user declined for now).
+- Bulk-write atomicity in `dealer_put_overrides` / `admin_hard_delete_dealer`.
+
