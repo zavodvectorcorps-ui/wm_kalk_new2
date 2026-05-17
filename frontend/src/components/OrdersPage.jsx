@@ -58,7 +58,8 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
       const r = await axios.post(`${API_URL}/api/sauna/orders/recompute-margins`, {}, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
-      toast.success(`Готово: обновлено ${r.data.updated}, без изменений ${r.data.unchanged}, пропущено ${r.data.skipped}`);
+      const tcMsg = r.data.techcardsSynced ? ` · TechCards синхронизировано: ${r.data.techcardsSynced}` : '';
+      toast.success(`Готово: обновлено ${r.data.updated}, без изменений ${r.data.unchanged}, пропущено ${r.data.skipped}${tcMsg}`);
       // reload orders so the new numbers show
       window.location.reload();
     } catch (e) {

@@ -493,11 +493,32 @@ async def recompute_all_margins(_: dict = Depends(get_admin_user)):
     """Iterate over all sauna orders and refresh totalCost + margin from current
     sauna_prices.costPrice values, using VAT-aware netto margin (total / 1.23 − cost).
 
-    Side effect: for dealer orders, also refreshes ``manufacturerTotal`` from
-    the dealer's current B2B overrides + the current sauna_prices catalog,
-    BEFORE the margin formula runs. That way the same button keeps WM-side
-    margins on dealer orders in sync even after pricing changes.
+    Side effect 1: Re-syncs all TechCards with ``syncToCostPrice=true`` into
+    ``sauna_prices`` first. This ensures any pending ``retailExtraCost`` /
+    ``costPrice`` changes on cards (e.g. fields edited but card not re-saved)
+    propagate to the catalog before margin recompute runs.
+
+    Side effect 2: For dealer orders, also refreshes ``manufacturerTotal``
+    from the dealer's current B2B overrides + the current sauna_prices
+    catalog, BEFORE the margin formula runs.
     """
+    # Pre-step: sync all live TechCards into sauna_prices.
+    techcards_synced = 0
+    try:
+        from routes.sauna_tech_cards import _recompute_and_sync  # noqa: WPS433
+        tc_cursor = db.sauna_tech_cards.find(
+            {"syncToCostPrice": True}, {"_id": 0, "id": 1},
+        )
+        async for card in tc_cursor:
+            try:
+                res = await _recompute_and_sync(card["id"])
+                if res and res.get("synced"):
+                    techcards_synced += 1
+            except Exception as e:
+                logger.warning(f"TechCard pre-sync failed on {card.get('id')}: {e}")
+    except Exception as e:
+        logger.warning(f"TechCard pre-sync skipped (import failed): {e}")
+
     prices = await db.sauna_prices.find_one({"_id": "default"}, {"_id": 0}) or {}
     opt_index = _flatten_options(prices)
 
@@ -537,7 +558,13 @@ async def recompute_all_margins(_: dict = Depends(get_admin_user)):
             continue
         await db.sauna_orders.update_one({"id": o["id"]}, {"$set": patch})
         updated += 1
-    return {"ok": True, "updated": updated, "unchanged": unchanged, "skipped": skipped}
+    return {
+        "ok": True,
+        "updated": updated,
+        "unchanged": unchanged,
+        "skipped": skipped,
+        "techcardsSynced": techcards_synced,
+    }
 
 
 @router.get("/orders/{order_id}/recompute-preview")
