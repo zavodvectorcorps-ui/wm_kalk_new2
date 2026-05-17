@@ -22,6 +22,12 @@ class Dealer(BaseModel):
     notes: Optional[str] = ""
     isActive: bool = True
     orderPrefix: Optional[str] = ""  # custom prefix for dealer's order IDs, e.g. "ABC" -> "ABC-XXXXX"
+    # Default markup auto-applied on the dealer's FIRST login (onboarding).
+    # Once applied, ``onboardedAt`` is stamped so it won't re-run.
+    defaultMarkupPercent: Optional[float] = None
+    defaultMarkupBase: Optional[str] = None      # "b2b" | "wm"
+    defaultMarkupScope: Optional[str] = None     # "all" | "models" | "options"
+    onboardedAt: Optional[str] = None            # ISO timestamp when first-login markup ran
     createdAt: str = Field(default_factory=_now_iso)
     updatedAt: str = Field(default_factory=_now_iso)
 
@@ -34,6 +40,9 @@ class DealerCreate(BaseModel):
     phone: Optional[str] = ""
     notes: Optional[str] = ""
     orderPrefix: Optional[str] = ""
+    defaultMarkupPercent: Optional[float] = None
+    defaultMarkupBase: Optional[str] = None
+    defaultMarkupScope: Optional[str] = None
 
 
 class DealerUpdate(BaseModel):
@@ -44,6 +53,11 @@ class DealerUpdate(BaseModel):
     isActive: Optional[bool] = None
     password: Optional[str] = None  # if set, will rehash
     orderPrefix: Optional[str] = None
+    defaultMarkupPercent: Optional[float] = None
+    defaultMarkupBase: Optional[str] = None
+    defaultMarkupScope: Optional[str] = None
+    # Setting this back to None clears onboardedAt → next login re-applies markup.
+    resetOnboarding: Optional[bool] = None
 
 
 class DealerLogin(BaseModel):

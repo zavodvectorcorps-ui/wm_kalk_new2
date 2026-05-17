@@ -38,6 +38,18 @@ export function dealerAuthHeaders() {
 export async function dealerLogin(username, password) {
   const r = await axios.post(`${API}/api/dealer/auth/login`, { username, password });
   setDealerSession(r.data.token, r.data.dealer);
+  // Surface a friendly onboarding toast if the backend just applied the
+  // admin-configured default markup on the first login.
+  if (r.data.onboardingApplied) {
+    try {
+      const { toast } = await import('sonner');
+      const o = r.data.onboardingApplied;
+      toast.success(`Witaj! Twoje ceny zostały automatycznie ustawione`, {
+        description: `Narzut ${o.percent}% od ${o.base === 'b2b' ? 'cen B2B' : 'cen WM Brutto'} zastosowany do ${o.touched} pozycji. Możesz je edytować w zakładce „Mój cennik".`,
+        duration: 8000,
+      });
+    } catch (_e) { /* sonner missing? silent. */ }
+  }
   return r.data.dealer;
 }
 

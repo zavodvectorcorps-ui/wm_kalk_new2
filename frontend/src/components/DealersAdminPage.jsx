@@ -135,6 +135,19 @@ export default function DealersAdminPage() {
                           {d.isActive
                             ? <span className="inline-flex items-center gap-1 text-xs text-emerald-600"><Power className="h-3 w-3" /> Активен</span>
                             : <span className="inline-flex items-center gap-1 text-xs text-red-500"><PowerOff className="h-3 w-3" /> Отключён</span>}
+                          {d.defaultMarkupPercent != null && (
+                            <div className="mt-1">
+                              {d.onboardedAt ? (
+                                <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-700 border border-emerald-500/30" title={`Авто-наценка +${d.defaultMarkupPercent}% применена ${new Date(d.onboardedAt).toLocaleString('ru-RU')}`} data-testid={`onboard-applied-${d.id}`}>
+                                  ✓ +{d.defaultMarkupPercent}%
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-700 border border-amber-500/30" title={`Авто-наценка +${d.defaultMarkupPercent}% ждёт первого входа дилера`} data-testid={`onboard-pending-${d.id}`}>
+                                  ⏳ +{d.defaultMarkupPercent}%
+                                </span>
+                              )}
+                            </div>
+                          )}
                         </td>
                         <td className="px-4 py-3 text-right">
                           <div className="inline-flex gap-1">
@@ -295,15 +308,28 @@ function HardDeleteDealerDialog({ dealer, onClose, onDeleted }) {
 }
 
 function CreateDealerDialog({ open, onClose }) {
-  const [data, setData] = useState({ username: '', password: '', name: '', email: '', phone: '', orderPrefix: '' });
+  const [data, setData] = useState({
+    username: '', password: '', name: '', email: '', phone: '', orderPrefix: '',
+    defaultMarkupPercent: '', defaultMarkupBase: 'wm', defaultMarkupScope: 'all',
+  });
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      await axios.post(`${API}/api/admin/dealers`, data, { headers: authHeaders() });
+      const payload = { ...data };
+      // Only send markup fields if percent is set
+      const pct = parseFloat(payload.defaultMarkupPercent);
+      if (Number.isFinite(pct)) {
+        payload.defaultMarkupPercent = pct;
+      } else {
+        delete payload.defaultMarkupPercent;
+        delete payload.defaultMarkupBase;
+        delete payload.defaultMarkupScope;
+      }
+      await axios.post(`${API}/api/admin/dealers`, payload, { headers: authHeaders() });
       toast.success(`Дилер ${data.username} создан`);
-      setData({ username: '', password: '', name: '', email: '', phone: '', orderPrefix: '' });
+      setData({ username: '', password: '', name: '', email: '', phone: '', orderPrefix: '', defaultMarkupPercent: '', defaultMarkupBase: 'wm', defaultMarkupScope: 'all' });
       onClose();
     } catch (e) {
       toast.error(e?.response?.data?.detail || 'Ошибка');
@@ -352,6 +378,55 @@ function CreateDealerDialog({ open, onClose }) {
             />
             <p className="text-[11px] text-muted-foreground mt-1">Необязательно. Если пусто — используется префикс WMS-D.</p>
           </div>
+
+          {/* Onboarding markup */}
+          <div className="rounded-md border border-cyan-200 dark:border-cyan-900 bg-cyan-50/40 dark:bg-cyan-950/20 p-3 space-y-2" data-testid="onboarding-markup-section">
+            <div className="text-xs font-semibold text-cyan-800 dark:text-cyan-300 uppercase tracking-wider">
+              Авто-наценка при первом входе (опционально)
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              При первом логине дилера автоматически проставится розница по всему каталогу с этой наценкой.
+              Полезно для быстрого онбординга.
+            </p>
+            <div className="grid grid-cols-3 gap-2 items-end">
+              <div>
+                <Label className="text-[11px]">Процент %</Label>
+                <Input
+                  type="number"
+                  value={data.defaultMarkupPercent}
+                  onChange={(e) => setData({ ...data, defaultMarkupPercent: e.target.value })}
+                  placeholder="напр. 15"
+                  className="h-8"
+                  data-testid="create-onboarding-percent"
+                />
+              </div>
+              <div>
+                <Label className="text-[11px]">От цены</Label>
+                <select
+                  value={data.defaultMarkupBase}
+                  onChange={(e) => setData({ ...data, defaultMarkupBase: e.target.value })}
+                  className="w-full h-8 px-2 rounded-md border bg-background text-sm"
+                  data-testid="create-onboarding-base"
+                >
+                  <option value="wm">WM Brutto</option>
+                  <option value="b2b">B2B</option>
+                </select>
+              </div>
+              <div>
+                <Label className="text-[11px]">Зона</Label>
+                <select
+                  value={data.defaultMarkupScope}
+                  onChange={(e) => setData({ ...data, defaultMarkupScope: e.target.value })}
+                  className="w-full h-8 px-2 rounded-md border bg-background text-sm"
+                  data-testid="create-onboarding-scope"
+                >
+                  <option value="all">Всё</option>
+                  <option value="models">Только модели</option>
+                  <option value="options">Только опции</option>
+                </select>
+              </div>
+            </div>
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Отмена</Button>
@@ -372,8 +447,13 @@ function EditDealerDialog({ dealer, onClose }) {
     phone: dealer.phone || '',
     orderPrefix: dealer.orderPrefix || '',
     password: '',
+    defaultMarkupPercent: dealer.defaultMarkupPercent != null ? String(dealer.defaultMarkupPercent) : '',
+    defaultMarkupBase: dealer.defaultMarkupBase || 'wm',
+    defaultMarkupScope: dealer.defaultMarkupScope || 'all',
+    resetOnboarding: false,
   });
   const [saving, setSaving] = useState(false);
+  const isOnboarded = !!dealer.onboardedAt;
 
   const handleSave = async () => {
     setSaving(true);
@@ -383,12 +463,17 @@ function EditDealerDialog({ dealer, onClose }) {
         email: data.email,
         phone: data.phone,
         orderPrefix: data.orderPrefix,
+        defaultMarkupBase: data.defaultMarkupBase,
+        defaultMarkupScope: data.defaultMarkupScope,
       };
       if (data.password && data.password.trim().length > 0) {
         payload.password = data.password;
       }
+      const pct = parseFloat(data.defaultMarkupPercent);
+      if (Number.isFinite(pct)) payload.defaultMarkupPercent = pct;
+      if (data.resetOnboarding) payload.resetOnboarding = true;
       await axios.put(`${API}/api/admin/dealers/${dealer.id}`, payload, { headers: authHeaders() });
-      toast.success('Изменения сохранены');
+      toast.success('Изменения сохранены' + (data.resetOnboarding ? ' · онбординг сброшен' : ''));
       onClose();
     } catch (e) {
       toast.error(e?.response?.data?.detail || 'Ошибка');
@@ -436,6 +521,75 @@ function EditDealerDialog({ dealer, onClose }) {
               placeholder="Оставьте пустым, чтобы не менять"
               data-testid="edit-dealer-password"
             />
+          </div>
+
+          {/* Onboarding markup */}
+          <div className="rounded-md border border-cyan-200 dark:border-cyan-900 bg-cyan-50/40 dark:bg-cyan-950/20 p-3 space-y-2" data-testid="edit-onboarding-section">
+            <div className="flex items-center justify-between gap-2">
+              <div className="text-xs font-semibold text-cyan-800 dark:text-cyan-300 uppercase tracking-wider">
+                Авто-наценка при первом входе
+              </div>
+              {isOnboarded ? (
+                <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-700 border border-emerald-500/30">
+                  ✓ Применён {new Date(dealer.onboardedAt).toLocaleDateString('ru-RU')}
+                </span>
+              ) : (
+                <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-700 border border-amber-500/30">
+                  Ожидает первого входа
+                </span>
+              )}
+            </div>
+            <div className="grid grid-cols-3 gap-2 items-end">
+              <div>
+                <Label className="text-[11px]">Процент %</Label>
+                <Input
+                  type="number"
+                  value={data.defaultMarkupPercent}
+                  onChange={(e) => setData({ ...data, defaultMarkupPercent: e.target.value })}
+                  placeholder="напр. 15"
+                  className="h-8"
+                  data-testid="edit-onboarding-percent"
+                />
+              </div>
+              <div>
+                <Label className="text-[11px]">От цены</Label>
+                <select
+                  value={data.defaultMarkupBase}
+                  onChange={(e) => setData({ ...data, defaultMarkupBase: e.target.value })}
+                  className="w-full h-8 px-2 rounded-md border bg-background text-sm"
+                  data-testid="edit-onboarding-base"
+                >
+                  <option value="wm">WM Brutto</option>
+                  <option value="b2b">B2B</option>
+                </select>
+              </div>
+              <div>
+                <Label className="text-[11px]">Зона</Label>
+                <select
+                  value={data.defaultMarkupScope}
+                  onChange={(e) => setData({ ...data, defaultMarkupScope: e.target.value })}
+                  className="w-full h-8 px-2 rounded-md border bg-background text-sm"
+                  data-testid="edit-onboarding-scope"
+                >
+                  <option value="all">Всё</option>
+                  <option value="models">Только модели</option>
+                  <option value="options">Только опции</option>
+                </select>
+              </div>
+            </div>
+            {isOnboarded && (
+              <div className="flex items-start gap-2 pt-1">
+                <Checkbox
+                  id="reset-onboarding"
+                  checked={data.resetOnboarding}
+                  onCheckedChange={(v) => setData({ ...data, resetOnboarding: !!v })}
+                  data-testid="reset-onboarding-checkbox"
+                />
+                <Label htmlFor="reset-onboarding" className="text-xs font-normal cursor-pointer">
+                  Сбросить онбординг — при следующем входе дилера наценка применится снова.
+                </Label>
+              </div>
+            )}
           </div>
         </div>
         <DialogFooter>

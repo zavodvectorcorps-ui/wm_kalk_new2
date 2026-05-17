@@ -1,0 +1,31 @@
+{
+  "summary": "Iteration 98 — auto-apply markup preset on first dealer login. Backend: created /app/backend/tests/test_dealer_onboarding_markup.py (7 tests, ALL PASS). Frontend: verified all 4 onboarding data-testids (onboarding-markup-section, create-onboarding-percent/base/scope) are PRESENT in the CreateDealerDialog when 'Новый дилер' is clicked. Dealer creation via API echoes defaultMarkupPercent=13 and onboardedAt=null as expected. Cleanup performed via hard-delete.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "DealersAdminPage table render", "issues": ["React console warning: 'Encountered two children with the same key' — non-unique key id 'e4d04ee8-517b-44eb-b4c7-734ad58e015b' likely a duplicate row in the dealers list (legacy residual TEST_ data). Non-blocking but should be deduped or use composite keys."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_dealer_onboarding_markup.py",
+    "/app/test_reports/pytest/iter98.xml"
+  ],
+  "action_items": [
+    "Optional: filter or use composite React keys in DealersAdminPage list to silence the duplicate-key console warning when MongoDB has multiple legacy rows with the same id."
+  ],
+  "critical_code_review_comments": [
+    "routes/dealer.py dealer_login: graceful try/except around onboarding markup is correct — failures are logged but do not block login (verified by pytest).",
+    "models/dealer.py DealerUpdate.resetOnboarding is correctly excluded from $set and used to clear onboardedAt; payload.model_dump(exclude_none=True) ensures partial updates work.",
+    "frontend dealerAuth.js uses dynamic `await import('sonner')` so the toast is best-effort and silently no-ops if sonner is unavailable — defensive and correct."
+  ],
+  "updated_files": ["/app/backend/tests/test_dealer_onboarding_markup.py"],
+  "success_rate": {"backend": "100% (7/7)", "frontend": "partial — testids/dialog confirmed; toast not visually screenshotted but dealerAuth.js code path is identical to backend-verified onboardingApplied response"},
+  "test_credentials": "admin/admin123 (admin); throwaway dealers ui_ob_* created with password ob_pass123 and hard-deleted after each test",
+  "seed_data_creation": "Each test creates a TEST_ dealer with random suffix and hard-deletes it in finally block. Final cleanup pass executed via curl removed any residual ui_ob_*/test_ob_* dealers.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Iteration 98 onboarding feature is fully verified at the API layer (7/7 pytest pass covering create-echo, first-login apply+stamp, second-login no-op, resetOnboarding reset, independent markup PUT, invalid base/scope coercion, no-markup → null onboardingApplied, b2b-base touched=0). Frontend dialog testids onboarding-markup-section, create-onboarding-percent, create-onboarding-base, create-onboarding-scope confirmed present. Edit dialog testids (edit-onboarding-section, reset-onboarding-checkbox) and chip testids (onboard-applied-{id}, onboard-pending-{id}) exist in code (grep-verified) but were not exercised live due to UI navigation card collision with 'Pracownicy'. Main agent can self-test those interactively. Cleanup: residual ui_ob_*/test_ob_* dealers have been hard-deleted.",
+  "rca of the issue": "No bug found."
+}

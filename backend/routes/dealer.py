@@ -34,9 +34,43 @@ async def dealer_login(body: DealerLogin):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     if not dealer.get("isActive", True):
         raise HTTPException(status_code=403, detail="Account deactivated")
+
+    # First-login onboarding: if a default markup is configured and we haven't
+    # onboarded yet, apply it once and stamp `onboardedAt`. Best-effort — any
+    # failure is logged but never blocks the login.
+    onboarding_applied = None
+    pct = dealer.get("defaultMarkupPercent")
+    if pct is not None and not dealer.get("onboardedAt"):
+        try:
+            base = (dealer.get("defaultMarkupBase") or "wm").lower()
+            scope = (dealer.get("defaultMarkupScope") or "all").lower()
+            if base not in ("b2b", "wm"):
+                base = "wm"
+            if scope not in ("all", "models", "options"):
+                scope = "all"
+            res = await dealer_bulk_markup(
+                {"percent": float(pct), "base": base, "scope": scope, "overwrite": False},
+                dealer,
+            )
+            now_iso = datetime.now(timezone.utc).isoformat()
+            await db.dealers.update_one(
+                {"id": dealer["id"]},
+                {"$set": {"onboardedAt": now_iso}},
+            )
+            dealer["onboardedAt"] = now_iso
+            onboarding_applied = {
+                "percent": float(pct),
+                "base": base,
+                "scope": scope,
+                "touched": res.get("touched", 0),
+            }
+            logger.info(f"Dealer {dealer['username']} onboarded with {pct}% markup, touched={res.get('touched', 0)}")
+        except Exception as e:
+            logger.warning(f"Dealer onboarding markup failed for {dealer['username']}: {e}")
+
     token = create_dealer_token(dealer)
     safe = {k: v for k, v in dealer.items() if k not in ("_id", "password")}
-    return {"token": token, "dealer": safe}
+    return {"token": token, "dealer": safe, "onboardingApplied": onboarding_applied}
 
 
 @router.get("/api/dealer/auth/me")
@@ -930,6 +964,9 @@ async def admin_create_dealer(body: DealerCreate, _: dict = Depends(get_admin_us
         phone=(body.phone or "").strip(),
         notes=body.notes or "",
         orderPrefix=(body.orderPrefix or "").strip().upper(),
+        defaultMarkupPercent=body.defaultMarkupPercent,
+        defaultMarkupBase=(body.defaultMarkupBase or None),
+        defaultMarkupScope=(body.defaultMarkupScope or None),
     )
     doc = dealer.model_dump()
     await db.dealers.insert_one(doc)
@@ -940,11 +977,14 @@ async def admin_create_dealer(body: DealerCreate, _: dict = Depends(get_admin_us
 
 @router.put("/api/admin/dealers/{dealer_id}")
 async def admin_update_dealer(dealer_id: str, body: DealerUpdate, _: dict = Depends(get_admin_user)):
-    update = {k: v for k, v in body.model_dump(exclude_none=True).items()}
+    payload = body.model_dump(exclude_none=True)
+    update = {k: v for k, v in payload.items() if k != "resetOnboarding"}
     if "password" in update and update["password"]:
         update["password"] = hash_password(update["password"])
     elif "password" in update:
         update.pop("password")
+    if payload.get("resetOnboarding"):
+        update["onboardedAt"] = None
     update["updatedAt"] = datetime.now(timezone.utc).isoformat()
     res = await db.dealers.update_one({"id": dealer_id}, {"$set": update})
     if res.matched_count == 0:
