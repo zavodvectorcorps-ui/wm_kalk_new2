@@ -679,3 +679,82 @@ Completed all three open items from Phase 2:
   `test_sauna_stock_and_option_forecast`).
 - Marketer: marketer / marketer123
 - Test Dealer: testdealer / dealer123  (id=sauna-config-5)
+
+
+---
+
+## Session — Feb 17, 2026: Two-Price Model for Dealer Portal
+
+### Problem
+Dealer Portal previously stored **one** price per override row. Admin's
+PriceSimulator "Apply to dealer" wrote that single field as the dealer's
+*displayed* price — which meant dealers were showing WM B2B costs to their
+own clients instead of their own marked-up retail. Dealers also had no
+visibility into their margin.
+
+### Solution: two independent prices per `dealer_price_overrides` row
+- `price` — **B2B Brutto** (WM → dealer). Owned/edited by **admin only** via
+  Simulator → "Apply to dealer" or `/api/admin/dealers/{id}/overrides` /
+  `/api/admin/dealers/{id}/overrides/upsert`.
+- `dealerRetailPrice` — **Retail Brutto** (dealer → client). Owned/edited by
+  **dealer only** in "Moje ceny detaliczne" tab (`PUT /api/dealer/sauna/overrides`)
+  or bulk-markup endpoint.
+
+Either side may be `None` → falls back to base WM Brutto from `sauna_prices`.
+
+### Backend changes
+- `models/dealer.py` — `DealerPriceOverride.price: Optional[int]`,
+  `DealerPriceOverride.dealerRetailPrice: Optional[int]`.
+- `routes/dealer.py`:
+  - `_apply_overrides()` — returns enriched prices doc where `basePrice`/`price`
+    = `dealerRetailPrice` (else WM brutto), plus parallel `b2bPrice` field and
+    `baseRetailWm` reference field on every model/variant/option.
+  - `PUT /api/dealer/sauna/overrides` — touches only `dealerRetailPrice`,
+    preserves admin's `price` (symmetric inverse for admin endpoints).
+  - `POST /api/dealer/sauna/overrides/bulk-markup` — `{percent, base, scope, overwrite}`.
+  - `_compute_manufacturer_totals(dealer_id, order_data)` — recomputes
+    `manufacturerBasePrice/VariantPrice/OptionsTotal/Subtotal/Total` from
+    the dealer's current B2B overrides + WM catalog.
+  - Hooked into `POST /api/dealer/sauna/orders` (create) and
+    `PUT /api/dealer/sauna/orders/{id}` (update).
+  - `POST /api/admin/dealer-orders/recompute-manufacturer-totals` — admin
+    backfill for legacy orders.
+- `routes/sauna_orders.py:_recompute_one` — dealer orders use
+  `manufacturerTotal` as the brutto baseline for VAT/margin (instead of the
+  retail `total`). Missing `manufacturerTotal` → flag `marginNeedsBackfill`
+  instead of inflated margin. `recompute_all_margins` auto-refreshes
+  `manufacturerTotal` for dealer orders before computing margin.
+
+### Frontend changes (`/app/frontend/src/components/dealer/`)
+- `DealerApp.jsx`:
+  - **PricesTab** rebuilt as "Moje ceny detaliczne": each row shows B2B badge
+    (read-only), retail input (editable), live margin in PLN + %. Summary
+    cards (% covered rows, average margin). Bulk-markup panel
+    (percent/base=b2b|wm/scope=all|models|options/overwrite).
+  - **OrdersTab** — added "Klient płaci", "Koszt WM", "Marża" columns with
+    color-coded margin (green if ≥0, red otherwise).
+- `DealerCalculatorWrapper.jsx`:
+  - **ConfirmOrderDialog** — added 2-card breakdown ("Zapłacisz WM" cyan +
+    "Twoja marża" green/red) once `manufacturerTotal` is present.
+
+### Tests
+- `/app/backend/tests/test_dealer_two_price_model.py` (new, 10 tests):
+  - prices shape with b2bPrice/baseRetailWm
+  - cost stripping (recursive)
+  - dealer PUT preserves admin B2B
+  - admin PUT preserves dealer retail
+  - bulk markup % only touches scoped rows
+  - order create computes manufacturerTotal
+  - order update recomputes manufacturerTotal
+  - order confirm preserves manufacturerTotal
+  - admin backfill endpoint
+  - global recompute-margins uses manufacturerTotal for dealer orders
+- Regression `test_dealer_overrides_upsert.py` — 7/7 PASS.
+- **17/17 total PASS** (iteration_96.json).
+
+### Known follow-ups (deferred)
+- Live margin badge inside the calculator (not only in Confirm dialog and
+  Orders list).
+- Bulk-write atomicity in `dealer_put_overrides` (currently DELETE+INSERT).
+- Migration script removed; new orders auto-compute manufacturerTotal,
+  legacy orders backfilled via admin endpoint.

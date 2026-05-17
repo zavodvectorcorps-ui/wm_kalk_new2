@@ -428,7 +428,15 @@ def _recompute_one(order: dict, prices: dict, opt_index: dict) -> dict | None:
     variant_id = order.get("selectedModelVariant")
     selected = order.get("selectedOptions") or []
     is_dealer = (order.get("source") == "dealer")
-    if is_dealer and order.get("manufacturerTotal") is not None:
+    if is_dealer:
+        if order.get("manufacturerTotal") is None:
+            # Dealer order without B2B total — would yield an inflated margin
+            # if we used `order.total` (= dealer's retail). Skip; admin can run
+            # /api/admin/dealer-orders/recompute-manufacturer-totals to backfill.
+            return {
+                "marginNeedsBackfill": True,
+                "marginRecomputedAt": datetime.now(timezone.utc).isoformat(),
+            }
         total = float(order.get("manufacturerTotal") or 0)
     else:
         total = float(order.get("total") or 0)
@@ -515,6 +523,11 @@ async def recompute_all_margins(_: dict = Depends(get_admin_user)):
         if patch is None:
             skipped += 1
             continue
+        if patch.get("marginNeedsBackfill"):
+            # Dealer order missing manufacturerTotal — flag it and move on.
+            await db.sauna_orders.update_one({"id": o["id"]}, {"$set": patch})
+            skipped += 1
+            continue
         if (
             int(o.get("totalCost") or 0) == patch["totalCost"]
             and int(o.get("margin") or 0) == patch["margin"]
@@ -537,6 +550,11 @@ async def recompute_one_preview(order_id: str, _: dict = Depends(get_admin_user)
     patch = _recompute_one(o, prices, _flatten_options(prices))
     if not patch:
         raise HTTPException(400, "Cannot recompute — model not found in current prices")
+    if patch.get("marginNeedsBackfill"):
+        raise HTTPException(
+            400,
+            "Dealer order missing manufacturerTotal — run POST /api/admin/dealer-orders/recompute-manufacturer-totals first",
+        )
     return {
         "current": {"totalCost": o.get("totalCost"), "margin": o.get("margin")},
         "recomputed": patch,
