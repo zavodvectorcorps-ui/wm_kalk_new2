@@ -197,9 +197,9 @@ async def update_dovoz_stage(
     }
     await dovoz_history.insert_one(history_entry)
     
-    # Sync to amoCRM if stage changed to sent or delivered
+    # Sync to amoCRM if stage changed to sent, with_driver or delivered
     amo_sync_result = None
-    if stage in ("sent", "delivered"):
+    if stage in ("sent", "with_driver", "delivered"):
         amo_sync_result = await sync_stage_to_amocrm(order, stage)
     
     logger.info(f"Dovoz stage updated: order={order_id}, {old_stage} -> {stage}, by={username}")

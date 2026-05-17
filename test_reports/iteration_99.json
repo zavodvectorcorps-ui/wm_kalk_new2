@@ -1,0 +1,44 @@
+{
+  "summary": "Iteration 99: tested Dovoz 'with_driver' multi-status mapping, refresh button fix, and Planner Voice input. Backend 7/7 pytest passed. Frontend kanban with 4 columns renders correctly, refresh button shows success toast, and Voice button toggles correctly between Голос/Стоп. Found one minor UI gap: the with_driver multi-select only renders when amoCRM pipelines are loaded — there is NO manual fallback input for with_driver_status_ids in the 'Введите ID вручную' branch, while sent/source/delivered all have manual inputs.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "WarehousePage.jsx Settings modal (Dovoz config, manual fallback)",
+        "issue": "When pipelines are NOT loaded (admin without amoCRM or before clicking 'Загрузить воронки'), there is no manual fallback input for with_driver_status_ids. Only Pipeline ID, Source Status ID, Sent Status ID, Delivered Status ID inputs are shown. The multi-select (data-testid='with-driver-statuses-multiselect') is only rendered inside the pipelines.length > 0 branch (around line 985). The manual fallback block starts at line ~1123 ('Нажмите Загрузить воронки или введите ID вручную:') and is missing a comma-separated IDs textarea for with_driver_status_ids.",
+        "selector": "[data-testid='with-driver-statuses-multiselect']",
+        "priority": "MEDIUM"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_dovoz_with_driver.py",
+    "/app/test_reports/pytest/iter99.xml"
+  ],
+  "action_items": [
+    "Add a manual fallback input (comma-separated IDs) for with_driver_status_ids inside the pipelines.length === 0 branch in WarehousePage.jsx around line 1123-1155, mirroring the existing manual inputs for source/sent/delivered statuses. Suggested: an <input> bound to with_driver_status_ids.join(',') with onChange that splits, trims, and filters empty values. Optionally also expose the multi-select inside the pipelines-loaded branch even when pipelineStatuses is empty (it currently shows 'Выберите воронку сверху, чтобы загрузить этапы')."
+  ],
+  "critical_code_review_comments": [
+    "WarehousePage.jsx is 1411 lines — exceeds 700 line guideline. Should be split into Dovoz, Orders, Trips, and Settings sub-components for maintainability.",
+    "Both branches (pipeline-loaded select vs manual ID input) repeat very similar config bindings. Consider extracting a <StatusIdField> component to reduce duplication.",
+    "sync_stage_to_amocrm in /app/backend/routes/dovoz.py picks the FIRST id from with_driver_status_ids when a card is dragged into the 'С водителем' column. This is documented in the code but could be surprising to users with >1 driver — consider UI affordance (e.g. driver picker dialog) in a follow-up."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_dovoz_with_driver.py (new)"
+  ],
+  "success_rate": {
+    "backend": "100% (7 passed, 1 skipped - no public create endpoint for round-trip; covered by 404 contract test)",
+    "frontend": "90% (kanban OK, refresh toast OK, voice toggle OK; multi-select rendered only after pipelines loaded — manual fallback for with_driver_status_ids missing)"
+  },
+  "test_credentials": "admin / admin123 (preview env, DB test_database) - works",
+  "seed_data_creation": "None. Tested settings PUT/GET with disposable payloads (pipeline 1234567, statuses 111/222/333/444/555/666). Backend persists in warehouse_settings collection (single doc, type=warehouse).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend Dovoz with_driver contract is solid: GET/PUT /api/dovoz/settings persists with_driver_status_ids as a list, GET /api/dovoz/stats and /api/dovoz/orders both expose the 'with_driver' bucket, and PUT /api/dovoz/orders/{id}/stage?stage=with_driver no longer returns 400 'Неверный этап' (returns 404 for nonexistent ids as expected). The refresh-dovoz-btn now triggers fetchDovozOrders + fetchDovozStats and shows a 'Обновлено · N довозов' toast. The Voice button in AITaskParser (data-testid='ai-parse-voice-start' / 'ai-parse-voice-stop') correctly toggles state in Playwright Chromium (SpeechRecognition is available). Microphone is auto-denied but UI state still flips — verified working. The only gap is the missing manual fallback input for with_driver_status_ids when no pipelines are loaded — see action_items.",
+  "rca of the issue": "Manual fallback gap RCA: In WarehousePage.jsx, the entire Dovoz config form has a top-level ternary at line ~985 — `pipelines.length > 0 ? (rich UI with selects and multi-select) : (manual ID input fallback)`. The previous agent inserted the with-driver-statuses-multiselect only into the rich-UI branch (within `pipelineStatuses.length > 0` sub-branch at line 1004-1109). The manual fallback (line ~1123 'введите ID вручную') was never updated to include with_driver_status_ids — only source_pipeline_id, source_status_id, sent_status_id, delivered_status_id were added historically. Mitigation: add an <input> in the manual fallback block that round-trips with_driver_status_ids via `.join(',')` / `.split(',').map(s => s.trim()).filter(Boolean)`."
+}

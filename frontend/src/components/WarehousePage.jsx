@@ -374,7 +374,7 @@ const WarehousePage = ({ onBack }) => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsForm, setSettingsForm] = useState({
     sections_enabled: { orders: true, trips: true, dovoz: true },
-    dovoz_config: { source_pipeline_id: '', source_status_id: '', sent_status_id: '', delivered_status_id: '' }
+    dovoz_config: { source_pipeline_id: '', source_status_id: '', sent_status_id: '', delivered_status_id: '', with_driver_status_ids: [] }
   });
 
   // Pipelines for settings dropdown
@@ -394,7 +394,7 @@ const WarehousePage = ({ onBack }) => {
         setWarehouseSettings(data);
         setSettingsForm({
           sections_enabled: data.sections_enabled || { orders: true, trips: true, dovoz: true },
-          dovoz_config: data.dovoz_config || { source_pipeline_id: '', source_status_id: '', sent_status_id: '', delivered_status_id: '' }
+          dovoz_config: data.dovoz_config || { source_pipeline_id: '', source_status_id: '', sent_status_id: '', delivered_status_id: '', with_driver_status_ids: [] }
         });
       }
     } catch (e) { console.error('Error fetching settings:', e); }
@@ -655,8 +655,9 @@ const WarehousePage = ({ onBack }) => {
   };
 
   const dovozByStage = {
-    accepted: dovozOrders.filter(o => o.dovozStage === 'accepted'),
+    accepted: dovozOrders.filter(o => (o.dovozStage || 'accepted') === 'accepted'),
     sent: dovozOrders.filter(o => o.dovozStage === 'sent'),
+    with_driver: dovozOrders.filter(o => o.dovozStage === 'with_driver'),
     delivered: dovozOrders.filter(o => o.dovozStage === 'delivered')
   };
 
@@ -989,7 +990,7 @@ const WarehousePage = ({ onBack }) => {
                       value={settingsForm.dovoz_config.source_pipeline_id || 'none'}
                       onValueChange={(v) => setSettingsForm(prev => ({
                         ...prev,
-                        dovoz_config: { ...prev.dovoz_config, source_pipeline_id: v === 'none' ? '' : v, source_status_id: '', sent_status_id: '', delivered_status_id: '' }
+                        dovoz_config: { ...prev.dovoz_config, source_pipeline_id: v === 'none' ? '' : v, source_status_id: '', sent_status_id: '', delivered_status_id: '', with_driver_status_ids: [] }
                       }))}
                     >
                       <SelectTrigger data-testid="pipeline-select"><SelectValue placeholder="Выберите воронку" /></SelectTrigger>

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
-import { Sparkles, Loader2, Wand2, X, Plus, Trash2 } from 'lucide-react';
+import { Sparkles, Loader2, Wand2, X, Plus, Trash2, Mic, MicOff } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
@@ -32,6 +32,94 @@ export default function AITaskParser({ users, directions, defaultDirection, onCr
   const [direction, setDirection] = useState(defaultDirection || 'other');
   const [parsed, setParsed] = useState(null); // null = haven't parsed yet, [] = parsed, drafts editable
   const [busy, setBusy] = useState(false);
+
+  // --- Voice input via Web Speech API ---
+  // Browser support: Chrome/Edge desktop & Android. Firefox/Safari fall back to a disabled mic.
+  const recognitionRef = useRef(null);
+  const interimRef = useRef('');
+  const baseTextRef = useRef('');
+  const [listening, setListening] = useState(false);
+  const [voiceSupported, setVoiceSupported] = useState(false);
+
+  useEffect(() => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    setVoiceSupported(!!SR);
+  }, []);
+
+  const startListening = () => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) {
+      toast.error('Голосовой ввод не поддерживается в этом браузере. Используйте Chrome или Edge.');
+      return;
+    }
+    try {
+      const rec = new SR();
+      rec.lang = 'ru-RU';
+      rec.continuous = true;
+      rec.interimResults = true;
+      rec.maxAlternatives = 1;
+      baseTextRef.current = text ? text.trimEnd() + (text.trimEnd() ? '\n' : '') : '';
+      interimRef.current = '';
+      rec.onresult = (event) => {
+        let finalChunk = '';
+        let interimChunk = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const t = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            finalChunk += (finalChunk ? ' ' : '') + t.trim();
+          } else {
+            interimChunk += (interimChunk ? ' ' : '') + t;
+          }
+        }
+        if (finalChunk) {
+          baseTextRef.current = (baseTextRef.current + (baseTextRef.current && !baseTextRef.current.endsWith('\n') ? ' ' : '') + finalChunk).trimStart();
+        }
+        interimRef.current = interimChunk;
+        const merged = (baseTextRef.current + (interimChunk ? (baseTextRef.current && !baseTextRef.current.endsWith(' ') && !baseTextRef.current.endsWith('\n') ? ' ' : '') + interimChunk : '')).slice(0, 10000);
+        setText(merged);
+      };
+      rec.onerror = (e) => {
+        if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+          toast.error('Доступ к микрофону запрещён. Разрешите его в настройках браузера.');
+        } else if (e.error !== 'no-speech' && e.error !== 'aborted') {
+          toast.error(`Ошибка распознавания: ${e.error}`);
+        }
+        setListening(false);
+      };
+      rec.onend = () => {
+        // Finalize interim into base text if recognition ended on its own.
+        if (interimRef.current) {
+          baseTextRef.current = (baseTextRef.current + ' ' + interimRef.current).trim();
+          setText(baseTextRef.current);
+          interimRef.current = '';
+        }
+        setListening(false);
+      };
+      recognitionRef.current = rec;
+      rec.start();
+      setListening(true);
+      toast.success('Слушаю… Говорите задачи.');
+    } catch (e) {
+      toast.error('Не удалось запустить голосовой ввод');
+      setListening(false);
+    }
+  };
+
+  const stopListening = () => {
+    try {
+      recognitionRef.current?.stop();
+    } catch (_e) {
+      /* noop */
+    }
+    setListening(false);
+  };
+
+  // Cleanup on unmount / dialog close
+  useEffect(() => {
+    return () => {
+      try { recognitionRef.current?.abort(); } catch (_e) { /* noop */ }
+    };
+  }, []);
 
   const handleParse = async () => {
     if (!text.trim()) {
@@ -98,6 +186,7 @@ export default function AITaskParser({ users, directions, defaultDirection, onCr
   };
 
   const handleClose = () => {
+    stopListening();
     setOpen(false);
     setText('');
     setParsed(null);
@@ -134,7 +223,22 @@ export default function AITaskParser({ users, directions, defaultDirection, onCr
           {parsed === null && (
             <div className="space-y-3 flex-1 overflow-auto pr-1">
               <div>
-                <Label className="text-xs">Текст задач (русский, польский — любой)</Label>
+                <div className="flex items-center justify-between mb-1">
+                  <Label className="text-xs">Текст задач (русский, польский — любой)</Label>
+                  {voiceSupported && (
+                    <Button
+                      type="button"
+                      variant={listening ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={listening ? stopListening : startListening}
+                      className={`gap-1.5 h-7 ${listening ? 'bg-red-600 hover:bg-red-700 text-white animate-pulse' : 'border-purple-300 text-purple-700 hover:bg-purple-50 dark:border-purple-700 dark:text-purple-300 dark:hover:bg-purple-950/30'}`}
+                      data-testid={listening ? 'ai-parse-voice-stop' : 'ai-parse-voice-start'}
+                    >
+                      {listening ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
+                      {listening ? 'Стоп' : 'Голос'}
+                    </Button>
+                  )}
+                </div>
                 <Textarea
                   value={text}
                   onChange={(e) => setText(e.target.value)}
@@ -146,7 +250,10 @@ export default function AITaskParser({ users, directions, defaultDirection, onCr
                   autoFocus
                 />
                 <div className="flex items-center justify-between text-[10px] text-muted-foreground mt-1">
-                  <span>{text.length} / 10 000</span>
+                  <span>
+                    {text.length} / 10 000
+                    {listening && <span className="ml-2 text-red-600 font-medium">● Идёт запись…</span>}
+                  </span>
                   <button
                     type="button"
                     onClick={() => setText(SAMPLE)}
