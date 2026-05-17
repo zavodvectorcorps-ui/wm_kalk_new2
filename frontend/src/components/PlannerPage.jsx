@@ -13,6 +13,7 @@ import TasksTable from './planner/TasksTable';
 import TasksBoard from './planner/TasksBoard';
 import TaskDrawer from './planner/TaskDrawer';
 import QuickCreate from './planner/QuickCreate';
+import AITaskParser from './planner/AITaskParser';
 import { getAuthHeaders, isOverdue } from './planner/constants';
 
 const API = getApiUrl();
@@ -191,13 +192,23 @@ export default function PlannerPage({ onBack }) {
         {/* Dashboard tab */}
         <TabsContent value="dashboard" className="space-y-4">
           <PlannerDashboard stats={stats} directions={directions} />
-          <QuickCreate users={users} directions={directions} onCreated={onCreated} />
+          <div className="flex flex-wrap items-end gap-2">
+            <div className="flex-1 min-w-[280px]">
+              <QuickCreate users={users} directions={directions} onCreated={onCreated} />
+            </div>
+            <AITaskParser users={users} directions={directions} onCreated={onCreated} />
+          </div>
         </TabsContent>
 
         {/* All other tabs share the same body */}
         {TABS.filter((t) => t.key !== 'dashboard').map((t) => (
           <TabsContent key={t.key} value={t.key} className="space-y-3">
-            <QuickCreate users={users} directions={directions} onCreated={onCreated} />
+            <div className="flex flex-wrap items-end gap-2">
+              <div className="flex-1 min-w-[280px]">
+                <QuickCreate users={users} directions={directions} onCreated={onCreated} />
+              </div>
+              <AITaskParser users={users} directions={directions} onCreated={onCreated} />
+            </div>
             <PlannerFilters filters={filters} setFilters={setFilters} directions={directions} users={users} />
             {loading ? (
               <div className="py-16 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-orange-500" /></div>

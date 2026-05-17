@@ -161,6 +161,10 @@ async def list_tasks(
 
 @router.post("/tasks")
 async def create_task(body: TaskCreate, user: dict = Depends(get_current_user)):
+    return await _create_task_impl(body, user)
+
+
+async def _create_task_impl(body: TaskCreate, user: dict) -> dict:
     if not body.title.strip():
         raise HTTPException(400, "Title required")
     if body.status and body.status not in STATUSES:
@@ -199,6 +203,186 @@ async def create_task(body: TaskCreate, user: dict = Depends(get_current_user)):
     }
     await db.planner_tasks.insert_one(task)
     return _strip(task)
+
+
+@router.post("/tasks/bulk-create")
+async def bulk_create_tasks(
+    body: dict,
+    user: dict = Depends(get_current_user),
+):
+    """Create N tasks in one call. Used by the AI-parse preview confirmation.
+
+    Body: ``{"tasks": [TaskCreate, …]}``. Returns ``{created: int, ids: list}``.
+    """
+    raw_list = (body or {}).get("tasks") or []
+    if not isinstance(raw_list, list) or not raw_list:
+        raise HTTPException(400, "tasks list is required")
+    if len(raw_list) > 50:
+        raise HTTPException(400, "Maximum 50 tasks per request")
+
+    created_ids: list[str] = []
+    for raw in raw_list:
+        if not isinstance(raw, dict):
+            continue
+        try:
+            t = await _create_task_impl(TaskCreate(**raw), user)
+            created_ids.append(t["id"])
+        except HTTPException as e:
+            logger.warning(f"bulk-create skipped one row: {e.detail}")
+        except Exception as e:
+            logger.warning(f"bulk-create skipped one row (exc): {e}")
+    return {"created": len(created_ids), "ids": created_ids}
+
+
+@router.post("/ai-parse")
+async def ai_parse_tasks(
+    body: dict,
+    user: dict = Depends(get_current_user),
+):
+    """Parse a free-form Russian (or any-language) text blob into a structured
+    array of task drafts using an LLM. **Does NOT write to DB** — the frontend
+    shows the parsed result for review, then commits via ``/tasks/bulk-create``.
+
+    Body::
+
+        {
+          "text": "...",                # required, free-form
+          "defaultDirection": "sauna",  # optional fallback for parsed tasks
+          "assignableUsers": [           # optional list of {id, username}; if
+            {"id": "...", "username": "..."}  # LLM matches a name in the text
+          ]                                   # to one of these, it sets assignee.
+        }
+
+    Returns ``{tasks: [TaskCreate-shaped dicts…], rawCount: int}``.
+    """
+    import os
+    text = (body or {}).get("text") or ""
+    if not text.strip():
+        raise HTTPException(400, "Field 'text' is required")
+    if len(text) > 10000:
+        raise HTTPException(400, "Text too long (max 10 000 chars)")
+
+    default_direction = ((body or {}).get("defaultDirection") or "other").strip() or "other"
+    assignable_users = (body or {}).get("assignableUsers") or []
+    valid_directions = [d["id"] for d in DEFAULT_DIRECTIONS]
+    # Pull custom user-defined directions too so the LLM can use them.
+    try:
+        async for d in db.planner_directions.find({}, {"_id": 0, "id": 1}):
+            if d.get("id") and d["id"] not in valid_directions:
+                valid_directions.append(d["id"])
+    except Exception:  # noqa: BLE001
+        pass
+
+    api_key = os.environ.get("EMERGENT_LLM_KEY")
+    if not api_key:
+        raise HTTPException(500, "EMERGENT_LLM_KEY not configured on the server")
+
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+    import json as _json
+
+    users_hint = "\n".join(f"  - {u.get('username','')} (id={u.get('id','')})" for u in assignable_users[:40])
+    today_iso = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    today_weekday = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"][datetime.now(timezone.utc).weekday()]
+
+    system_prompt = (
+        f"Сегодня: {today_iso} ({today_weekday}).\n"
+        "Ты помощник менеджера, который разбирает заметки на отдельные задачи "
+        "для системы планирования. На вход дают свободный текст (русский или "
+        "польский), на выходе нужно вернуть СТРОГИЙ JSON без markdown, "
+        "без обрамления ```, без пояснений. Только сам JSON-массив объектов.\n\n"
+        "Каждый объект — одна задача. Если в тексте перечислены несколько "
+        "задач (через переносы строк, дефисы, нумерацию или просто список), "
+        "выдели каждую в отдельный элемент массива. Если задача только одна — "
+        "вернёшь массив из одного элемента.\n\n"
+        "Схема элемента:\n"
+        "{\n"
+        '  "title":             string (короткое, до 80 символов, без точки в конце),\n'
+        '  "description":       string (детали из исходного текста, может быть пустой),\n'
+        '  "businessDirection": один из ' + str(valid_directions) + ',\n'
+        '  "priority":          один из ["low","medium","high","urgent"],\n'
+        '  "dueDate":           ISO date "YYYY-MM-DD" если в тексте есть срок, иначе пустая строка. '
+        f'Считай от сегодня ({today_iso}). "сегодня"→{today_iso}, '
+        '"завтра"→+1 день, "пятница"/"в пятницу"→ближайшая будущая пятница, '
+        '"через неделю"→+7 дней. Если срок неоднозначен — пустая строка.,\n'
+        '  "tags":              массив строк (опционально),\n'
+        '  "checklist":         массив объектов {"text": string} (опционально, для подпунктов задачи),\n'
+        '  "assigneeUsername":  username из списка ниже если в тексте упоминается этот человек, иначе пустая строка\n'
+        "}\n\n"
+        "Доступные исполнители (если упоминаются — заполни assigneeUsername):\n"
+        + (users_hint or "  (нет — оставляй пустым)") + "\n\n"
+        "Правила:\n"
+        "- Если businessDirection не понятно из контекста — поставь \"" + default_direction + "\".\n"
+        "- priority по умолчанию 'medium'. 'urgent' только если в тексте 'срочно', 'asap', 'горит'.\n"
+        "- Чек-лист используй если задача содержит несколько мелких подпунктов (1.x).\n"
+        "- ОТВЕТ — ТОЛЬКО JSON-массив. Никаких пояснений до или после."
+    )
+
+    chat = LlmChat(
+        api_key=api_key,
+        session_id=f"planner-ai-parse-{user.get('username','anon')}",
+        system_message=system_prompt,
+    ).with_model("gemini", "gemini-2.5-flash")
+
+    try:
+        raw_response = await chat.send_message(UserMessage(text=text))
+    except Exception as e:
+        logger.error(f"AI parse LLM call failed: {e}")
+        raise HTTPException(502, f"AI service error: {e}")
+
+    # Robust JSON extraction — strip markdown fences if the model wraps anyway.
+    raw_str = (raw_response or "").strip()
+    if raw_str.startswith("```"):
+        # Drop the opening fence (```json or ```) and the closing fence.
+        raw_str = raw_str.split("```", 2)
+        raw_str = raw_str[1] if len(raw_str) >= 2 else ""
+        if raw_str.lower().startswith("json"):
+            raw_str = raw_str[4:]
+        raw_str = raw_str.rsplit("```", 1)[0].strip()
+
+    try:
+        parsed = _json.loads(raw_str)
+    except _json.JSONDecodeError as e:
+        logger.warning(f"AI parse returned non-JSON: {raw_response[:200]!r}")
+        raise HTTPException(502, f"AI returned malformed JSON: {e}")
+
+    if isinstance(parsed, dict):
+        # Some models wrap in {"tasks": [...]} — accept both shapes.
+        parsed = parsed.get("tasks") or parsed.get("items") or [parsed]
+    if not isinstance(parsed, list):
+        raise HTTPException(502, "AI returned unexpected shape (expected JSON array)")
+
+    # Map usernames → user IDs for assignment
+    by_username = {u.get("username","").lower(): u.get("id","") for u in assignable_users}
+
+    cleaned: list[dict] = []
+    for item in parsed[:50]:  # hard cap
+        if not isinstance(item, dict):
+            continue
+        title = (item.get("title") or "").strip()
+        if not title:
+            continue
+        direction = (item.get("businessDirection") or "").strip()
+        if direction not in valid_directions:
+            direction = default_direction
+        priority = (item.get("priority") or "").strip().lower()
+        if priority not in PRIORITIES:
+            priority = "medium"
+        due = (item.get("dueDate") or "").strip()
+        assignee_username = (item.get("assigneeUsername") or "").strip().lower()
+        cleaned.append({
+            "title": title[:120],
+            "description": (item.get("description") or "").strip(),
+            "businessDirection": direction,
+            "priority": priority,
+            "dueDate": due,
+            "tags": [t for t in (item.get("tags") or []) if isinstance(t, str)][:10],
+            "checklist": [{"text": c.get("text") if isinstance(c, dict) else str(c)}
+                          for c in (item.get("checklist") or []) if c][:30],
+            "assigneeUserId": by_username.get(assignee_username, ""),
+            "assigneeUsernameHint": assignee_username or "",
+        })
+
+    return {"tasks": cleaned, "rawCount": len(parsed)}
 
 
 @router.get("/tasks/{task_id}")
