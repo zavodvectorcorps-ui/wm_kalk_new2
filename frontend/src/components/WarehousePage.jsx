@@ -1005,7 +1005,7 @@ const WarehousePage = ({ onBack }) => {
                       value={settingsForm.dovoz_config.source_pipeline_id || 'none'}
                       onValueChange={(v) => setSettingsForm(prev => ({
                         ...prev,
-                        dovoz_config: { ...prev.dovoz_config, source_pipeline_id: v === 'none' ? '' : v, source_status_id: '', sent_status_id: '', delivered_status_id: '', with_driver_status_ids: [] }
+                        dovoz_config: { ...prev.dovoz_config, source_pipeline_id: v === 'none' ? '' : v, source_status_id: '', sent_status_id: '', delivered_status_id: '', delivered_status_ids: [], with_driver_status_ids: [] }
                       }))}
                     >
                       <SelectTrigger data-testid="pipeline-select"><SelectValue placeholder="Выберите воронку" /></SelectTrigger>
@@ -1088,20 +1088,52 @@ const WarehousePage = ({ onBack }) => {
                         </p>
                       </div>
                       <div>
-                        <Label className="text-xs text-muted-foreground">Этап "Довоз доставлен" (куда перемещать в amoCRM)</Label>
-                        <Select
-                          value={settingsForm.dovoz_config.delivered_status_id || 'none'}
-                          onValueChange={(v) => setSettingsForm(prev => ({
-                            ...prev,
-                            dovoz_config: { ...prev.dovoz_config, delivered_status_id: v === 'none' ? '' : v }
-                          }))}
-                        >
-                          <SelectTrigger data-testid="delivered-status-select"><SelectValue placeholder="Выберите этап" /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">Не выбрано</SelectItem>
-                            {pipelineStatuses.map(s => <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
+                        <Label className="text-xs text-muted-foreground">
+                          Этапы «Довоз доставлен» (можно выбрать несколько — иногда после доставки лид перемещают в дополнительный этап)
+                        </Label>
+                        <div className="space-y-2 mt-1 rounded-md border border-input p-2 bg-background max-h-48 overflow-auto" data-testid="delivered-statuses-multiselect">
+                          {pipelineStatuses.length === 0 ? (
+                            <p className="text-xs text-muted-foreground">Выберите воронку сверху, чтобы загрузить этапы</p>
+                          ) : (
+                            pipelineStatuses.map((s) => {
+                              const sid = String(s.id);
+                              // delivered_status_ids is the new array;
+                              // legacy single delivered_status_id is also honored on read
+                              const ids = settingsForm.dovoz_config.delivered_status_ids
+                                || (settingsForm.dovoz_config.delivered_status_id ? [settingsForm.dovoz_config.delivered_status_id] : []);
+                              const checked = ids.map(String).includes(sid);
+                              return (
+                                <label key={sid} className="flex items-center gap-2 cursor-pointer text-sm hover:bg-muted/40 px-2 py-1 rounded">
+                                  <input
+                                    type="checkbox"
+                                    checked={checked}
+                                    onChange={(e) => setSettingsForm((prev) => {
+                                      const cur = (prev.dovoz_config.delivered_status_ids
+                                        || (prev.dovoz_config.delivered_status_id ? [prev.dovoz_config.delivered_status_id] : [])).map(String);
+                                      const next = e.target.checked
+                                        ? Array.from(new Set([...cur, sid]))
+                                        : cur.filter((x) => x !== sid);
+                                      return {
+                                        ...prev,
+                                        dovoz_config: {
+                                          ...prev.dovoz_config,
+                                          delivered_status_ids: next,
+                                          // also keep legacy single field in sync (first one)
+                                          delivered_status_id: next[0] || '',
+                                        },
+                                      };
+                                    })}
+                                    data-testid={`delivered-status-${sid}`}
+                                  />
+                                  <span>{s.name}</span>
+                                </label>
+                              );
+                            })
+                          )}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground mt-1">
+                          Лиды из любого из выбранных этапов попадут в колонку «Довоз доставлен». При перетаскивании сюда — лид уйдёт в <b>первый</b> выбранный этап.
+                        </p>
                       </div>
                     </>
                   )}
@@ -1150,8 +1182,24 @@ const WarehousePage = ({ onBack }) => {
                       <Input value={settingsForm.dovoz_config.sent_status_id} onChange={(e) => setSettingsForm(prev => ({ ...prev, dovoz_config: { ...prev.dovoz_config, sent_status_id: e.target.value } }))} placeholder="ID этапа 'отправлен'" data-testid="sent-status-input" />
                     </div>
                     <div>
-                      <Label className="text-xs">Delivered Status ID</Label>
-                      <Input value={settingsForm.dovoz_config.delivered_status_id} onChange={(e) => setSettingsForm(prev => ({ ...prev, dovoz_config: { ...prev.dovoz_config, delivered_status_id: e.target.value } }))} placeholder="ID этапа 'доставлен'" data-testid="delivered-status-input" />
+                      <Label className="text-xs">Delivered Status IDs (через запятую)</Label>
+                      <Input
+                        value={(settingsForm.dovoz_config.delivered_status_ids
+                          || (settingsForm.dovoz_config.delivered_status_id ? [settingsForm.dovoz_config.delivered_status_id] : [])).join(',')}
+                        onChange={(e) => {
+                          const next = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
+                          setSettingsForm(prev => ({
+                            ...prev,
+                            dovoz_config: {
+                              ...prev.dovoz_config,
+                              delivered_status_ids: next,
+                              delivered_status_id: next[0] || '',
+                            },
+                          }));
+                        }}
+                        placeholder="ID этапов 'доставлен' через запятую"
+                        data-testid="delivered-status-ids-input"
+                      />
                     </div>
                     <div className="col-span-2">
                       <Label className="text-xs">With-Driver Status IDs (через запятую)</Label>

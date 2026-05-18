@@ -259,14 +259,19 @@ async def sync_stage_to_amocrm(order: dict, stage: str) -> dict:
     if not domain or not token or not amocrm_id:
         return {"status": "skipped", "reason": "amoCRM не настроен или нет amocrm_id"}
     
-    # Determine target status_id. For multi-stage buckets (with_driver) we
-    # push to the FIRST configured id by default — that's the most common
-    # ("primary" driver). Admin can re-configure if needed.
+    # Determine target status_id. For multi-stage buckets (with_driver,
+    # delivered) we push to the FIRST configured id by default — that's the
+    # most common ("primary"). Admin can re-configure if needed.
     target_status_id = ""
     if stage == "sent":
         target_status_id = dovoz_config.get("sent_status_id", "")
     elif stage == "delivered":
-        target_status_id = dovoz_config.get("delivered_status_id", "")
+        # New multi-stage bucket support for delivered.
+        ids = dovoz_config.get("delivered_status_ids") or []
+        if isinstance(ids, list) and ids:
+            target_status_id = str(ids[0])
+        else:
+            target_status_id = str(dovoz_config.get("delivered_status_id", ""))
     elif stage == "with_driver":
         # New multi-stage bucket: list of driver-specific amoCRM statuses.
         ids = dovoz_config.get("with_driver_status_ids") or []
@@ -371,13 +376,18 @@ async def sync_from_amocrm(current_user: dict = Depends(get_current_user)):
     source_pipeline_id = dovoz_config.get("source_pipeline_id", "")
     source_status_id = str(dovoz_config.get("source_status_id", "") or "")
     sent_status_id = str(dovoz_config.get("sent_status_id", "") or "")
-    delivered_status_id = str(dovoz_config.get("delivered_status_id", "") or "")
+    # delivered: prefer list, fallback to legacy single field
+    delivered_ids_list = [str(x) for x in (dovoz_config.get("delivered_status_ids") or []) if str(x).strip()]
+    if not delivered_ids_list:
+        legacy_delivered = str(dovoz_config.get("delivered_status_id", "") or "")
+        if legacy_delivered:
+            delivered_ids_list = [legacy_delivered]
     with_driver_ids = [str(x) for x in (dovoz_config.get("with_driver_status_ids") or []) if str(x).strip()]
 
     if not domain or not token:
         raise HTTPException(status_code=400, detail="amoCRM не настроен. Укажите домен и токен в настройках интеграций.")
 
-    if not source_pipeline_id or (not source_status_id and not with_driver_ids and not sent_status_id and not delivered_status_id):
+    if not source_pipeline_id or (not source_status_id and not with_driver_ids and not sent_status_id and not delivered_ids_list):
         raise HTTPException(
             status_code=400,
             detail="Не настроен ни один этап довоза в настройках (source/sent/with_driver/delivered).",
@@ -392,10 +402,15 @@ async def sync_from_amocrm(current_user: dict = Depends(get_current_user)):
         stage_ids_to_bucket[source_status_id] = "accepted"
     if sent_status_id:
         stage_ids_to_bucket[sent_status_id] = "sent"
-    if delivered_status_id:
-        stage_ids_to_bucket[delivered_status_id] = "delivered"
+    for sid in delivered_ids_list:
+        stage_ids_to_bucket[sid] = "delivered"
     for sid in with_driver_ids:
         stage_ids_to_bucket[sid] = "with_driver"
+
+    # Buckets that are SHARED across pipelines (e.g. driver stages, delivered
+    # stages) — for these we only update existing local orders, never
+    # insert. This prevents non-dovoz leads from polluting our board.
+    update_only_buckets = {"with_driver", "delivered"}
 
     try:
         headers_amo = {"Authorization": f"Bearer {token}"}
@@ -444,6 +459,7 @@ async def sync_from_amocrm(current_user: dict = Depends(get_current_user)):
         imported = 0
         skipped = 0
         moved = 0  # existing orders whose dovozStage was advanced this run
+        skipped_non_dovoz = 0  # leads in shared driver/delivered stages that never entered dovoz
         seen_ids: set[str] = set()  # amocrm_ids returned by this sync
         now = datetime.now(timezone.utc).isoformat()
         
@@ -574,6 +590,15 @@ async def sync_from_amocrm(current_user: dict = Depends(get_current_user)):
             }
             
             existing = await dovoz_orders.find_one({"amocrm_id": lead_id})
+            new_bucket = dovoz_order["dovozStage"]
+
+            if not existing and new_bucket in update_only_buckets:
+                # This lead is in a shared driver/delivered amoCRM stage but
+                # has NEVER been a dovoz lead in our system. Skip — it would
+                # pollute the board with non-dovoz orders.
+                skipped_non_dovoz += 1
+                continue
+
             if existing:
                 # Refresh data + if lead moved into a different bucket (e.g.
                 # was 'sent' but is now in driver's amoCRM stage), upgrade
@@ -594,15 +619,12 @@ async def sync_from_amocrm(current_user: dict = Depends(get_current_user)):
                     "status_id": dovoz_order["status_id"],
                     "synced_at": now,
                 }
-                new_bucket = dovoz_order["dovozStage"]
                 old_bucket = existing.get("dovozStage", "accepted")
-                # Mirror amoCRM's bucket for non-delivered orders. Delivered
-                # stays as terminal local history regardless (admin marks
-                # complete manually).
-                bucket_changed = (
-                    new_bucket != old_bucket
-                    and old_bucket != "delivered"
-                )
+                # Mirror amoCRM's bucket for all non-delivered orders.
+                # Delivered orders are also overwritten if amoCRM shows them
+                # at a still-delivered configured stage (the user wants
+                # both delivered amoCRM stages to map into our 'delivered').
+                bucket_changed = (new_bucket != old_bucket)
                 if bucket_changed:
                     update_fields["dovozStage"] = new_bucket
                     moved += 1
@@ -638,7 +660,7 @@ async def sync_from_amocrm(current_user: dict = Depends(get_current_user)):
         except Exception as e:
             logger.warning(f"Dovoz stale cleanup failed: {e}")
 
-        logger.info(f"Dovoz sync: imported={imported}, skipped={skipped}, moved={moved}, removed_stale={removed}")
+        logger.info(f"Dovoz sync: imported={imported}, skipped={skipped}, moved={moved}, removed_stale={removed}, skipped_non_dovoz={skipped_non_dovoz}")
         
         return {
             "success": True,
@@ -646,8 +668,9 @@ async def sync_from_amocrm(current_user: dict = Depends(get_current_user)):
             "skipped": skipped,
             "moved": moved,
             "removed_stale": removed,
+            "skipped_non_dovoz": skipped_non_dovoz,
             "total_on_stage": len(leads),
-            "message": f"Импортировано: {imported}, обновлено этапов: {moved}, удалено устаревших: {removed}, без изменений: {skipped}"
+            "message": f"Импортировано: {imported}, обновлено этапов: {moved}, удалено устаревших: {removed}, пропущено чужих: {skipped_non_dovoz}"
         }
         
     except HTTPException:
