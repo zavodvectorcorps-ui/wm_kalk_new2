@@ -277,7 +277,17 @@ async def ai_parse_tasks(
     if not api_key:
         raise HTTPException(500, "EMERGENT_LLM_KEY not configured on the server")
 
-    from emergentintegrations.llm.chat import LlmChat, UserMessage
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage  # noqa: F401
+    except ModuleNotFoundError as e:
+        logger.error(f"AI parse: missing dependency — {e}")
+        raise HTTPException(
+            503,
+            "ИИ-парсер временно недоступен: на сервере не установлены зависимости "
+            f"(emergentintegrations / litellm). Передеплойте приложение — "
+            f"пакет '{e.name or 'litellm'}' доустановится во время сборки. "
+            "Если ошибка повторится после ре-деплоя, обратитесь в поддержку Emergent.",
+        )
     import json as _json
 
     users_hint = "\n".join(f"  - {u.get('username','')} (id={u.get('id','')})" for u in assignable_users[:40])
