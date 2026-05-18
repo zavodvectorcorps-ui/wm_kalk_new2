@@ -277,18 +277,13 @@ async def ai_parse_tasks(
     if not api_key:
         raise HTTPException(500, "EMERGENT_LLM_KEY not configured on the server")
 
-    try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage  # noqa: F401
-    except ModuleNotFoundError as e:
-        logger.error(f"AI parse: missing dependency — {e}")
-        raise HTTPException(
-            503,
-            "ИИ-парсер временно недоступен: на сервере не установлены зависимости "
-            f"(emergentintegrations / litellm). Передеплойте приложение — "
-            f"пакет '{e.name or 'litellm'}' доустановится во время сборки. "
-            "Если ошибка повторится после ре-деплоя, обратитесь в поддержку Emergent.",
-        )
     import json as _json
+    import httpx
+
+    # Use Emergent's LLM proxy directly (OpenAI-compatible). Avoids the
+    # emergentintegrations/litellm dependency chain that's flaky on
+    # production builds.
+    EMERGENT_PROXY = "https://integrations.emergentagent.com/llm"
 
     users_hint = "\n".join(f"  - {u.get('username','')} (id={u.get('id','')})" for u in assignable_users[:40])
     today_iso = datetime.now(timezone.utc).strftime("%Y-%m-%d")
@@ -327,14 +322,26 @@ async def ai_parse_tasks(
         "- ОТВЕТ — ТОЛЬКО JSON-массив. Никаких пояснений до или после."
     )
 
-    chat = LlmChat(
-        api_key=api_key,
-        session_id=f"planner-ai-parse-{user.get('username','anon')}",
-        system_message=system_prompt,
-    ).with_model("gemini", "gemini-2.5-flash")
-
     try:
-        raw_response = await chat.send_message(UserMessage(text=text))
+        async with httpx.AsyncClient(timeout=60.0) as cl:
+            resp = await cl.post(
+                f"{EMERGENT_PROXY}/chat/completions",
+                headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                json={
+                    "model": "gpt-4o-mini",
+                    "messages": [
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": text},
+                    ],
+                    "temperature": 0.2,
+                },
+            )
+        if resp.status_code != 200:
+            logger.error(f"AI parse proxy error {resp.status_code}: {resp.text[:300]}")
+            raise HTTPException(502, f"AI service error: HTTP {resp.status_code}")
+        raw_response = resp.json().get("choices", [{}])[0].get("message", {}).get("content", "")
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"AI parse LLM call failed: {e}")
         raise HTTPException(502, f"AI service error: {e}")
