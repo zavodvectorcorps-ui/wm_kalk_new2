@@ -32,6 +32,9 @@ export default function PriceSimulator() {
   const [dealerInput, setDealerInput] = useState('');
   const [dealerMode, setDealerMode] = useState('brutto'); // 'brutto' | 'netto'
   const [applyOpen, setApplyOpen] = useState(false);
+  // Розничная скидка для быстрых расчётов: "если продадим со скидкой N%".
+  // Хранится как процент (0..100). 0 = без скидки.
+  const [retailDiscountPct, setRetailDiscountPct] = useState(0);
   // Розничные накладные расходы (доставка курьером клиенту, упаковка, комиссия
   // продавца и пр.) — отнимаются только из розничной маржи, не из дилерской.
   const [retailExtraInput, setRetailExtraInput] = useState('');
@@ -172,9 +175,21 @@ export default function PriceSimulator() {
     const retailExtra = Math.max(0, parseFloat(retailExtraInput) || 0);
     const margin = retailNetto - cost - retailExtra;
     const marginPct = retailNetto > 0 ? (margin / retailNetto) * 100 : null;
+    // Скидка от розницы (быстрый сценарий: «продали со скидкой N%»).
+    const discPct = Math.min(100, Math.max(0, Number(retailDiscountPct) || 0));
+    const discountedBrutto = retailBrutto * (1 - discPct / 100);
+    const discountedNetto = discountedBrutto / (1 + VAT);
+    const discountedMargin = discountedNetto - cost - retailExtra;
+    const discountedMarginPct = discountedNetto > 0 ? (discountedMargin / discountedNetto) * 100 : null;
     const missingCards = rows.filter((r) => !r.hasCard).length;
-    return { rows, retailBrutto, retailNetto, cost, retailExtra, margin, marginPct, missingCards };
-  }, [model, variant, options, optById, cardByKey, retailExtraInput]);
+    return {
+      rows, retailBrutto, retailNetto, cost, retailExtra,
+      margin, marginPct,
+      discountPct: discPct, discountedBrutto, discountedNetto,
+      discountedMargin, discountedMarginPct,
+      missingCards,
+    };
+  }, [model, variant, options, optById, cardByKey, retailExtraInput, retailDiscountPct]);
 
   // ---------- dealer-price math ----------
   const dealer = useMemo(() => {
@@ -355,6 +370,72 @@ export default function PriceSimulator() {
                 color={breakdown.marginPct !== null && breakdown.marginPct < 15 ? 'red' : 'emerald'}
                 bold
               />
+            </div>
+
+            {/* Quick retail discount presets */}
+            <div className="pt-2 border-t">
+              <div className="flex items-center justify-between mb-1">
+                <div className="text-[10px] text-muted-foreground uppercase">
+                  Если продаём со скидкой
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Input
+                    type="number"
+                    min={0}
+                    max={100}
+                    step="1"
+                    value={retailDiscountPct || ''}
+                    onChange={(e) => setRetailDiscountPct(Math.min(100, Math.max(0, parseFloat(e.target.value) || 0)))}
+                    placeholder="0"
+                    className="h-7 w-16 text-right font-mono text-xs"
+                    data-testid="sim-retail-discount-input"
+                  />
+                  <span className="text-xs text-muted-foreground">%</span>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {[0, 3, 5, 7, 10, 15, 20].map((d) => (
+                  <button
+                    key={d}
+                    type="button"
+                    onClick={() => setRetailDiscountPct(d)}
+                    className={`text-[11px] px-2 py-1 rounded border transition-colors ${
+                      Number(retailDiscountPct) === d
+                        ? 'bg-orange-100 border-orange-400 text-orange-800 font-semibold'
+                        : 'bg-white hover:bg-orange-50 hover:border-orange-300'
+                    }`}
+                    data-testid={`sim-retail-discount-${d}`}
+                  >
+                    {d === 0 ? 'Без скидки' : `−${d}%`}
+                  </button>
+                ))}
+              </div>
+
+              {breakdown.discountPct > 0 && (
+                <div className="mt-2 space-y-1 rounded-md border border-orange-200 bg-orange-50/60 px-3 py-2" data-testid="sim-retail-discount-result">
+                  <div className="text-[10px] uppercase tracking-wide text-orange-700 font-semibold">
+                    После скидки −{breakdown.discountPct}%
+                  </div>
+                  <SumRow label="Цена brutto со скидкой" value={breakdown.discountedBrutto} subtle />
+                  <SumRow label="Цена netto со скидкой" value={breakdown.discountedNetto} subtle />
+                  <SumRow
+                    label="Маржа после скидки"
+                    value={breakdown.discountedMargin}
+                    pct={breakdown.discountedMarginPct}
+                    color={
+                      breakdown.discountedMargin < 0 ? 'red'
+                        : (breakdown.discountedMarginPct !== null && breakdown.discountedMarginPct < 15) ? 'amber'
+                        : 'emerald'
+                    }
+                    bold
+                  />
+                  {breakdown.discountedMargin < 0 && (
+                    <div className="text-[11px] text-red-700 font-medium">
+                      ⚠ Скидка съедает себестоимость — продажа в убыток
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
