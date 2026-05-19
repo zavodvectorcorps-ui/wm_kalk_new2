@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -7,15 +7,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from './ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { Badge } from './ui/badge';
+import { Switch } from './ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { toast } from 'sonner';
 import { 
   Plus, Pencil, Trash2, Upload, Download, Search, 
   Calendar, Users, DollarSign, TrendingUp, Calculator,
-  FileSpreadsheet, RefreshCw, Filter, X, Percent
+  FileSpreadsheet, RefreshCw, Filter, X, Percent, ShieldCheck
 } from 'lucide-react';
 import axios from 'axios';
 import { getApiUrl } from '../utils/api';
+import { useAuth } from '../context/AuthContext';
 
 const API_URL = getApiUrl();
 
@@ -50,10 +52,16 @@ const formatDate = (dateStr) => {
 };
 
 export const SalesPage = () => {
+  const { isAdmin } = useAuth();
+  const adminView = typeof isAdmin === 'function' ? isAdmin() : false;
   const [sales, setSales] = useState([]);
   const [managers, setManagers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [totals, setTotals] = useState({ total_amount: 0, paid_amount: 0, remaining: 0 });
+
+  // Admin-only "Только подтверждённые" toggle (default ON for admins).
+  // "Подтверждённый" = есть предоплата: paid_amount > 0 ИЛИ advance_amount > 0.
+  const [confirmedOnly, setConfirmedOnly] = useState(adminView);
   
   // Filters
   const [startDate, setStartDate] = useState('');
@@ -133,6 +141,60 @@ export const SalesPage = () => {
 
   // Get unique managers from sales
   const uniqueManagers = [...new Set(sales.map(s => s.manager).filter(Boolean))];
+
+  // Подтверждённые = строки, по которым внесена предоплата (paid OR advance > 0).
+  const filteredSales = useMemo(() => {
+    if (!confirmedOnly) return sales;
+    return sales.filter(s => (Number(s.paid_amount) || 0) > 0 || (Number(s.advance_amount) || 0) > 0);
+  }, [sales, confirmedOnly]);
+
+  const viewTotals = useMemo(() => {
+    if (!confirmedOnly) return totals;
+    const total_amount = filteredSales.reduce((s, x) => s + (Number(x.total_amount) || 0), 0);
+    const paid_amount  = filteredSales.reduce((s, x) => s + (Number(x.paid_amount)  || 0), 0);
+    return { total_amount, paid_amount, remaining: total_amount - paid_amount };
+  }, [filteredSales, confirmedOnly, totals]);
+
+  // CSV export — экспортирует то, что сейчас видно в таблице (с учётом тумблера/фильтров).
+  const exportCsv = () => {
+    const rows = filteredSales;
+    if (rows.length === 0) {
+      toast.error('Нечего экспортировать');
+      return;
+    }
+    const headers = ['Клиент', 'Модель', 'Сумма (zł)', 'Предоплата (zł)', 'Остаток (zł)', 'Дата заказа', 'Статус', 'Менеджер'];
+    const csvEscape = (v) => {
+      const s = String(v ?? '');
+      return /[",;\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const lines = [headers.join(';')];
+    for (const r of rows) {
+      const total = Number(r.total_amount) || 0;
+      const paid  = Number(r.paid_amount)  || 0;
+      lines.push([
+        r.client_name || '',
+        r.product_name || '',
+        total.toFixed(2),
+        paid.toFixed(2),
+        (total - paid).toFixed(2),
+        r.order_date || '',
+        r.status || '',
+        r.manager || '',
+      ].map(csvEscape).join(';'));
+    }
+    // UTF-8 BOM для корректного открытия в Excel
+    const blob = new Blob(['\uFEFF' + lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const stamp = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `prodazhi-${confirmedOnly ? 'podtverzhdennye-' : ''}${stamp}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success(`Экспортировано: ${rows.length} строк`);
+  };
 
   // Handle save sale
   const handleSaveSale = async () => {
@@ -347,8 +409,36 @@ export const SalesPage = () => {
               <RefreshCw className="h-4 w-4 mr-2" />
               Из CRM
             </Button>
+            <Button onClick={exportCsv} variant="outline" data-testid="sales-export-csv-btn">
+              <Download className="h-4 w-4 mr-2" />
+              Экспорт CSV
+            </Button>
           </div>
         </div>
+
+        {/* Admin-only confirmed-only toggle */}
+        {adminView && (
+          <div className="flex items-center gap-3 px-4 py-2 rounded-md border border-emerald-200 bg-emerald-50/60" data-testid="confirmed-only-toggle-row">
+            <ShieldCheck className="h-4 w-4 text-emerald-700 shrink-0" />
+            <div className="flex-1">
+              <Label htmlFor="confirmed-only-switch" className="text-sm font-medium text-emerald-900 cursor-pointer">
+                Только подтверждённые
+              </Label>
+              <p className="text-xs text-emerald-700/80">
+                Показывает заказы, по которым внесена предоплата. Скрывает заявки без оплаты.
+              </p>
+            </div>
+            <div className="text-xs text-emerald-800 font-medium">
+              {filteredSales.length} из {sales.length}
+            </div>
+            <Switch
+              id="confirmed-only-switch"
+              checked={confirmedOnly}
+              onCheckedChange={setConfirmedOnly}
+              data-testid="confirmed-only-switch"
+            />
+          </div>
+        )}
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -357,7 +447,7 @@ export const SalesPage = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-slate-500">Всего заказов</p>
-                  <p className="text-2xl font-bold text-slate-800" data-testid="total-orders-count">{sales.length}</p>
+                  <p className="text-2xl font-bold text-slate-800" data-testid="total-orders-count">{filteredSales.length}</p>
                 </div>
                 <FileSpreadsheet className="h-8 w-8 text-blue-500 opacity-50" />
               </div>
@@ -369,7 +459,7 @@ export const SalesPage = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-slate-500">Общая сумма</p>
-                  <p className="text-2xl font-bold text-slate-800" data-testid="total-amount-value">{formatCurrency(totals.total_amount)}</p>
+                  <p className="text-2xl font-bold text-slate-800" data-testid="total-amount-value">{formatCurrency(viewTotals.total_amount)}</p>
                 </div>
                 <DollarSign className="h-8 w-8 text-green-500 opacity-50" />
               </div>
@@ -381,7 +471,7 @@ export const SalesPage = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-slate-500">Оплачено</p>
-                  <p className="text-2xl font-bold text-slate-800" data-testid="total-paid-value">{formatCurrency(totals.paid_amount)}</p>
+                  <p className="text-2xl font-bold text-slate-800" data-testid="total-paid-value">{formatCurrency(viewTotals.paid_amount)}</p>
                 </div>
                 <TrendingUp className="h-8 w-8 text-yellow-500 opacity-50" />
               </div>
@@ -393,7 +483,7 @@ export const SalesPage = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-slate-500">Остаток к оплате</p>
-                  <p className="text-2xl font-bold text-slate-800" data-testid="remaining-value">{formatCurrency(totals.remaining)}</p>
+                  <p className="text-2xl font-bold text-slate-800" data-testid="remaining-value">{formatCurrency(viewTotals.remaining)}</p>
                 </div>
                 <DollarSign className="h-8 w-8 text-red-500 opacity-50" />
               </div>
@@ -486,14 +576,16 @@ export const SalesPage = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {sales.length === 0 ? (
+                  {filteredSales.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={9} className="text-center py-8 text-slate-500">
-                        {loading ? 'Загрузка...' : 'Нет данных'}
+                        {loading ? 'Загрузка...' : (confirmedOnly && sales.length > 0
+                          ? 'Нет подтверждённых заказов. Снимите тумблер «Только подтверждённые», чтобы увидеть все.'
+                          : 'Нет данных')}
                       </TableCell>
                     </TableRow>
                   ) : (
-                    sales.map((sale) => (
+                    filteredSales.map((sale) => (
                       <TableRow key={sale.id} className="hover:bg-slate-50" data-testid={`sale-row-${sale.id}`}>
                         <TableCell className="font-mono text-xs text-slate-500">
                           {sale.order_id?.slice(0, 12) || sale.id?.slice(0, 8)}
