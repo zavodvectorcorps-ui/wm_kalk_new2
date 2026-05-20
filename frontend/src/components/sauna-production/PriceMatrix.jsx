@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
-import { Loader2, AlertTriangle, Search, Download } from 'lucide-react';
+import { Loader2, AlertTriangle, Search, Download, Pencil, Check, X as XIcon } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
@@ -13,6 +13,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '../ui/table';
+import { Popover, PopoverTrigger, PopoverContent } from '../ui/popover';
 import { toast } from 'sonner';
 import { API, COST_BASE, authHeaders, fmtMoney } from './costConstants';
 
@@ -149,6 +150,7 @@ export default function PriceMatrix() {
 
       out.push({
         kind, name, parent,
+        ids, // {modelId?, variantId?, optionId?, optionVariantId?}
         retailBrutto, retailNetto, retailExtra, cost,
         margin, marginPct,
         dealerB2B, dealerB2BNetto, dealerMargin, dealerMarginPct, dealerRetail,
@@ -273,6 +275,90 @@ export default function PriceMatrix() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     toast.success(`Экспортировано: ${filtered.length} строк`);
+  };
+
+  // --- Inline editing of retail price (basePrice / variant.price / option.price) ---
+  // We deep-clone the entire `prices` doc, mutate the right leaf, and POST the
+  // whole doc back. The API replaces the prices doc atomically.
+  const saveRetail = async (row, newRetailBrutto) => {
+    if (!prices) return;
+    const next = JSON.parse(JSON.stringify(prices));
+    const num = Math.max(0, Math.round(Number(newRetailBrutto) || 0));
+    const { modelId, variantId, optionId, optionVariantId } = row.ids;
+
+    if (row.kind === 'model') {
+      const m = (next.models || []).find((x) => x.id === modelId);
+      if (!m) return toast.error('Модель не найдена');
+      m.basePrice = num;
+    } else if (row.kind === 'variant') {
+      const m = (next.models || []).find((x) => x.id === modelId);
+      const v = m?.variants?.find((x) => x.id === variantId);
+      if (!v) return toast.error('Вариант не найден');
+      // displayed retailBrutto = basePrice + variant.price → solve for variant.price
+      v.price = Math.max(0, num - (m.basePrice || 0));
+    } else if (row.kind === 'option') {
+      // option may be in flat options[] or nested in categories[].options
+      let opt = (next.options || []).find((x) => x.id === optionId);
+      if (!opt) {
+        for (const cat of (next.categories || [])) {
+          const found = (cat.options || []).find((x) => x.id === optionId);
+          if (found) { opt = found; break; }
+        }
+      }
+      if (!opt) return toast.error('Опция не найдена');
+      opt.price = num;
+    } else if (row.kind === 'option_variant') {
+      let opt = (next.options || []).find((x) => x.id === optionId);
+      if (!opt) {
+        for (const cat of (next.categories || [])) {
+          const found = (cat.options || []).find((x) => x.id === optionId);
+          if (found) { opt = found; break; }
+        }
+      }
+      const v = opt?.variants?.find((x) => x.id === optionVariantId);
+      if (!v) return toast.error('Вариант опции не найден');
+      v.price = Math.max(0, num - (opt.price || 0));
+    }
+
+    try {
+      await axios.post(`${API}/api/sauna/prices`, next, { headers: authHeaders() });
+      setPrices(next);
+      toast.success('Розничная цена обновлена');
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || 'Ошибка сохранения');
+    }
+  };
+
+  // --- Inline editing of dealer B2B brutto (requires dealer selected) ---
+  const saveDealerB2B = async (row, newB2B) => {
+    if (!dealerId) return;
+    const num = Math.max(0, Math.round(Number(newB2B) || 0));
+    let kind = row.kind;
+    if (kind === 'variant') kind = 'model_variant';
+    if (!['model', 'model_variant', 'option', 'option_variant'].includes(kind)) {
+      return toast.error('Этот тип строки не поддерживается для дилерских цен');
+    }
+    const payload = {
+      kind,
+      modelId: row.ids.modelId || null,
+      variantId: row.ids.variantId || null,
+      optionId: row.ids.optionId || null,
+      optionVariantId: row.ids.optionVariantId || null,
+      price: num,
+    };
+    try {
+      await axios.post(
+        `${API}/api/admin/dealers/${dealerId}/overrides/upsert`,
+        { overrides: [payload] },
+        { headers: authHeaders() },
+      );
+      // refresh overrides
+      const r = await axios.get(`${API}/api/admin/dealers/${dealerId}/overrides`, { headers: authHeaders() });
+      setDealerOverrides(r.data?.overrides || []);
+      toast.success('B2B-цена дилера обновлена');
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || 'Ошибка сохранения');
+    }
   };
 
   if (loading) {
@@ -421,7 +507,20 @@ export default function PriceMatrix() {
                     <TableCell>{kindBadge(r.kind)}</TableCell>
                     <TableCell className="font-medium text-sm">{r.name}</TableCell>
                     <TableCell className={`text-right text-sm ${r.flags.noRetail ? 'text-yellow-700 font-semibold' : ''}`}>
-                      {r.flags.noRetail ? '—' : fmtMoney(r.retailBrutto)}
+                      <InlineEditCell
+                        value={r.retailBrutto}
+                        onSave={(v) => saveRetail(r, v)}
+                        label={`Розница brutto · ${r.name}`}
+                        helper={
+                          r.kind === 'variant'
+                            ? 'Это итоговая цена brutto. Сохраним как «надбавку варианта» = новая − базовая цена модели.'
+                            : r.kind === 'option_variant'
+                              ? 'Это итоговая цена brutto. Сохраним как «надбавку варианта» = новая − базовая цена опции.'
+                              : 'Розничная цена с НДС 23%.'
+                        }
+                        testId={`pm-edit-retail-${idx}`}
+                        emptyHint="+ цена"
+                      />
                     </TableCell>
                     <TableCell className="text-right text-sm text-muted-foreground">
                       {r.flags.noRetail ? '—' : fmtMoney(r.retailNetto)}
@@ -448,7 +547,14 @@ export default function PriceMatrix() {
                     </TableCell>
                     {dealerId && (
                       <TableCell className={`text-right text-sm border-l-2 ${r.flags.noDealer ? 'text-orange-700 font-semibold' : ''}`}>
-                        {r.dealerB2B != null ? fmtMoney(r.dealerB2B) : '—'}
+                        <InlineEditCell
+                          value={r.dealerB2B}
+                          onSave={(v) => saveDealerB2B(r, v)}
+                          label={`B2B brutto для дилера · ${r.name}`}
+                          helper="Цена, по которой WM продаёт дилеру (brutto, с НДС 23%)."
+                          testId={`pm-edit-b2b-${idx}`}
+                          emptyHint="+ b2b"
+                        />
                       </TableCell>
                     )}
                     {dealerId && (
@@ -485,5 +591,71 @@ export default function PriceMatrix() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+/** Inline price editor cell with popover. Renders the current value as a clickable
+ *  number; clicking opens a small input + Save/Cancel. Empty state shows a "+".
+ */
+function InlineEditCell({ value, onSave, label, placeholder, helper, testId, disabled, emptyText = '—', emptyHint = 'Указать' }) {
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState(value || '');
+  useEffect(() => { if (open) setDraft(value || ''); }, [open, value]);
+
+  const isEmpty = value == null || value === 0;
+  const handleSave = async (e) => {
+    e?.preventDefault?.();
+    await onSave(Number(draft) || 0);
+    setOpen(false);
+  };
+
+  if (disabled) {
+    return <span className="text-muted-foreground">{isEmpty ? emptyText : fmtMoney(value)}</span>;
+  }
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className={`group inline-flex items-center gap-1 rounded px-1.5 py-0.5 hover:bg-blue-50 hover:text-blue-700 transition-colors ${
+            isEmpty ? 'text-muted-foreground italic underline decoration-dashed underline-offset-2' : ''
+          }`}
+          data-testid={testId}
+          title="Кликните, чтобы изменить"
+        >
+          <span>{isEmpty ? emptyHint : fmtMoney(value)}</span>
+          <Pencil className="h-3 w-3 opacity-0 group-hover:opacity-60" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-72 p-3" align="end">
+        <form onSubmit={handleSave} className="space-y-2">
+          <div className="text-xs font-medium text-foreground">{label}</div>
+          {helper && <div className="text-[11px] text-muted-foreground leading-tight">{helper}</div>}
+          <div className="flex items-center gap-2">
+            <Input
+              autoFocus
+              type="number"
+              min={0}
+              step="1"
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              placeholder={placeholder || 'zł brutto'}
+              className="h-8 text-right font-mono"
+              data-testid={`${testId}-input`}
+            />
+            <span className="text-xs text-muted-foreground">zł</span>
+          </div>
+          <div className="flex justify-end gap-1">
+            <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)} data-testid={`${testId}-cancel`}>
+              <XIcon className="h-3.5 w-3.5" />
+            </Button>
+            <Button type="submit" size="sm" className="gap-1" data-testid={`${testId}-save`}>
+              <Check className="h-3.5 w-3.5" /> Сохранить
+            </Button>
+          </div>
+        </form>
+      </PopoverContent>
+    </Popover>
   );
 }
