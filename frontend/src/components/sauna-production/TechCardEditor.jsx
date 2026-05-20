@@ -78,16 +78,14 @@ export default function TechCardEditor({ target, prices, onClose, onSaved }) {
               note: r.data.note || '',
             };
             setDraft(loadedDraft);
-            // Seed snapshot AFTER React batches the setDraft so auto-save knows
-            // the freshly loaded state IS the saved baseline.
+            // Seed the saved-snapshot so isDirty starts as false right after
+            // the load completes.
             lastSavedRef.current = JSON.stringify(_normalizeDraft(loadedDraft));
-            setAutoSaveStatus('saved');
           }
         } else {
           setCard(null);
-          // New card → mark as unsaved so first real edit triggers auto-save.
+          // New card → empty snapshot so the first edit becomes "dirty".
           lastSavedRef.current = '';
-          setAutoSaveStatus('idle');
         }
       } catch (e) {
         toast.error('Ошибка загрузки');
