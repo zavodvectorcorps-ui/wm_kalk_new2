@@ -13,7 +13,7 @@ import {
   RefreshCw, Settings, FileText, FileDown, Trash2,
   Phone, Clock, User, ExternalLink, Loader2, Plus, X, Search,
   Package, Wrench, Download, Eye, List, MessageSquare, Save, Pencil, ArrowUpDown,
-  Calculator, Layers, ShoppingCart, LineChart, Grid3x3
+  Calculator, Layers, ShoppingCart, LineChart, Grid3x3, Users
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getApiUrl } from '../utils/api';
@@ -23,6 +23,7 @@ import ComponentsAdmin from './sauna-production/ComponentsAdmin';
 import ProcurementForecast from './sauna-production/ProcurementForecast';
 import PriceSimulator from './sauna-production/PriceSimulator';
 import PriceMatrix from './sauna-production/PriceMatrix';
+import DealerMatrix from './sauna-production/DealerMatrix';
 
 const API_URL = getApiUrl();
 
@@ -573,6 +574,7 @@ const SaunaProductionPage = ({ onBack }) => {
           <TabsTrigger value="procurement" className="gap-2" data-testid="prod-view-procurement"><ShoppingCart className="w-4 h-4" />Закупка</TabsTrigger>
           <TabsTrigger value="simulator" className="gap-2" data-testid="prod-view-simulator"><LineChart className="w-4 h-4" />Симулятор цен</TabsTrigger>
           <TabsTrigger value="matrix" className="gap-2" data-testid="prod-view-matrix"><Grid3x3 className="w-4 h-4" />Прайс-матрица</TabsTrigger>
+          <TabsTrigger value="dealer-matrix" className="gap-2" data-testid="prod-view-dealer-matrix"><Users className="w-4 h-4" />Матрица дилера</TabsTrigger>
         </TabsList>
 
         {/* Calendar View */}
@@ -766,6 +768,10 @@ const SaunaProductionPage = ({ onBack }) => {
 
         <TabsContent value="matrix">
           <PriceMatrix />
+        </TabsContent>
+
+        <TabsContent value="dealer-matrix">
+          <DealerMatrix />
         </TabsContent>
       </Tabs>
 

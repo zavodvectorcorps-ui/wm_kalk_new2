@@ -1268,10 +1268,23 @@ async def admin_upsert_dealer_overrides(
         kind = (raw.get("kind") or "").strip()
         if kind not in ("model", "model_variant", "option", "option_variant"):
             raise HTTPException(400, f"Invalid kind: {kind!r}")
-        try:
-            price = int(raw.get("price") or 0)
-        except (TypeError, ValueError):
-            raise HTTPException(400, "price must be an integer")
+        # `price` (B2B) is optional now — caller may want to upsert only
+        # `dealerRetailPrice`. At least one of the two must be present.
+        has_price = "price" in raw and raw.get("price") is not None
+        has_retail = "dealerRetailPrice" in raw and raw.get("dealerRetailPrice") is not None
+        if not has_price and not has_retail:
+            raise HTTPException(400, "Either `price` or `dealerRetailPrice` must be provided")
+        update_fields: dict = {}
+        if has_price:
+            try:
+                update_fields["price"] = int(raw.get("price") or 0)
+            except (TypeError, ValueError):
+                raise HTTPException(400, "price must be an integer")
+        if has_retail:
+            try:
+                update_fields["dealerRetailPrice"] = int(raw.get("dealerRetailPrice") or 0)
+            except (TypeError, ValueError):
+                raise HTTPException(400, "dealerRetailPrice must be an integer")
         key = {
             "dealerId": dealer_id,
             "kind": kind,
@@ -1280,10 +1293,9 @@ async def admin_upsert_dealer_overrides(
             "optionId": raw.get("optionId") or None,
             "optionVariantId": raw.get("optionVariantId") or None,
         }
-        # Only touch the B2B `price` field — leave dealerRetailPrice as-is.
         res = await db.dealer_price_overrides.update_one(
             key,
-            {"$set": {**key, "price": price, "updatedAt": now}},
+            {"$set": {**key, **update_fields, "updatedAt": now}},
             upsert=True,
         )
         if res.upserted_id is not None:
