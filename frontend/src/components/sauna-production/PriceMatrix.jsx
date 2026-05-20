@@ -142,6 +142,17 @@ export default function PriceMatrix() {
       // мы продаём ему оптом, доставку он организует сам.
       const dealerMargin = dealerB2B != null ? (dealerB2BNetto - cost) : null;
       const dealerMarginPct = dealerB2BNetto && dealerB2BNetto > 0 ? (dealerMargin / dealerB2BNetto) * 100 : null;
+      // Скидка от нашей розницы (brutto vs brutto) — насколько дешевле мы
+      // продаём дилеру по сравнению с прямой розничной ценой.
+      const dealerDiscountPct = (dealerB2B != null && retailBrutto > 0)
+        ? Math.max(0, (1 - dealerB2B / retailBrutto) * 100)
+        : null;
+      // Рекомендованная цена для дилера = наша розничная brutto
+      // (минимум, чтобы дилер нас не демпинговал). Если у дилера задана
+      // собственная dealerRetailPrice — мы её тоже покажем рядом для
+      // контроля. Считаем "ОК", если он продаёт ≥ нашей розницы.
+      const recommendedDealerRetail = retailBrutto > 0 ? retailBrutto : null;
+      const dealerRetailUnderscut = (dealerRetail != null && retailBrutto > 0 && dealerRetail < retailBrutto);
 
       const flags = {
         noCard: !card,
@@ -153,10 +164,11 @@ export default function PriceMatrix() {
 
       out.push({
         kind, name, parent,
-        ids, // {modelId?, variantId?, optionId?, optionVariantId?}
+        ids,
         retailBrutto, retailNetto, retailExtra, cost,
         margin, marginPct,
         dealerB2B, dealerB2BNetto, dealerMargin, dealerMarginPct, dealerRetail,
+        dealerDiscountPct, recommendedDealerRetail, dealerRetailUnderscut,
         flags, isMissing,
       });
     };
@@ -242,7 +254,15 @@ export default function PriceMatrix() {
       'Розница brutto', 'Розница netto', 'Накладные',
       'Себестоимость', 'Маржа netto', 'Маржа %',
     ];
-    if (dealerId) headers.push(`B2B brutto (${dealerLabel})`, `B2B netto`, 'Маржа дилера', 'Маржа дилера %', 'Розница дилера');
+    if (dealerId) headers.push(
+      `B2B brutto (${dealerLabel})`,
+      'Скидка от розницы %',
+      'B2B netto',
+      'Маржа дилера',
+      'Маржа дилера %',
+      'Реком. розница дилера',
+      'Розница дилера (его)',
+    );
     headers.push('Проблемы');
     const esc = (v) => {
       const s = String(v ?? '');
@@ -264,9 +284,11 @@ export default function PriceMatrix() {
       if (dealerId) {
         row.push(
           r.dealerB2B != null ? Math.round(r.dealerB2B) : '',
+          r.dealerDiscountPct != null ? r.dealerDiscountPct.toFixed(1) : '',
           r.dealerB2BNetto != null ? Math.round(r.dealerB2BNetto) : '',
           r.dealerMargin != null ? Math.round(r.dealerMargin) : '',
           r.dealerMarginPct != null ? r.dealerMarginPct.toFixed(1) : '',
+          r.recommendedDealerRetail != null ? Math.round(r.recommendedDealerRetail) : '',
           r.dealerRetail != null ? Math.round(r.dealerRetail) : '',
         );
       }
@@ -504,14 +526,16 @@ export default function PriceMatrix() {
                   <TableHead className="text-right">Накладные</TableHead>
                   <TableHead className="text-right">Маржа</TableHead>
                   {dealerId && <TableHead className="text-right border-l-2">B2B brutto</TableHead>}
+                  {dealerId && <TableHead className="text-right">Скидка</TableHead>}
                   {dealerId && <TableHead className="text-right">Маржа дилера</TableHead>}
+                  {dealerId && <TableHead className="text-right">Реком. розница дилера</TableHead>}
                   <TableHead className="text-center w-[180px]">Проблемы</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={dealerId ? 10 : 8} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={dealerId ? 12 : 8} className="text-center py-8 text-muted-foreground">
                       Ничего не найдено
                     </TableCell>
                   </TableRow>
@@ -571,6 +595,25 @@ export default function PriceMatrix() {
                       </TableCell>
                     )}
                     {dealerId && (
+                      <TableCell className="text-right text-sm">
+                        {r.dealerDiscountPct != null ? (
+                          <span
+                            className={`inline-block px-1.5 py-0.5 rounded-md text-xs font-semibold ${
+                              r.dealerDiscountPct >= 30 ? 'bg-emerald-100 text-emerald-800'
+                                : r.dealerDiscountPct >= 15 ? 'bg-blue-100 text-blue-800'
+                                : 'bg-slate-100 text-slate-700'
+                            }`}
+                            title={`Дилер платит ${fmtMoney(r.dealerB2B)} вместо ${fmtMoney(r.retailBrutto)} — экономит ${fmtMoney(r.retailBrutto - r.dealerB2B)}`}
+                            data-testid={`pm-discount-${idx}`}
+                          >
+                            −{r.dealerDiscountPct.toFixed(1)}%
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                    )}
+                    {dealerId && (
                       <TableCell className={`text-right text-sm font-semibold ${
                         r.dealerMargin == null ? 'text-muted-foreground'
                           : r.dealerMargin < 0 ? 'text-red-700'
@@ -585,6 +628,26 @@ export default function PriceMatrix() {
                             )}
                           </span>
                         ) : '—'}
+                      </TableCell>
+                    )}
+                    {dealerId && (
+                      <TableCell className="text-right text-sm" data-testid={`pm-recommended-${idx}`}>
+                        {r.recommendedDealerRetail != null ? (
+                          <div className="leading-tight">
+                            <div className="font-semibold text-slate-700">
+                              {fmtMoney(r.recommendedDealerRetail)}
+                            </div>
+                            {r.dealerRetail != null ? (
+                              <div className={`text-[10px] ${r.dealerRetailUnderscut ? 'text-red-700 font-medium' : 'text-emerald-700'}`}>
+                                {r.dealerRetailUnderscut
+                                  ? `⚠ дилер ставит ${fmtMoney(r.dealerRetail)}`
+                                  : `у дилера: ${fmtMoney(r.dealerRetail)}`}
+                              </div>
+                            ) : (
+                              <div className="text-[10px] text-muted-foreground italic">дилер не задал</div>
+                            )}
+                          </div>
+                        ) : <span className="text-muted-foreground">—</span>}
                       </TableCell>
                     )}
                     <TableCell className="text-center">
