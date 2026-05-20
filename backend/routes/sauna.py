@@ -1616,23 +1616,52 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
         _months = 36
         _per_month = int(_math.ceil(_comfino_base / _months))
         _pm_str = f"{_per_month:,}".replace(',', ' ')
+        # Comfino logo (left of the text) — falls back to plain text if
+        # the bundled PNG is missing.
+        _comfino_logo_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "..", "static", "logos", "comfino.png",
+        )
+        comfino_logo_cell = None
+        try:
+            if os.path.exists(_comfino_logo_path):
+                comfino_logo_cell = RLImage(_comfino_logo_path, width=70, height=24)
+        except Exception as _e:
+            logger.warning(f"Could not load Comfino logo: {_e}")
+
         comfino_html = (
-            f'<font color="#FFFFFF" size="13"><b>💳 od {_pm_str} PLN/mies.</b></font>'
-            f'  <font color="#FFE6CC" size="10">·  raty 0% przez {_months} miesięcy (Comfino)</font>'
+            f'<font color="#FFFFFF" size="13"><b>od {_pm_str} PLN/mies.</b></font>'
+            f'  <font color="#FFE6CC" size="10">·  raty 0% przez {_months} miesięcy</font>'
         )
         comfino_para = Paragraph(
             comfino_html,
-            ParagraphStyle('Comfino', fontName='DejaVuSans', fontSize=12, alignment=TA_CENTER, leading=16),
+            ParagraphStyle('Comfino', fontName='DejaVuSans', fontSize=12, leading=16),
         )
-        comfino_table = Table([[comfino_para]], colWidths=[530])
-        comfino_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#F97316')),  # bright orange
-            ('TOPPADDING', (0, 0), (-1, -1), 9),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 9),
-            ('LEFTPADDING', (0, 0), (-1, -1), 12),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 12),
-            ('ROUNDEDCORNERS', [6, 6, 6, 6]),
-        ]))
+        if comfino_logo_cell is not None:
+            comfino_table = Table(
+                [[comfino_logo_cell, comfino_para]],
+                colWidths=[85, 445],
+            )
+            comfino_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#F97316')),
+                ('TOPPADDING', (0, 0), (-1, -1), 9),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 9),
+                ('LEFTPADDING', (0, 0), (0, 0), 14),
+                ('LEFTPADDING', (1, 0), (1, 0), 4),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 12),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ]))
+        else:
+            # Fallback: no logo file — just centered text without emoji.
+            comfino_table = Table([[comfino_para]], colWidths=[530])
+            comfino_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#F97316')),
+                ('TOPPADDING', (0, 0), (-1, -1), 9),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 9),
+                ('LEFTPADDING', (0, 0), (-1, -1), 18),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 12),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ]))
         elements.append(Spacer(1, 6))
         elements.append(comfino_table)
 
