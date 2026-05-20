@@ -948,17 +948,29 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
 
     # Lay out as a single row of N cards. Each card occupies two columns
     # (image, info). When there is no image we still emit an empty cell so
-    # the row stays aligned.
+    # the row stays aligned. The total content width is 530pt — pick
+    # per-card image and info widths so N * (img + info) ≤ 530, otherwise
+    # ReportLab squashes the info column and text wraps to 1 word per line.
     row = []
     for img_cell, info_cell in cards:
         row.append(img_cell)
         row.append(info_cell)
-    # Compute column widths: 105pt for an image column, remaining width split
-    # equally between info columns. Total page width inside margins ≈ 530pt.
     n_cards = len(cards)
-    image_col_w = 95
-    info_col_w = max(110, (530 - n_cards * image_col_w) / n_cards)
+    total_w = 530
+    per_card_w = total_w / n_cards
+    image_col_w = 95 if n_cards <= 2 else 72
+    info_col_w = max(95, per_card_w - image_col_w)
     col_widths = [image_col_w, info_col_w] * n_cards
+    # If we have 3 cards the images on screen also need to be smaller so the
+    # row doesn't dwarf the info text.
+    if n_cards >= 3:
+        for cell_img in (model_img, bench_img, heater_img):
+            if cell_img is not None:
+                try:
+                    cell_img.drawWidth = 65
+                    cell_img.drawHeight = 55
+                except Exception:
+                    pass
     combined_table = Table([row], colWidths=col_widths)
 
     # Style: brown background, dividers between cards.
