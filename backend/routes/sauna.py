@@ -107,25 +107,27 @@ def is_block_enabled(template: dict, block_id: str) -> bool:
 # =============================================
 
 
-def _resolve_option_price(opt: dict, model_id: str | None) -> int:
+def _resolve_option_price(opt: dict, *model_id_candidates: str | None) -> int:
     """Return the option's effective price for the selected sauna model.
 
     Catalog options can override their base price for specific models via
-    ``priceByModel`` (e.g. "Podłoga z drewna termicznego" has a different
-    price for each sauna size). The frontend honours this when building
-    the cart, but the PDF backend also reads option records directly
-    (fallback path) and used to ignore the override — leading to "цена за
-    метр" showing as the base per-meter price instead of the size-adjusted
-    one.
+    ``priceByModel``. The frontend keys this map by base model id (e.g.
+    ``kwadro_3_5``) but the request may carry both the base model id AND
+    a variant id (e.g. ``kwadro_3_5_standardowy``). We accept N candidate
+    ids and return the first matching override.
     """
+    by_model = None
     try:
         by_model = opt.get("priceByModel") or {}
-        if model_id and isinstance(by_model, dict):
-            v = by_model.get(model_id)
-            if v is not None:
-                return int(v)
-    except (TypeError, ValueError):
-        pass
+    except (AttributeError, TypeError):
+        by_model = None
+    if isinstance(by_model, dict):
+        for mid in model_id_candidates:
+            if mid and mid in by_model and by_model[mid] is not None:
+                try:
+                    return int(by_model[mid])
+                except (TypeError, ValueError):
+                    pass
     try:
         return int(opt.get("price") or 0)
     except (TypeError, ValueError):
@@ -1310,11 +1312,8 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     # Build a lookup of catalog option records (with priceByModel etc.) so we
     # can resolve the correct per-model price even when the request payload
     # only carries the base option `price`.
-    selected_model_id = (
-        getattr(request, 'selectedModelVariant', None)
-        or getattr(request, 'selectedModel', None)
-        or ''
-    )
+    selected_model_id = getattr(request, 'selectedModel', None) or ''
+    selected_model_variant_id = getattr(request, 'selectedModelVariant', None) or ''
     _opt_catalog_by_id: dict[str, dict] = {}
     for _cat in (getattr(request, 'categories', []) or []):
         for _o in (_cat.get('options') or []):
@@ -1353,11 +1352,19 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
             # carried in the request payload.
             catalog_opt = _opt_catalog_by_id.get(opt_id) or {}
             raw_price = opt.get('price', 0)
-            override = _resolve_option_price(catalog_opt, selected_model_id)
-            # Only swap when the catalog has an explicit override AND it differs
-            # from the request payload (avoids accidentally zero-ing pricing for
-            # options without priceByModel set).
-            if catalog_opt.get('priceByModel') and override and override != raw_price:
+            override = _resolve_option_price(catalog_opt, selected_model_id, selected_model_variant_id)
+            # Use the priceByModel override only when:
+            #   (a) the catalog actually defines priceByModel for this option,
+            #   (b) the override is non-zero,
+            #   (c) the raw_price coming from the frontend looks like the
+            #       *base* option price (i.e. frontend didn't apply the
+            #       override). If raw_price already matches some entry in
+            #       priceByModel — trust it.
+            _pbm = catalog_opt.get('priceByModel') or {}
+            raw_is_in_pbm = isinstance(_pbm, dict) and raw_price in {
+                v for v in _pbm.values() if v is not None
+            }
+            if _pbm and override and override != raw_price and not raw_is_in_pbm:
                 price = override
             else:
                 price = raw_price
@@ -1389,7 +1396,7 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                 if selection:
                     opt = next((o for o in category.get('options', []) if o.get('id') == selection), None)
                     if opt:
-                        delivery_price = _resolve_option_price(opt, selected_model_id)
+                        delivery_price = _resolve_option_price(opt, selected_model_id, selected_model_variant_id)
                 continue
 
             selection = request.selections.get(cat_id)
@@ -1405,7 +1412,7 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                             _opt_name_raw = (opt.get('name', '') or '').strip()
                             if re.search(r'[\-–—:]\s*(nie|brak|bez)\s*$', _opt_name_raw, flags=re.IGNORECASE):
                                 continue
-                            price = _resolve_option_price(opt, selected_model_id)
+                            price = _resolve_option_price(opt, selected_model_id, selected_model_variant_id)
                             has_quantity = opt.get('hasQuantity', False)
                             quantity = quantities.get(opt_id, 1) if has_quantity else 1
                             total_price = price * quantity
@@ -1433,7 +1440,7 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                     _opt_name_raw = (opt.get('name', '') or '').strip()
                     if re.search(r'[\-–—:]\s*(nie|brak|bez)\s*$', _opt_name_raw, flags=re.IGNORECASE):
                         continue
-                    price = _resolve_option_price(opt, selected_model_id)
+                    price = _resolve_option_price(opt, selected_model_id, selected_model_variant_id)
                     has_quantity = opt.get('hasQuantity', False)
                     quantity = quantities.get(selection, 1) if has_quantity else 1
                     total_price = price * quantity
