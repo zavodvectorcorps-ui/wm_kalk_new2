@@ -137,7 +137,10 @@ export default function PriceMatrix() {
       const dealerB2B = dealerRow && dealerRow.price != null ? Number(dealerRow.price) : null;
       const dealerRetail = dealerRow && dealerRow.dealerRetailPrice != null ? Number(dealerRow.dealerRetailPrice) : null;
       const dealerB2BNetto = dealerB2B != null ? dealerB2B / (1 + VAT) : null;
-      const dealerMargin = dealerB2B != null ? (dealerB2BNetto - cost - retailExtra) : null;
+      // Dealer margin = B2B netto − cost ONLY. Retail extras (доставка
+      // клиенту, упаковка, комиссия продавца) к дилеру не относятся —
+      // мы продаём ему оптом, доставку он организует сам.
+      const dealerMargin = dealerB2B != null ? (dealerB2BNetto - cost) : null;
       const dealerMarginPct = dealerB2BNetto && dealerB2BNetto > 0 ? (dealerMargin / dealerB2BNetto) * 100 : null;
 
       const flags = {
