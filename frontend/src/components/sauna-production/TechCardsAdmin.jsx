@@ -161,21 +161,51 @@ export default function TechCardsAdmin() {
         {/* MODELS */}
         {filteredModels.length > 0 && <SectionHeader title="Модели саун" />}
         {filteredModels.map((m) => {
+          const variants = m.variants || [];
+          const hasVariants = variants.length > 0;
           const modelCard = findCard('model', m.id);
           const isExpanded = !!expanded[m.id];
+
+          // For models with variants we do NOT show / allow a model-scope
+          // tech card — costs come from per-variant cards. We aggregate
+          // variant costs into a min..max range for the collapsed row.
+          let variantCosts = [];
+          let variantsWithCard = 0;
+          if (hasVariants) {
+            variants.forEach((v) => {
+              const c = findCard('variant', m.id, v.id);
+              if (c && c.totalCost != null) {
+                variantCosts.push(Number(c.totalCost) || 0);
+                variantsWithCard += 1;
+              }
+            });
+          }
+          const minCost = variantCosts.length ? Math.min(...variantCosts) : null;
+          const maxCost = variantCosts.length ? Math.max(...variantCosts) : null;
+
           return (
             <div key={m.id} className="border rounded-md bg-card overflow-hidden">
-              <TargetRow
-                title={m.name}
-                subtitle={`Базовая цена ${fmtMoney(m.basePrice)}`}
-                retail={m.basePrice}
-                card={modelCard}
-                onClick={() => setTarget({ scope: 'model', modelId: m.id, name: m.name, retailPrice: m.basePrice })}
-                onToggle={(m.variants || []).length > 0 ? () => setExpanded({ ...expanded, [m.id]: !isExpanded }) : null}
-                expanded={isExpanded}
-                marginMode={marginMode}
-              />
-              {isExpanded && (m.variants || []).map((v) => {
+              {hasVariants ? (
+                <ModelGroupRow
+                  model={m}
+                  variantsTotal={variants.length}
+                  variantsWithCard={variantsWithCard}
+                  minCost={minCost}
+                  maxCost={maxCost}
+                  expanded={isExpanded}
+                  onToggle={() => setExpanded({ ...expanded, [m.id]: !isExpanded })}
+                />
+              ) : (
+                <TargetRow
+                  title={m.name}
+                  subtitle={`Базовая цена ${fmtMoney(m.basePrice)}`}
+                  retail={m.basePrice}
+                  card={modelCard}
+                  onClick={() => setTarget({ scope: 'model', modelId: m.id, name: m.name, retailPrice: m.basePrice })}
+                  marginMode={marginMode}
+                />
+              )}
+              {isExpanded && variants.map((v) => {
                 const vCard = findCard('variant', m.id, v.id);
                 const retailFull = (m.basePrice || 0) + (v.price || 0);
                 return (
@@ -440,6 +470,65 @@ function NumCell({ label, value, valueClass = 'font-mono', subValue, icon, subHi
       {subHint && (
         <div className="text-[9px] text-muted-foreground italic leading-tight">{subHint}</div>
       )}
+    </div>
+  );
+}
+
+/**
+ * Header row for models that HAVE variants.
+ * - No tech-card for the model itself (cost is per-variant).
+ * - Shows aggregated cost range from existing variant tech-cards.
+ * - Click anywhere to expand/collapse; no "Создать" button.
+ */
+function ModelGroupRow({ model, variantsTotal, variantsWithCard, minCost, maxCost, expanded, onToggle }) {
+  const hasAnyCost = minCost != null;
+  const costLabel = !hasAnyCost
+    ? '—'
+    : minCost === maxCost
+      ? fmtMoney(minCost)
+      : `${fmtMoney(minCost)} – ${fmtMoney(maxCost)}`;
+  const allFilled = variantsWithCard === variantsTotal && variantsTotal > 0;
+  const someFilled = variantsWithCard > 0 && !allFilled;
+
+  return (
+    <div
+      className="flex items-center gap-2 px-3 py-2 hover:bg-slate-50/70 cursor-pointer select-none"
+      onClick={onToggle}
+      data-testid={`model-group-${model.id}`}
+    >
+      <button onClick={(e) => { e.stopPropagation(); onToggle(); }} className="text-slate-400 hover:text-slate-700 -ml-1">
+        {expanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+      </button>
+
+      <div className="flex-1 min-w-0">
+        <div className="text-sm font-medium truncate flex items-center gap-2">
+          {model.name}
+          <span className={`text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded-md font-normal ${
+            allFilled ? 'bg-emerald-100 text-emerald-700'
+              : someFilled ? 'bg-amber-100 text-amber-800'
+              : 'bg-slate-100 text-slate-600'
+          }`}>
+            {variantsWithCard}/{variantsTotal} тех.карт
+          </span>
+        </div>
+        <div className="text-xs text-muted-foreground truncate">
+          Базовая цена {fmtMoney(model.basePrice)} · себестоимость по вариантам ↓
+        </div>
+      </div>
+
+      <div className="hidden sm:grid gap-x-3 text-right shrink-0" style={{ gridTemplateColumns: 'repeat(2, minmax(120px, auto))' }}>
+        <NumCell label="Розница (от)" value={fmtMoney(model.basePrice)} subValue="базовая" />
+        <NumCell
+          label="Себест. вариантов"
+          value={costLabel}
+          valueClass={hasAnyCost ? 'text-orange-600 font-bold' : 'text-muted-foreground'}
+          subValue={hasAnyCost ? (minCost === maxCost ? 'одинаковая у всех' : 'диапазон') : 'нет данных'}
+        />
+      </div>
+
+      <span className="text-xs text-muted-foreground italic shrink-0 ml-2 hidden md:inline">
+        Тех.карта на модель не нужна
+      </span>
     </div>
   );
 }

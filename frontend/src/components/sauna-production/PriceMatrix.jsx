@@ -160,7 +160,12 @@ export default function PriceMatrix() {
 
     // модели + варианты
     (prices.models || []).forEach((m) => {
-      make('model', m.name, '', Number(m.basePrice || 0), 'model', { modelId: m.id });
+      const hasVariants = (m.variants || []).length > 0;
+      // Если у модели есть варианты — сама модель не нуждается в тех.карте,
+      // себестоимость берётся по вариантам. Пропускаем строку «model».
+      if (!hasVariants) {
+        make('model', m.name, '', Number(m.basePrice || 0), 'model', { modelId: m.id });
+      }
       (m.variants || []).forEach((v) => {
         make(
           'variant',
