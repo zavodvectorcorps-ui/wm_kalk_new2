@@ -106,10 +106,35 @@ def is_block_enabled(template: dict, block_id: str) -> bool:
 # These are included via router.include_router() above
 # =============================================
 
+
+def _resolve_option_price(opt: dict, model_id: str | None) -> int:
+    """Return the option's effective price for the selected sauna model.
+
+    Catalog options can override their base price for specific models via
+    ``priceByModel`` (e.g. "Podłoga z drewna termicznego" has a different
+    price for each sauna size). The frontend honours this when building
+    the cart, but the PDF backend also reads option records directly
+    (fallback path) and used to ignore the override — leading to "цена за
+    метр" showing as the base per-meter price instead of the size-adjusted
+    one.
+    """
+    try:
+        by_model = opt.get("priceByModel") or {}
+        if model_id and isinstance(by_model, dict):
+            v = by_model.get(model_id)
+            if v is not None:
+                return int(v)
+    except (TypeError, ValueError):
+        pass
+    try:
+        return int(opt.get("price") or 0)
+    except (TypeError, ValueError):
+        return 0
+
 async def generate_sauna_pdf_bytes(request: SaunaPDFRequest) -> bytes:
     """Generate PDF for sauna order and return as bytes (for Telegram)"""
     from reportlab.lib.units import mm
-    
+
     buffer = io.BytesIO()
 
     from services.pdf_fonts import ensure_pdf_fonts
@@ -797,122 +822,158 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     bench_name = None
     bench_price = 0
     bench_opt_id = None
-    
+
+    # ========== PIEC (HEATER) — same shape as bench so we can display all 3
+    # (model + bench + heater) on the first page header strip. ==========
+    heater_image_url = None
+    heater_name = None
+    heater_price = 0
+    heater_opt_id = None
+
     selected_options = getattr(request, 'selectedOptions', None) or []
     admin_gifts = getattr(request, 'adminGifts', []) or []
-    
+
     for opt in selected_options:
         cat_id = opt.get('categoryId', '')
-        if cat_id == 'lawki' and opt.get('imageUrl'):
+        if cat_id == 'lawki' and opt.get('imageUrl') and not bench_image_url:
             bench_image_url = opt.get('imageUrl')
             bench_name = opt.get('optionName') or opt.get('name')
             bench_price = opt.get('price', 0)
             bench_opt_id = opt.get('optionId') or opt.get('id')
+        elif cat_id == 'piece' and not heater_opt_id:
+            heater_image_url = opt.get('imageUrl') or ''
+            heater_name = opt.get('optionName') or opt.get('name')
+            heater_price = opt.get('price', 0)
+            heater_opt_id = opt.get('optionId') or opt.get('id')
+        if bench_opt_id and heater_opt_id:
             break
-    
-    if not bench_image_url:
+
+    # Fallback: pull from categories+selections if request.selectedOptions
+    # didn't carry these (e.g. direct calculator generation path).
+    if not bench_image_url or not heater_opt_id:
         for category in request.categories:
-            if category.get('id') == 'lawki':
+            _cid = category.get('id')
+            if _cid == 'lawki' and not bench_image_url:
                 selection = request.selections.get('lawki')
                 if selection:
                     for opt in category.get('options', []):
                         if opt.get('id') == selection:
                             if opt.get('imageUrl'):
                                 bench_image_url = opt.get('imageUrl')
-                                bench_name = opt.get('name')
-                                bench_price = opt.get('price', 0)
-                                bench_opt_id = opt.get('id')
+                            bench_name = bench_name or opt.get('name')
+                            bench_price = bench_price or opt.get('price', 0)
+                            bench_opt_id = bench_opt_id or opt.get('id')
                             break
-                break
+            elif _cid == 'piece' and not heater_opt_id:
+                selection = request.selections.get('piece')
+                if selection:
+                    for opt in category.get('options', []):
+                        if opt.get('id') == selection:
+                            heater_image_url = opt.get('imageUrl') or ''
+                            heater_name = opt.get('name')
+                            heater_price = opt.get('price', 0)
+                            heater_opt_id = opt.get('id')
+                            break
     
     # Check if bench is a gift
     bench_is_gift = bench_opt_id and bench_opt_id in admin_gifts
-    
+    heater_is_gift = heater_opt_id and heater_opt_id in admin_gifts
+
     # Load bench image if available
     bench_img = None
     if bench_image_url and bench_name:
         bench_data = await load_image(bench_image_url, timeout=3)
-        
-        # Create image object if we have data
         if bench_data:
             try:
                 import tempfile
-                # Optimize bench image for PDF (smaller for speed)
                 bench_data = optimize_image_for_pdf(bench_data, max_size=250, quality=55)
-                
                 with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp:
                     tmp.write(bench_data)
-                    bench_img = RLImage(tmp.name, width=130, height=95)
+                    bench_img = RLImage(tmp.name, width=90, height=70)
             except Exception as e:
                 logger.warning(f"Could not create bench image for PDF: {e}")
+
+    # Load heater image (same pipeline)
+    heater_img = None
+    if heater_image_url and heater_name:
+        heater_data = await load_image(heater_image_url, timeout=3)
+        if heater_data:
+            try:
+                import tempfile
+                heater_data = optimize_image_for_pdf(heater_data, max_size=250, quality=55)
+                with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp:
+                    tmp.write(heater_data)
+                    heater_img = RLImage(tmp.name, width=90, height=70)
+            except Exception as e:
+                logger.warning(f"Could not create heater image for PDF: {e}")
     
-    # ========== MODEL + BENCH IN ONE ROW ==========
-    # Left side: Model, Right side: Bench
-    
-    # Build bench info paragraph
-    if bench_name:
-        if bench_is_gift:
-            bench_info = Paragraph(f'''<b>ŁAWKI</b><br/><br/>
-            {bench_name}<br/>
-            <font color="#888888"><strike>{bench_price:,} PLN</strike></font><br/>
-            <font color="#059669"><b>🎁 Prezent od WM-Group</b></font>'''.replace(',', ' '),
-            ParagraphStyle('BenchInfo', fontName='DejaVuSans', fontSize=10, leading=13))
+    # ========== MODEL + BENCH + HEATER STRIP (page 1) ==========
+    # Build each card as a single Paragraph (image embedded via <img>) so
+    # ReportLab can lay them out as N equal columns, even if some have no
+    # image. Card "cells" are produced for: model, bench (optional), heater
+    # (optional).
+    info_style = ParagraphStyle('CardInfo', fontName='DejaVuSans', fontSize=10, leading=13)
+
+    def _build_card(title: str, name: str, price_val: int, is_gift: bool, img):
+        """Compose a (image_cell, info_cell) tuple for the combined strip."""
+        if is_gift:
+            html = (
+                f'<b>{title}</b><br/><br/>'
+                f'{name}<br/>'
+                f'<font color="#888888"><strike>{price_val:,} PLN</strike></font><br/>'
+                f'<font color="#059669"><b>🎁 Prezent od WM-Group</b></font>'
+            ).replace(',', ' ')
         else:
-            bench_info = Paragraph(f'''<b>ŁAWKI</b><br/><br/>
-            {bench_name}<br/>
-            <font color="#97724E"><b>{bench_price:,} PLN</b></font>'''.replace(',', ' '),
-            ParagraphStyle('BenchInfo', fontName='DejaVuSans', fontSize=10, leading=13))
-    else:
-        bench_info = Paragraph('<font color="#888888"><i>Brak ławek</i></font>',
-            ParagraphStyle('BenchInfo', fontName='DejaVuSans', fontSize=10))
-    
-    # Create combined row: MODEL | BENCH
-    if model_img and bench_img:
-        # Both have images
-        combined_data = [[
-            model_img,
-            Paragraph(f'<b>MODEL</b><br/><br/>{model_name}<br/><font color="#97724E"><b>{model_price_val:,} PLN</b></font>'.replace(',', ' '),
-                ParagraphStyle('ModelInfo', fontName='DejaVuSans', fontSize=10, leading=13)),
-            bench_img,
-            bench_info
-        ]]
-        combined_table = Table(combined_data, colWidths=[130, 135, 130, 135])
-    elif model_img:
-        # Only model has image
-        combined_data = [[
-            model_img,
-            Paragraph(f'<b>MODEL</b><br/><br/>{model_name}<br/><font color="#97724E"><b>{model_price_val:,} PLN</b></font>'.replace(',', ' '),
-                ParagraphStyle('ModelInfo', fontName='DejaVuSans', fontSize=10, leading=13)),
-            bench_info
-        ]]
-        combined_table = Table(combined_data, colWidths=[130, 200, 200])
-    elif bench_img:
-        # Only bench has image
-        combined_data = [[
-            Paragraph(f'<b>MODEL</b><br/><br/>{model_name}<br/><font color="#97724E"><b>{model_price_val:,} PLN</b></font>'.replace(',', ' '),
-                ParagraphStyle('ModelInfo', fontName='DejaVuSans', fontSize=10, leading=13)),
-            bench_img,
-            bench_info
-        ]]
-        combined_table = Table(combined_data, colWidths=[200, 130, 200])
-    else:
-        # No images
-        combined_data = [[
-            Paragraph(f'<b>MODEL</b><br/><br/>{model_name}<br/><font color="#97724E"><b>{model_price_val:,} PLN</b></font>'.replace(',', ' '),
-                ParagraphStyle('ModelInfo', fontName='DejaVuSans', fontSize=10, leading=13)),
-            bench_info
-        ]]
-        combined_table = Table(combined_data, colWidths=[265, 265])
-    
-    combined_table.setStyle(TableStyle([
+            html = (
+                f'<b>{title}</b><br/><br/>'
+                f'{name}<br/>'
+                f'<font color="#97724E"><b>{price_val:,} PLN</b></font>'
+            ).replace(',', ' ')
+        return (img if img is not None else Paragraph('', info_style), Paragraph(html, info_style))
+
+    cards: list[tuple] = []
+    # MODEL card always present
+    cards.append((
+        model_img if model_img is not None else Paragraph('', info_style),
+        Paragraph(
+            f'<b>MODEL</b><br/><br/>{model_name}<br/>'
+            f'<font color="#97724E"><b>{model_price_val:,} PLN</b></font>'.replace(',', ' '),
+            info_style,
+        ),
+    ))
+    if bench_name:
+        cards.append(_build_card('ŁAWKI', bench_name, bench_price, bench_is_gift, bench_img))
+    if heater_name:
+        cards.append(_build_card('PIEC', heater_name, heater_price, heater_is_gift, heater_img))
+
+    # Lay out as a single row of N cards. Each card occupies two columns
+    # (image, info). When there is no image we still emit an empty cell so
+    # the row stays aligned.
+    row = []
+    for img_cell, info_cell in cards:
+        row.append(img_cell)
+        row.append(info_cell)
+    # Compute column widths: 105pt for an image column, remaining width split
+    # equally between info columns. Total page width inside margins ≈ 530pt.
+    n_cards = len(cards)
+    image_col_w = 95
+    info_col_w = max(110, (530 - n_cards * image_col_w) / n_cards)
+    col_widths = [image_col_w, info_col_w] * n_cards
+    combined_table = Table([row], colWidths=col_widths)
+
+    # Style: brown background, dividers between cards.
+    style_cmds = [
         ('BACKGROUND', (0, 0), (-1, -1), BROWN_LIGHT),
         ('TOPPADDING', (0, 0), (-1, -1), 10),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
-        ('LEFTPADDING', (0, 0), (-1, -1), 8),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('LINEBEFORE', (2, 0), (2, 0), 1, BROWN_BORDER) if len(combined_data[0]) > 2 else ('TOPPADDING', (0,0), (0,0), 10),
-    ]))
+    ]
+    for i in range(1, n_cards):
+        col = i * 2
+        style_cmds.append(('LINEBEFORE', (col, 0), (col, 0), 1, BROWN_BORDER))
+    combined_table.setStyle(TableStyle(style_cmds))
     elements.append(combined_table)
     # Disclaimer text under model and bench block
     elements.append(Spacer(1, 4))
@@ -1233,21 +1294,31 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     # PRIMARY: Use selectedOptions if available (from saved orders)
     # Track delivery price separately
     delivery_price = 0
-    
+
+    # Build a lookup of catalog option records (with priceByModel etc.) so we
+    # can resolve the correct per-model price even when the request payload
+    # only carries the base option `price`.
+    selected_model_id = (
+        getattr(request, 'selectedModelVariant', None)
+        or getattr(request, 'selectedModel', None)
+        or ''
+    )
+    _opt_catalog_by_id: dict[str, dict] = {}
+    for _cat in (getattr(request, 'categories', []) or []):
+        for _o in (_cat.get('options') or []):
+            if _o.get('id'):
+                _opt_catalog_by_id[_o['id']] = _o
+
     if selected_options:
         for opt in selected_options:
-            # Skip lawki as it's shown separately with image
-            if opt.get('categoryId') == 'lawki':
-                continue
-            
             opt_id = opt.get('optionId', '') or opt.get('id', '')
             category_id = opt.get('categoryId', '')
-            
+
             # Skip dostawa - it will be shown separately below total
             if category_id == 'dostawa':
                 delivery_price = opt.get('price', 0) * opt.get('quantity', 1)
                 continue
-            
+
             # Skip options whose chosen variant is "Nie" / "Brak" / "Bez" — the
             # customer explicitly opted OUT, so listing them under "WYBRANE OPCJE"
             # confuses the reader. The frontend appends the variant name to the
@@ -1255,17 +1326,29 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
             _opt_name_raw = (opt.get('optionName', '') or opt.get('name', '') or '').strip()
             if re.search(r'[\-–—:]\s*(nie|brak|bez)\s*$', _opt_name_raw, flags=re.IGNORECASE):
                 continue
-            
+
             # Check if this option is a gift (including fundament)
             is_gift = opt_id in admin_gifts or (category_id == 'fundament' and 'fundament_gift' in admin_gifts)
-            
+
             name = _opt_name_raw
-            
+
             # Rename fundament option for PDF display
             if category_id == 'fundament':
                 name = 'Koszt fundamentu'
-            
-            price = opt.get('price', 0)
+
+            # Resolve per-model price: if the catalog record has priceByModel
+            # for the selected sauna model, that wins over the base `price`
+            # carried in the request payload.
+            catalog_opt = _opt_catalog_by_id.get(opt_id) or {}
+            raw_price = opt.get('price', 0)
+            override = _resolve_option_price(catalog_opt, selected_model_id)
+            # Only swap when the catalog has an explicit override AND it differs
+            # from the request payload (avoids accidentally zero-ing pricing for
+            # options without priceByModel set).
+            if catalog_opt.get('priceByModel') and override and override != raw_price:
+                price = override
+            else:
+                price = raw_price
             quantity = opt.get('quantity', 1)
             total_price = price * quantity
             
@@ -1287,25 +1370,21 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
         # FALLBACK: Use categories + selections (from calculator direct generation)
         for category in request.categories:
             cat_id = category.get('id', '')
-            
-            # Skip lawki as it's shown separately with image
-            if cat_id == 'lawki':
-                continue
-            
+
             # Skip dostawa - it will be shown separately below total
             if cat_id == 'dostawa':
                 selection = request.selections.get(cat_id)
                 if selection:
                     opt = next((o for o in category.get('options', []) if o.get('id') == selection), None)
                     if opt:
-                        delivery_price = opt.get('price', 0)
+                        delivery_price = _resolve_option_price(opt, selected_model_id)
                 continue
-            
+
             selection = request.selections.get(cat_id)
-            
+
             if not selection:
                 continue
-            
+
             if category.get('inputType') == 'checkbox':
                 for opt_id, is_selected in selection.items():
                     if is_selected:
@@ -1314,27 +1393,27 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                             _opt_name_raw = (opt.get('name', '') or '').strip()
                             if re.search(r'[\-–—:]\s*(nie|brak|bez)\s*$', _opt_name_raw, flags=re.IGNORECASE):
                                 continue
-                            price = opt.get('price', 0)
+                            price = _resolve_option_price(opt, selected_model_id)
                             has_quantity = opt.get('hasQuantity', False)
                             quantity = quantities.get(opt_id, 1) if has_quantity else 1
                             total_price = price * quantity
-                            
+
                             name = _opt_name_raw
                             # Rename fundament option for PDF display
                             if cat_id == 'fundament':
                                 name = 'Koszt fundamentu'
                             if has_quantity and quantity > 1:
                                 name = f"{name} (×{quantity})"
-                            
+
                             # Check if this option is a gift (including fundament)
                             is_gift = opt_id in admin_gifts or (cat_id == 'fundament' and 'fundament_gift' in admin_gifts)
-                            
+
                             if is_gift:
                                 price_str = f"<strike>{total_price:,}</strike> Prezent od WM-Group".replace(',', ' ')
                             else:
                                 # Don't show price for options with 0 price
                                 price_str = f"{total_price:,} PLN".replace(',', ' ') if total_price > 0 else ''
-                            
+
                             options_items.append({'name': name, 'price': price_str, 'is_gift': is_gift, 'original_price': total_price})
             else:
                 opt = next((o for o in category.get('options', []) if o.get('id') == selection), None)
@@ -1342,7 +1421,7 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                     _opt_name_raw = (opt.get('name', '') or '').strip()
                     if re.search(r'[\-–—:]\s*(nie|brak|bez)\s*$', _opt_name_raw, flags=re.IGNORECASE):
                         continue
-                    price = opt.get('price', 0)
+                    price = _resolve_option_price(opt, selected_model_id)
                     has_quantity = opt.get('hasQuantity', False)
                     quantity = quantities.get(selection, 1) if has_quantity else 1
                     total_price = price * quantity
@@ -1506,7 +1585,38 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
         ]))
         elements.append(Spacer(1, 4))
         elements.append(delivery_table)
-    
+
+    # ========== COMFINO INSTALLMENT BANNER ==========
+    # Bright-coloured one-line promo under the total — gives the prospect an
+    # immediate sense of the per-month price and removes sticker-shock.
+    # Formula: round-UP(total_with_delivery / 36). 0% APR — kept simple and
+    # consistent with Comfino's "raty 0%" offer.
+    import math as _math
+    _comfino_base = total_price_int + (int(delivery_price) if delivery_price > 0 else 0)
+    if _comfino_base > 0:
+        _months = 36
+        _per_month = int(_math.ceil(_comfino_base / _months))
+        _pm_str = f"{_per_month:,}".replace(',', ' ')
+        comfino_html = (
+            f'<font color="#FFFFFF" size="13"><b>💳 od {_pm_str} PLN/mies.</b></font>'
+            f'  <font color="#FFE6CC" size="10">·  raty 0% przez {_months} miesięcy (Comfino)</font>'
+        )
+        comfino_para = Paragraph(
+            comfino_html,
+            ParagraphStyle('Comfino', fontName='DejaVuSans', fontSize=12, alignment=TA_CENTER, leading=16),
+        )
+        comfino_table = Table([[comfino_para]], colWidths=[530])
+        comfino_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#F97316')),  # bright orange
+            ('TOPPADDING', (0, 0), (-1, -1), 9),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 9),
+            ('LEFTPADDING', (0, 0), (-1, -1), 12),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 12),
+            ('ROUNDEDCORNERS', [6, 6, 6, 6]),
+        ]))
+        elements.append(Spacer(1, 6))
+        elements.append(comfino_table)
+
     # ========== FOOTER ==========
     elements.append(Spacer(1, 10))
     elements.append(Table([['']], colWidths=[530], rowHeights=[1], style=[('BACKGROUND', (0,0), (0,0), BROWN)]))
