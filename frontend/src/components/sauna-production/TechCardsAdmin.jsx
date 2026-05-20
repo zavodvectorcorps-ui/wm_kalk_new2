@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
-import { Calculator, Loader2, RotateCw, TrendingDown, TrendingUp, ChevronDown, ChevronRight, Search, AlertTriangle, ArrowRight } from 'lucide-react';
+import { Calculator, Loader2, RotateCw, TrendingDown, TrendingUp, ChevronDown, ChevronRight, Search, AlertTriangle } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../ui/dialog';
 import { toast } from 'sonner';
 import TechCardEditor from './TechCardEditor';
 import { COST_BASE, API, authHeaders, fmtMoney } from './costConstants';
@@ -18,7 +17,6 @@ export default function TechCardsAdmin() {
   const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(true);
   const [target, setTarget] = useState(null);  // currently editing
-  const [variantPrompt, setVariantPrompt] = useState(null); // {option, scope:'option'} when user clicks option-with-variants
   const [search, setSearch] = useState('');
   const [recomputing, setRecomputing] = useState(false);
   const [expanded, setExpanded] = useState({}); // modelId -> bool
@@ -231,32 +229,54 @@ export default function TechCardsAdmin() {
         {/* OPTIONS */}
         {allOptions.length > 0 && <SectionHeader title="Опции" className="pt-3" />}
         {allOptions.map((o) => {
+          const variants = o.variants || [];
+          const hasVariants = variants.length > 0;
           const optCard = findCard('option', '', '', o.id);
-          const hasVariants = (o.variants || []).length > 0;
           const isExpanded = !!expanded[`opt-${o.id}`];
+
+          // Aggregate variant costs (same UX as for models with variants).
+          let variantCosts = [];
+          let variantsWithCard = 0;
+          if (hasVariants) {
+            variants.forEach((ov) => {
+              const c = findCard('option_variant', '', '', o.id, ov.id);
+              if (c && c.totalCost != null) {
+                variantCosts.push(Number(c.totalCost) || 0);
+                variantsWithCard += 1;
+              }
+            });
+          }
+          const minCost = variantCosts.length ? Math.min(...variantCosts) : null;
+          const maxCost = variantCosts.length ? Math.max(...variantCosts) : null;
+
           const openOption = () => {
-            // If the option has variants, suggest creating per-variant tech-cards
-            // so the calculator picks up the right cost per selection.
-            if (hasVariants && !optCard) {
-              setVariantPrompt({ option: o });
-              setExpanded({ ...expanded, [`opt-${o.id}`]: true });
-              return;
-            }
             setTarget({ scope: 'option', optionId: o.id, name: o.name, retailPrice: o.price });
           };
+
           return (
             <div key={o.id} className="border rounded-md bg-card overflow-hidden">
-              <TargetRow
-                title={o.name}
-                subtitle={`${o._catName ? o._catName + ' · ' : ''}${fmtMoney(o.price)}${hasVariants ? ` · ${o.variants.length} вар.` : ''}`}
-                retail={o.price}
-                card={optCard}
-                onClick={openOption}
-                onToggle={hasVariants ? () => setExpanded({ ...expanded, [`opt-${o.id}`]: !isExpanded }) : null}
-                expanded={isExpanded}
-                marginMode={marginMode}
-              />
-              {isExpanded && (o.variants || []).map((ov) => {
+              {hasVariants ? (
+                <OptionGroupRow
+                  option={o}
+                  catName={o._catName}
+                  variantsTotal={variants.length}
+                  variantsWithCard={variantsWithCard}
+                  minCost={minCost}
+                  maxCost={maxCost}
+                  expanded={isExpanded}
+                  onToggle={() => setExpanded({ ...expanded, [`opt-${o.id}`]: !isExpanded })}
+                />
+              ) : (
+                <TargetRow
+                  title={o.name}
+                  subtitle={`${o._catName ? o._catName + ' · ' : ''}${fmtMoney(o.price)}`}
+                  retail={o.price}
+                  card={optCard}
+                  onClick={openOption}
+                  marginMode={marginMode}
+                />
+              )}
+              {isExpanded && variants.map((ov) => {
                 const ovCard = findCard('option_variant', '', '', o.id, ov.id);
                 return (
                   <TargetRow
@@ -286,52 +306,6 @@ export default function TechCardsAdmin() {
           onClose={() => setTarget(null)}
           onSaved={() => load()}
         />
-      )}
-
-      {variantPrompt && (
-        <Dialog open={true} onOpenChange={() => setVariantPrompt(null)}>
-          <DialogContent className="max-w-md" data-testid="variant-prompt-dialog">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-amber-700">
-                <AlertTriangle className="w-5 h-5" />
-                У опции есть варианты
-              </DialogTitle>
-              <DialogDescription>
-                У опции <b>«{variantPrompt.option.name}»</b> {variantPrompt.option.variants.length} вариант(ов):
-                <ul className="mt-2 ml-3 list-disc text-xs">
-                  {variantPrompt.option.variants.slice(0, 6).map((v) => (
-                    <li key={v.id}>{v.name || v.namePl} <span className="text-muted-foreground">— {fmtMoney(v.price)}</span></li>
-                  ))}
-                </ul>
-                <p className="mt-3 text-xs">
-                  Когда менеджер выбирает в калькуляторе конкретный вариант, в заказ идёт цена именно этого варианта.
-                  Поэтому тех.карту лучше делать <b>отдельно для каждого варианта</b> — тогда себестоимость заказа будет точной.
-                </p>
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter className="flex-col sm:flex-row gap-2">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  // Open base-option editor (no variant)
-                  setTarget({ scope: 'option', optionId: variantPrompt.option.id, name: variantPrompt.option.name, retailPrice: variantPrompt.option.price });
-                  setVariantPrompt(null);
-                }}
-                data-testid="variant-prompt-base"
-              >
-                Всё равно создать базовую
-              </Button>
-              <Button
-                onClick={() => setVariantPrompt(null)}
-                className="bg-orange-500 hover:bg-orange-600"
-                data-testid="variant-prompt-ok"
-              >
-                <ArrowRight className="w-4 h-4 mr-1" />
-                Хорошо, выберу вариант ниже
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       )}
     </div>
   );
@@ -528,6 +502,59 @@ function ModelGroupRow({ model, variantsTotal, variantsWithCard, minCost, maxCos
 
       <span className="text-xs text-muted-foreground italic shrink-0 ml-2 hidden md:inline">
         Тех.карта на модель не нужна
+      </span>
+    </div>
+  );
+}
+
+/**
+ * Header row for options that HAVE variants — same pattern as ModelGroupRow.
+ * Cost is per-variant; the option itself doesn't need its own tech-card.
+ */
+function OptionGroupRow({ option, catName, variantsTotal, variantsWithCard, minCost, maxCost, expanded, onToggle }) {
+  const hasAnyCost = minCost != null;
+  const costLabel = !hasAnyCost
+    ? '—'
+    : minCost === maxCost
+      ? fmtMoney(minCost)
+      : `${fmtMoney(minCost)} – ${fmtMoney(maxCost)}`;
+  const allFilled = variantsWithCard === variantsTotal && variantsTotal > 0;
+  const someFilled = variantsWithCard > 0 && !allFilled;
+  return (
+    <div
+      className="flex items-center gap-2 px-3 py-2 hover:bg-slate-50/70 cursor-pointer select-none"
+      onClick={onToggle}
+      data-testid={`option-group-${option.id}`}
+    >
+      <button onClick={(e) => { e.stopPropagation(); onToggle(); }} className="text-slate-400 hover:text-slate-700 -ml-1">
+        {expanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+      </button>
+      <div className="flex-1 min-w-0">
+        <div className="text-sm font-medium truncate flex items-center gap-2">
+          {option.name}
+          <span className={`text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded-md font-normal ${
+            allFilled ? 'bg-emerald-100 text-emerald-700'
+              : someFilled ? 'bg-amber-100 text-amber-800'
+              : 'bg-slate-100 text-slate-600'
+          }`}>
+            {variantsWithCard}/{variantsTotal} тех.карт
+          </span>
+        </div>
+        <div className="text-xs text-muted-foreground truncate">
+          {catName ? `${catName} · ` : ''}{fmtMoney(option.price)} · себестоимость по вариантам ↓
+        </div>
+      </div>
+      <div className="hidden sm:grid gap-x-3 text-right shrink-0" style={{ gridTemplateColumns: 'repeat(2, minmax(120px, auto))' }}>
+        <NumCell label="Розница (от)" value={fmtMoney(option.price)} subValue="базовая" />
+        <NumCell
+          label="Себест. вариантов"
+          value={costLabel}
+          valueClass={hasAnyCost ? 'text-orange-600 font-bold' : 'text-muted-foreground'}
+          subValue={hasAnyCost ? (minCost === maxCost ? 'одинаковая у всех' : 'диапазон') : 'нет данных'}
+        />
+      </div>
+      <span className="text-xs text-muted-foreground italic shrink-0 ml-2 hidden md:inline">
+        Тех.карта на опцию не нужна
       </span>
     </div>
   );

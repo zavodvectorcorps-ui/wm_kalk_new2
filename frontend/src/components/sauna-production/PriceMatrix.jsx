@@ -186,7 +186,12 @@ export default function PriceMatrix() {
     });
     flatOpts.forEach((o) => {
       const namePrefix = o._catName ? `[${o._catName}] ` : '';
-      make('option', `${namePrefix}${o.name || o.namePl}`, '', Number(o.price || 0), 'option', { optionId: o.id });
+      const optHasVariants = (o.variants || []).length > 0;
+      // Опции с вариантами тоже не нуждаются в собственной тех.карте —
+      // себестоимость берётся по вариантам.
+      if (!optHasVariants) {
+        make('option', `${namePrefix}${o.name || o.namePl}`, '', Number(o.price || 0), 'option', { optionId: o.id });
+      }
       (o.variants || []).forEach((v) => {
         make(
           'option_variant',
