@@ -5,6 +5,7 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { toast } from 'sonner';
 import TechCardEditor from './TechCardEditor';
+import ImportExportButtons from './ImportExportButtons';
 import { COST_BASE, API, authHeaders, fmtMoney } from './costConstants';
 
 /**
@@ -153,6 +154,8 @@ export default function TechCardsAdmin() {
           {recomputing ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <RotateCw className="w-4 h-4 mr-1" />}
           Пересчитать всё
         </Button>
+
+        <ImportExportButtons onImported={load} showTemplate />
       </div>
 
       <div className="space-y-2" data-testid="tech-cards-list">

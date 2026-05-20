@@ -67,7 +67,15 @@ def _bool(v) -> bool:
 # --------------------------------------------------------------------
 # EXPORT
 # --------------------------------------------------------------------
-def export_xlsx(components: list[dict], tech_cards: list[dict]) -> bytes:
+def export_xlsx(components: list[dict], tech_cards: list[dict], empty_targets: list[dict] | None = None) -> bytes:
+    """Export a two-sheet workbook (Components + TechCards).
+
+    If ``empty_targets`` is provided, append one blank TechCards row per
+    target that does NOT yet have a tech-card. Each target dict must have
+    at least ``scope`` plus the relevant id fields. An optional
+    ``componentName`` field can be used to seed a friendly description in
+    the otherwise-empty ``componentName`` column (acts as a row label).
+    """
     wb = Workbook()
 
     # ----- Components -----
@@ -144,6 +152,33 @@ def export_xlsx(components: list[dict], tech_cards: list[dict]) -> bytes:
                 row += ["", "", "", "", "", ""]
             ws_t.append(row)
     _autosize(ws_t, CARD_HEADERS, {"componentName": 40, "cardNote": 36})
+
+    # ----- Optional: blank template rows for missing positions -----
+    if empty_targets:
+        # Build set of existing (scope, modelId, variantId, optionId, optionVariantId)
+        present = set()
+        for c in tech_cards:
+            present.add((
+                _s(c.get("scope")), _s(c.get("modelId")), _s(c.get("variantId")),
+                _s(c.get("optionId")), _s(c.get("optionVariantId")),
+            ))
+        for t in empty_targets:
+            key = (
+                _s(t.get("scope")), _s(t.get("modelId")), _s(t.get("variantId")),
+                _s(t.get("optionId")), _s(t.get("optionVariantId")),
+            )
+            if key in present:
+                continue
+            ws_t.append([
+                "",  # cardId — will be generated on import
+                _s(t.get("scope")),
+                _s(t.get("modelId")),
+                _s(t.get("variantId")),
+                _s(t.get("optionId")),
+                _s(t.get("optionVariantId")),
+                "", _s(t.get("componentName")), "", "",  # componentId, componentName, qty, itemNote
+                0, 15, 0, 0, True, "",  # labor, overheadPct, manualAdjustment, retailExtra, sync, cardNote
+            ])
 
     buf = io.BytesIO()
     wb.save(buf)

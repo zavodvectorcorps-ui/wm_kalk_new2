@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { Download, Upload, Loader2, CheckCircle2, AlertTriangle, FileSpreadsheet, X } from 'lucide-react';
+import { Download, Upload, Loader2, CheckCircle2, AlertTriangle, FileSpreadsheet, X, FilePlus } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../ui/dialog';
 import { Badge } from '../ui/badge';
@@ -10,28 +10,32 @@ import { COST_BASE, authHeaders } from './costConstants';
 /**
  * ImportExportButtons — Excel round-trip for components + tech-cards.
  *
- * Layout:
- *  • "Экспорт" → downloads /api/sauna-production/cost/export
- *  • "Импорт" → open dialog → upload file → preview diff → confirm → commit
+ * Buttons:
+ *  • "Шаблон"   → /api/sauna-production/cost/export?template=true
+ *                 — full XLSX with blank rows for every position WITHOUT a tech-card.
+ *                 Only shown when `showTemplate` (e.g. on the TechCards tab).
+ *  • "Экспорт"  → /api/sauna-production/cost/export
+ *  • "Импорт"   → dialog → upload file → preview diff → confirm → commit
  */
-export default function ImportExportButtons({ onImported }) {
+export default function ImportExportButtons({ onImported, showTemplate = false }) {
   const [open, setOpen] = useState(false);
 
-  const download = async () => {
+  const download = async ({ template = false } = {}) => {
     try {
-      const r = await axios.get(`${COST_BASE}/export`, {
+      const url = template ? `${COST_BASE}/export?template=true` : `${COST_BASE}/export`;
+      const r = await axios.get(url, {
         headers: authHeaders(),
         responseType: 'blob',
       });
       const cd = r.headers['content-disposition'] || '';
       const m = cd.match(/filename=([^;]+)/);
       const fname = m ? m[1].trim() : `sauna_production_${Date.now()}.xlsx`;
-      const url = URL.createObjectURL(r.data);
+      const dlUrl = URL.createObjectURL(r.data);
       const a = document.createElement('a');
-      a.href = url; a.download = fname;
+      a.href = dlUrl; a.download = fname;
       document.body.appendChild(a); a.click(); a.remove();
-      URL.revokeObjectURL(url);
-      toast.success('Экспорт начат');
+      URL.revokeObjectURL(dlUrl);
+      toast.success(template ? 'Шаблон выгружен' : 'Экспорт начат');
     } catch (e) {
       toast.error(e?.response?.data?.detail || 'Ошибка экспорта');
     }
@@ -39,7 +43,12 @@ export default function ImportExportButtons({ onImported }) {
 
   return (
     <>
-      <Button variant="outline" onClick={download} className="h-9" data-testid="prod-export-btn">
+      {showTemplate && (
+        <Button variant="outline" onClick={() => download({ template: true })} className="h-9 border-amber-300 text-amber-800 hover:bg-amber-50" data-testid="prod-template-btn">
+          <FilePlus className="w-4 h-4 mr-1" /> Шаблон
+        </Button>
+      )}
+      <Button variant="outline" onClick={() => download({ template: false })} className="h-9" data-testid="prod-export-btn">
         <Download className="w-4 h-4 mr-1" /> Экспорт
       </Button>
       <Button variant="outline" onClick={() => setOpen(true)} className="h-9" data-testid="prod-import-btn">

@@ -827,12 +827,60 @@ async def list_all_stock_movements(_: dict = Depends(get_admin_user)):
 # ============================================================
 
 @router.get("/export")
-async def export_components_and_cards(_: dict = Depends(get_admin_user)):
-    """Download a two-sheet XLSX containing all components + tech-cards."""
+async def export_components_and_cards(template: bool = False, _: dict = Depends(get_admin_user)):
+    """Download a two-sheet XLSX containing all components + tech-cards.
+
+    Query ``template=true`` adds blank TechCards rows for every model
+    (without variants) / variant / option (without variants) /
+    option_variant that does NOT yet have a tech-card. Useful as a
+    starting point — fill in Excel, then re-import.
+    """
     comps = await db.sauna_components.find({}, {"_id": 0}).sort([("category", 1), ("name", 1)]).to_list(length=10000)
     cards = await db.sauna_tech_cards.find({}, {"_id": 0}).sort("updatedAt", -1).to_list(length=10000)
-    blob = prod_xlsx.export_xlsx(comps, cards)
-    fname = f"sauna_production_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M')}.xlsx"
+
+    empty_targets: list[dict] = []
+    if template:
+        prices_doc = await db.sauna_prices.find_one({"_id": "default"}, {"_id": 0}) or {}
+        # Models — if no variants, the model itself needs a tech-card
+        for m in (prices_doc.get("models") or []):
+            variants = m.get("variants") or []
+            if not variants:
+                empty_targets.append({
+                    "scope": "model",
+                    "modelId": m.get("id"),
+                    "componentName": m.get("name") or "",
+                })
+            for v in variants:
+                empty_targets.append({
+                    "scope": "variant",
+                    "modelId": m.get("id"),
+                    "variantId": v.get("id"),
+                    "componentName": f"{m.get('name', '')} — {v.get('name') or v.get('namePl') or ''}",
+                })
+        # Options (flat + categorised)
+        flat_opts = list(prices_doc.get("options") or [])
+        for cat in (prices_doc.get("categories") or []):
+            for o in (cat.get("options") or []):
+                flat_opts.append({**o, "_catName": cat.get("name")})
+        for o in flat_opts:
+            variants = o.get("variants") or []
+            if not variants:
+                empty_targets.append({
+                    "scope": "option",
+                    "optionId": o.get("id"),
+                    "componentName": f"{('[' + o.get('_catName') + '] ') if o.get('_catName') else ''}{o.get('name') or o.get('namePl') or ''}",
+                })
+            for v in variants:
+                empty_targets.append({
+                    "scope": "option_variant",
+                    "optionId": o.get("id"),
+                    "optionVariantId": v.get("id"),
+                    "componentName": f"{o.get('name') or ''} — {v.get('name') or v.get('namePl') or ''}",
+                })
+
+    blob = prod_xlsx.export_xlsx(comps, cards, empty_targets=empty_targets if template else None)
+    suffix = "_template" if template else ""
+    fname = f"sauna_production{suffix}_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M')}.xlsx"
     return StreamingResponse(
         io.BytesIO(blob),
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
