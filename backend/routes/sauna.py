@@ -1613,7 +1613,7 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     import math as _math
     _comfino_base = total_price_int + (int(delivery_price) if delivery_price > 0 else 0)
     if _comfino_base > 0:
-        _months = 36
+        _months = 30
         _per_month = int(_math.ceil(_comfino_base / _months))
         _pm_str = f"{_per_month:,}".replace(',', ' ')
         # Comfino logo (left of the text) — falls back to plain text if
@@ -1664,6 +1664,20 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
             ]))
         elements.append(Spacer(1, 6))
         elements.append(comfino_table)
+        # Disclaimer — small, italic, muted grey beneath the banner.
+        comfino_disclaimer = Paragraph(
+            '<i>* Rata ma charakter orientacyjny i zależy od ostatecznej decyzji Comfino.</i>',
+            ParagraphStyle(
+                'ComfinoDisclaimer',
+                fontName='DejaVuSans',
+                fontSize=8,
+                textColor=colors.HexColor('#6B6B6B'),
+                leading=10,
+                spaceBefore=2,
+            ),
+        )
+        elements.append(Spacer(1, 2))
+        elements.append(comfino_disclaimer)
 
     # ========== FOOTER ==========
     elements.append(Spacer(1, 10))
