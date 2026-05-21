@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
-import { ArrowLeft, LayoutGrid, Table as TableIcon, Loader2, ClipboardList, AlertTriangle, Archive, Lightbulb, User as UserIcon, LayoutDashboard } from 'lucide-react';
+import { ArrowLeft, LayoutGrid, Table as TableIcon, Loader2, ClipboardList, AlertTriangle, Archive, Lightbulb, User as UserIcon, LayoutDashboard, Settings2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs';
 import { toast } from 'sonner';
@@ -14,6 +14,7 @@ import TasksBoard from './planner/TasksBoard';
 import TaskDrawer from './planner/TaskDrawer';
 import QuickCreate from './planner/QuickCreate';
 import AITaskParser from './planner/AITaskParser';
+import DirectionsManager from './planner/DirectionsManager';
 import { getAuthHeaders, isOverdue } from './planner/constants';
 
 const API = getApiUrl();
@@ -43,6 +44,7 @@ export default function PlannerPage({ onBack }) {
   const [loading, setLoading] = useState(true);
   const [openTask, setOpenTask] = useState(null);
   const [filters, setFilters] = useState({ search: '', status: '', priority: '', direction: '', assignee: '' });
+  const [directionsOpen, setDirectionsOpen] = useState(false);
 
   // ---------- LOAD ----------
   const loadDirections = useCallback(async () => {
@@ -156,20 +158,35 @@ export default function PlannerPage({ onBack }) {
             <p className="text-xs text-muted-foreground">Внутренние задачи команды</p>
           </div>
         </div>
-        <div className="hidden sm:flex items-center gap-1 bg-slate-100 rounded-md p-0.5">
-          {Object.entries(VIEWS).map(([k, v]) => {
-            const Icon = v.icon;
-            return (
-              <button
-                key={k}
-                onClick={() => setView(k)}
-                className={`px-3 py-1 text-xs rounded inline-flex items-center gap-1 ${view === k ? 'bg-white shadow' : 'text-muted-foreground hover:text-foreground'}`}
-                data-testid={`view-${k}`}
-              >
-                <Icon className="w-3.5 h-3.5" />{v.label}
-              </button>
-            );
-          })}
+        <div className="flex items-center gap-2 ml-auto">
+          {isAdmin && isAdmin() && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setDirectionsOpen(true)}
+              className="gap-1.5 border-orange-200 text-orange-700 hover:bg-orange-50"
+              data-testid="planner-manage-directions"
+              title="Создать или изменить направления задач"
+            >
+              <Settings2 className="w-4 h-4" />
+              Направления
+            </Button>
+          )}
+          <div className="hidden sm:flex items-center gap-1 bg-slate-100 rounded-md p-0.5">
+            {Object.entries(VIEWS).map(([k, v]) => {
+              const Icon = v.icon;
+              return (
+                <button
+                  key={k}
+                  onClick={() => setView(k)}
+                  className={`px-3 py-1 text-xs rounded inline-flex items-center gap-1 ${view === k ? 'bg-white shadow' : 'text-muted-foreground hover:text-foreground'}`}
+                  data-testid={`view-${k}`}
+                >
+                  <Icon className="w-3.5 h-3.5" />{v.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
@@ -232,6 +249,12 @@ export default function PlannerPage({ onBack }) {
           onChanged={onTaskChanged}
         />
       )}
+
+      <DirectionsManager
+        open={directionsOpen}
+        onClose={() => setDirectionsOpen(false)}
+        onChanged={loadDirections}
+      />
     </div>
   );
 }
