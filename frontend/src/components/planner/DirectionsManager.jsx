@@ -31,6 +31,10 @@ export default function DirectionsManager({ open, onClose, onChanged }) {
   const [editing, setEditing] = useState({}); // id -> draft
   const [newRow, setNewRow] = useState({ name: '', color: '#3b82f6', sortOrder: 10 });
   const [creating, setCreating] = useState(false);
+  // Drag-and-drop sorting
+  const [dragId, setDragId] = useState(null);
+  const [overId, setOverId] = useState(null);
+  const [persistingOrder, setPersistingOrder] = useState(false);
 
   const reload = async () => {
     setLoading(true);
@@ -95,6 +99,50 @@ export default function DirectionsManager({ open, onClose, onChanged }) {
       toast.error(e?.response?.data?.detail || 'Ошибка удаления');
     } finally {
       setSavingId(null);
+    }
+  };
+
+  // --- DnD reorder ---
+  const handleDragStart = (id) => () => setDragId(id);
+  const handleDragOver = (id) => (e) => {
+    e.preventDefault();
+    if (id !== dragId) setOverId(id);
+  };
+  const handleDragLeave = () => setOverId(null);
+  const handleDragEnd = () => { setDragId(null); setOverId(null); };
+  const handleDrop = (targetId) => async (e) => {
+    e.preventDefault();
+    setOverId(null);
+    if (!dragId || dragId === targetId) { setDragId(null); return; }
+    const oldIdx = items.findIndex((x) => x.id === dragId);
+    const newIdx = items.findIndex((x) => x.id === targetId);
+    if (oldIdx < 0 || newIdx < 0) { setDragId(null); return; }
+    const next = items.slice();
+    const [moved] = next.splice(oldIdx, 1);
+    next.splice(newIdx, 0, moved);
+    // Restamp sortOrder in steps of 10 so future inserts have room.
+    const restamped = next.map((it, i) => ({ ...it, sortOrder: (i + 1) * 10 }));
+    const prev = items;
+    setItems(restamped); // optimistic UI
+    setDragId(null);
+    setPersistingOrder(true);
+    try {
+      const changed = restamped.filter((it) => {
+        const orig = prev.find((x) => x.id === it.id);
+        return orig && orig.sortOrder !== it.sortOrder;
+      });
+      await Promise.all(changed.map((it) => axios.put(
+        `${API}/api/planner/directions/${it.id}`,
+        { name: it.name, color: it.color, sortOrder: it.sortOrder },
+        { headers: getAuthHeaders() },
+      )));
+      toast.success('Порядок сохранён');
+      onChanged?.();
+    } catch (_err) {
+      toast.error('Не удалось сохранить порядок — обновляю');
+      await reload();
+    } finally {
+      setPersistingOrder(false);
     }
   };
 
@@ -180,8 +228,26 @@ export default function DirectionsManager({ open, onClose, onChanged }) {
               const isEditing = !!editing[d.id];
               const draft = editing[d.id] || d;
               return (
-                <div key={d.id} className="flex items-center gap-2 px-3 py-2 border-b last:border-b-0 hover:bg-slate-50/60 transition-colors" data-testid={`dm-row-${d.id}`}>
-                  <GripVertical className="h-4 w-4 text-slate-300" />
+                <div
+                  key={d.id}
+                  className={`flex items-center gap-2 px-3 py-2 border-b last:border-b-0 transition-colors ${
+                    isEditing ? 'bg-blue-50/40'
+                    : dragId === d.id ? 'opacity-40'
+                    : overId === d.id ? 'bg-orange-50 border-t-2 border-t-orange-400'
+                    : 'hover:bg-slate-50/60'
+                  }`}
+                  draggable={!isEditing}
+                  onDragStart={handleDragStart(d.id)}
+                  onDragOver={handleDragOver(d.id)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop(d.id)}
+                  onDragEnd={handleDragEnd}
+                  data-testid={`dm-row-${d.id}`}
+                >
+                  <GripVertical
+                    className={`h-4 w-4 shrink-0 ${isEditing ? 'text-slate-200' : 'text-slate-400 cursor-grab active:cursor-grabbing'}`}
+                    title={isEditing ? '' : 'Перетащите, чтобы изменить порядок'}
+                  />
                   {isEditing ? (
                     <>
                       <Input
@@ -242,8 +308,9 @@ export default function DirectionsManager({ open, onClose, onChanged }) {
           )}
         </div>
 
-        <div className="text-[11px] text-muted-foreground">
-          Подсказка: «Порядок» определяет порядок отображения (меньше — выше). Цвет помогает быстро различать направления в списке задач.
+        <div className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+          {persistingOrder && <Loader2 className="h-3 w-3 animate-spin text-orange-500" />}
+          Подсказка: перетащите строку за <GripVertical className="inline h-3 w-3 text-slate-400" /> чтобы изменить порядок. Цвет помогает быстро различать направления в списке задач.
         </div>
       </DialogContent>
     </Dialog>
