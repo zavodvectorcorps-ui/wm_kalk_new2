@@ -526,6 +526,7 @@ export default function PriceMatrix() {
                   <TableHead className="text-right">Накладные</TableHead>
                   <TableHead className="text-right">Маржа</TableHead>
                   {dealerId && <TableHead className="text-right border-l-2">B2B brutto</TableHead>}
+                  {dealerId && <TableHead className="text-right">B2B netto</TableHead>}
                   {dealerId && <TableHead className="text-right">Скидка</TableHead>}
                   {dealerId && <TableHead className="text-right">Маржа дилера</TableHead>}
                   {dealerId && <TableHead className="text-right">Реком. розница дилера</TableHead>}

@@ -1,153 +1,145 @@
 <analysis>**original_problem_statement:** Build a Modular Sauna Configurator with comprehensive CRM, production management, logistics, and amoCRM integration. Add a separate multi-tenant Dealer Portal. PRODUCT REQUIREMENTS include Excel Export/Import for base sauna prices and components, an internal team Planner (Task Manager), Tech Cards (BOM), Inventory tracking, and a VAT-aware Price Simulator.
 
-**User's preferred language**: Russian (You MUST automatically detect the user's primary language from their messages inside the <trajectory> tag and INSTRUCT next agent to respond in **Russian** only).
+**User's preferred language**: Russian (You MUST automatically detect the user's primary language from their messages inside the <trajectory> tag and INSTRUCT next agent to respond in **Russian** only)
 
 **what currently exists?** 
-A mature React/FastAPI application. Recently added:
-1. **Dealer Portal Two-Price Model**: Dealers have a B2B cost (set by manager) and a retail price (set by dealer via markup presets). Calculator shows dealer's retail price; orders are saved with manufacturer's B2B cost to calculate true margins.
-2. **Auto-save & Sync Indicators**: ,  (Cennik), and Dealer Prices now auto-save with a 1.5s debounce. A global sync pill (cloud icon) is present in the header.
-3. **Planner AI Parser**: Text-to-tasks generation using Emergent LLM key in the internal Planner.
-4. **Warehouse (Склад) Dovoz Pipeline**: AmoCRM synced pipeline (Accepted -> Sent -> Delivered). Currently being updated to add a With driver stage.
+A mature React/FastAPI/MongoDB application. Recently heavily expanded with a robust Price Matrix and Dealer Matrix for bulk pricing management, comprehensive Excel template generation for Tech Cards, AI task parsing in the Planner, complex PDF Generation with 3rd-party branding (Comfino), and synced amoCRM pipelines.
 
 **Last working item**:
-    - Last item agent was working: Adding a new Отправлено с водителем (With driver) stage in the Warehouse (Dovoz) pipeline, mapped to *multiple* amoCRM stages, and fixing the grey Обновить (Refresh) button.
-    - Status: IN PROGRESS
-    - Agent Testing Done: N
-    - Which testing method agent to use?: Frontend testing agent / Backend curl for amoCRM sync validation.
+    - Last item agent was working: Adding the b2b netto column to the Price Matrix ().
+    - Status: TESTING PENDING
+    - Agent Testing Done: N (Code was injected via , but no linter or screenshot was run).
+    - Which testing method agent to use? screenshot tool
     - User Testing Done: N
 
 **All Pending/In progress Issue list**:
-  Issue 1: (P0) Grey Refresh button in Warehouse isn't working
-     - Attempted fixes: Agent updated the  handler of  to call  which wraps  and .
-     - Next debug checklist: Verify the button triggers correctly without side effects in .
-     - Why fix this issue and what will be achieved with the fix?: Managers need to manually refresh the board without full page reloads.
+  Issue 1: (P0) Verify the newly added B2B netto column in Price Matrix
+     - Attempted fixes: Agent updated  headers and body cells to include  right after B2B brutto. 
+     - Next debug checklist: Run JS linter on , then take a screenshot of the Price Matrix to ensure the table layout hasn't broken and the calculation is correct ().
+     - Why fix this issue and what will be achieved with the fix?: Fulfills the user's latest request to see the net dealer price directly in the matrix.
      - Status: TESTING PENDING
      - Is recurring issue? N
      - Should Test frontend/backend/both after fix?: Frontend
 
 **In progress Task List**:
-  Task 1: (P0) Warehouse With driver stage & multi-stage amoCRM mapping
-     - Where to resume: Agent just injected the  field into the settings modal in . You need to ensure the UI allows selecting/inputting multiple amoCRM status IDs (e.g., comma-separated or multi-select), check if the backend handles it correctly in , and verify the Kanban board renders the new column.
-     - What will be achieved with this?: Leads sent with specific drivers in amoCRM will correctly sync into the Warehouse module instead of disappearing.
-     - Status: IN PROGRESS
-     - Should Test frontend/backend/both after fix?: Both
-     - Blocked on something: None
-
-  Task 2: (P1) Voice input for AI Task Parser in Planner
-     - Where to resume: User agreed to add voice input alongside the warehouse fixes. Extend  to use the Web Speech API (or OpenAI Whisper integration via Emergent Playbook) to allow dictating tasks.
-     - What will be achieved with this?: Managers can dictate multiple tasks on the go, and the AI will parse them into structured Planner tickets.
-     - Status: NOT STARTED
-     - Should Test frontend/backend/both after fix?: Frontend
-     - Blocked on something: Finish Task 1 first.
+  *(None. All major tasks requested by the user were completed except final testing of the B2B netto column.)*
 
 **Upcoming and Future Tasks**
-    - P1: Voice input for Planner AI (Agreed upon with user).
     - P1: Weekly AI digest via email/Telegram for managers.
     - P1: SLA real-time alerts (notify if lead is untouched for X hours).
     - P2: Automatic inventory deduction based on production stages.
     - P2: Export to Excel/CSV for calls and leads tables.
     - P3: Replace deprecated Google Maps Autocomplete component.
+    *Agent's Suggested Backlog (User has not confirmed yet)*:
+    - P3: Bulk edit mode in Price Matrix (select rows -> add +10% / round up).
+    - P3: Add Average check of confirmed and Conversion % to Sales page KPI cards.
+    - P3: Income forecast in Dealer Matrix based on expected monthly sales volume.
+    - P3: Comfino QR code leading to the installment calculator in PDF.
 
 **Completed work in this session**
-- Dealer Portal Two-Price Model (B2B + dealerRetailPrice) (DONE)
-- Dealer hard-delete, margin popover in orders, and markup presets (DONE)
-- Auto-apply markup preset on first dealer login (DONE)
-- Fixed  sync and UX in TechCards (DONE)
-- Auto-save with debounce + Global Sync Pill for TechCards, Pricing, and Dealer Prices (DONE)
-- Fixed interceptor race condition causing WM prices to show in Dealer Calculator (DONE)
-- AI Task Parser (Text-to-tasks) in Planner using Emergent LLM (DONE)
+- Warehouse (Dovoz) multi-stage amoCRM mapping & search auto-refresh bug fix (DONE)
+- Planner Voice Input via Web Speech API (DONE)
+- Replaced  dependency with native  to fix Prod deployment crash (DONE)
+- Price Simulator - Discount module added with color-coded margins (DONE)
+- Sales Page - Confirmed only toggle, slim columns, CSV export (DONE)
+- Price Matrix tab added for mass pricing view, inline edits, and missing-data highlights (DONE)
+- TechCardEditor - Removed auto-save, added dirty-state confirmation on close (DONE)
+- TechCardsAdmin - UI folded for models/options with variants so base items don't falsely require tech cards (DONE)
+- Tech Cards - Empty template Excel export added for mass-filling (DONE)
+- Dealer Matrix tab added for dealer price control, dumping alerts, and bulk markup (DONE)
+- PDF Generation - Comfino installment banner with logo, fixed layout breaking on 3 cards, fixed  bug overriding model variants (DONE)
+- Planner Directions - Full CRUD UI with Drag-and-Drop ordering (DONE)
 
 **Earlier issues found/mentioned but not fixed**
    Issue 1: Monolithic architecture.
-   - Debug checklist: , , , .
-   - Why to solve this issue and what will be achieved with this?: Maintainability is degrading. Files are 1300-3000+ lines long.
+   - Debug checklist:  (2500+ lines), , .
+   - Why to solve this issue and what will be achieved with this?: Maintainability is degrading. Hard to navigate PDF generation and complex hooks.
    - Should Test frontend/backend/both after fix: Both
    - Is recurring issue? N
 
 **Known issue recurrence from previous fork**
   - Issue recurrence in previous fork: Asymmetrical Deployments (Prod vs Preview)
-  - Recurrence count: 2
-  - Status: RESOLVED (User has a live prod environment. DO NOT test against prod URLs. Always remind user to deploy changes to prod if they test there).
-  - Race Conditions: React  firing before auth interceptors. (Watch out for this pattern in legacy components).
+  - Recurrence count: 3 (Occurred repeatedly in this session regarding missing pip packages and PDF rendering).
+  - Status: RESOLVED (User has a live prod environment . DO NOT test against prod URLs. **Always remind user to deploy changes to prod** if they say a bug is still happening).
 
 **Code Architecture**
 React frontend + FastAPI backend + MongoDB.
 
 **Key Technical Concepts**
-React, Tailwind, Shadcn UI, FastAPI, Async Motor (MongoDB).
+React, Tailwind, Shadcn UI, FastAPI, Async Motor (MongoDB), ReportLab (for PDFs), OpenPyXL (for Excel).
 **VAT RULE**: Base prices are **Brutto** (incl. 23% VAT).  and  are **Netto**. 
-Margin = .
+Calculation: . (Do NOT multiply by 0.77).
 
 **key DB schema**
   - , 
   - : 
+  - : tracks orders and bonuses
   - : 
-  - : AI generated tasks.
 
 **changes in tech stack**
-Installed  for LLM integrations (AI Planner).
+- Removed  and  from . Switched to native  using  for AI endpoints to bypass deployment dependency issues.
 
 **All files of reference** 
   -  (CURRENT FOCUS)
-  -  (CURRENT FOCUS)
-  -  (Voice input needed)
-  -  &  (Created)
+  -  (Created)
+  -  (Created)
+  -  (PDF generation logic - heavily modified)
+  -  (Modified for template generation)
 
 **Areas that need refactoring**
- and . 
+, , and .
 
 **key api endpoints**
+  - 
   - 
   - 
   - 
 
 **Critical Info for New Agent**
 - **LANGUAGE:** Reply strictly in Russian.
-- **AMOCRM SYNC:** AmoCRM syncing is delicate. The agent just updated  to loop through multiple . Be sure this works with amoCRM's filtering API properly.
-- **DEALER AUTH RACE CONDITION:** When modifying components that fetch data on mount, ensure the  interceptor is ready, or pass headers explicitly.
+- **PROD vs PREVIEW:** The user constantly tests on PROD () while you develop in PREVIEW. Always remind them to press Deploy to see the latest fixes, otherwise, they will think your code didn't work.
+- **PDF GENERATION:** When editing PDF layout (), be careful with . ReportLab will wrap text poorly if column widths exceed  total.
 
 **documents and test reports created in this job**
   - 
-  -  through .
 
 **Last 10 User Messages and any pending HUMAN messages** 
-1. *User*: Uploaded screenshot showing WM prices loaded in dealer calc despite saving.
-2. *Agent*: Found the useEffect race condition. Fixed. Added Global Sync Pill.
-3. *User*: Can we add AI to the Planner to parse text into tasks?
-4. *Agent*: Built  using Emergent LLM key. Tested and finished.
-5. *User*: 1) Make improvement (voice input). 2) Warehouse has 3 stages. Add With driver linked to multiple amoCRM stages. Refresh button doesn't work.
-6. *Agent*: Asked for clarifications.
-7. *User*: Confirmed With driver goes between sent & delivered. Confirmed grey refresh button is broken. Confirmed to do both Warehouse and Voice input.
-8. *Agent*: Updated backend  to handle  and multi-stage amoCRM pulling.
-*(Pending)*: Finish frontend  settings for multi-stage mapping, test Warehouse, and implement Voice Input for the AI Planner.
+1. *User*: PDF option price should use model-specific price, add Comfino installment banner, add stove image.
+2. *Agent*: Updated PDF logic () and modified PDF layout.
+3. *User*: Text wrapped badly in PDF.
+4. *Agent*: Fixed width calculation for 3 cards in ReportLab.
+5. *User*: Thermo-wood price is still wrong in PDF.
+6. *Agent*: Found bug where  was matching base model instead of variant. Fixed it.
+7. *User*: Replace emoji with Comfino logo in PDF.
+8. *Agent*: Resized logo and embedded it into PDF generation.
+9. *User*: Comfino term to 30 months + add disclaimer. -> *Agent*: Done.
+10. *User*: Allow managing Planner directions (create/edit). -> *Agent*: Added DirectionsManager with Drag-and-Drop sorting.
+11. *(Pending)* *User*: в прайс матрицу добавь колонку b2b netto. -> *Agent*: Applied code changes but didn't run linter or screenshot to verify.
 
 **Project Health Check:**
-Healthy, but frontend components are getting extremely large.
+Healthy, but some frontend components and  are getting extremely large. 
 
 **3rd Party Integrations**
   - amoCRM — requires User API credentials.
   - Binotel API — requires User API credentials.
-  - OpenAI GPT-5.2 & GPT-4o-mini — uses Emergent LLM Key (via ).
+  - OpenAI GPT-5.2 / GPT-4o-mini (via  directly) — uses Emergent LLM Key.
   - Telegram — uses User Bot Token.
 
 **Testing status**
-  - Testing agent used after significant changes: YES.
+  - Testing agent used after significant changes: YES (iteration 99).
   - Troubleshoot agent used after agent stuck in loop: NO.
-  - Test files created: 
-  - Known regressions: None
+  - Test files created: None.
+  - Known regressions: None.
 
 **Credentials to test flow:**
   - Admin:  / 
   - Test Dealer:  / 
 
 **What agent forgot to execute**
-The agent modified  to add the  field, but did not test if the frontend correctly saves/loads this array (comma-separated string vs actual array) and if the UI renders the new Kanban column cleanly. Voice input for the AI planner is also completely unstarted.
+The agent modified  via  to add the B2B netto column but finished their thinking process before running  or taking a screenshot to verify the UI layout remains intact.
 
 **Debugging checklist for current issue**
-    Issue: Warehouse With driver multi-stage sync & Kanban column.
-    
-    Frontend files to check:
-    -  (Check the  logic for  and the  mapping).
-  
-    Backend files to check:
-    -  (Verify  loops correctly over the new array format without failing).</analysis>
+    Issue: Verify B2B netto column in Price Matrix.
+    Frontend files to check: 
+    -  (Check TableHead and TableCell alignments, verify  math calculation).
+    Method: Lint the file, capture a screenshot of the page  in the , fix if any overlap.</analysis>
