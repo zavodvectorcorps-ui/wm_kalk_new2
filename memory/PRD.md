@@ -929,3 +929,28 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
   first).
 - `WarehousePage.jsx` still 1400+ lines — refactor into sub-components.
 
+
+
+## Session 8 - Feb 2026 (fork continuation)
+
+### Price Matrix - B2B netto column (DONE - Feb 2026)
+- Added "B2B netto" column to PriceMatrix.jsx between "B2B brutto" and "Скидка"
+- Header was added in prior session but the corresponding `<TableCell>` and
+  `colSpan` for the empty-state row were missed → fixed in this session.
+- Formula: `dealerB2BNetto = dealerB2B / 1.23` (data layer already produced it
+  on line 139, only the rendering was missing).
+- File: `/app/frontend/src/components/sauna-production/PriceMatrix.jsx`
+- Verified via lint (clean) + screenshot with `TEST UPSERT` dealer selected.
+
+### Backlog (P1/P2/P3) - unchanged
+- P1: Weekly AI digest via email/Telegram for managers
+- P1: SLA real-time alerts (notify if lead is untouched for X hours)
+- P2: Automatic inventory deduction based on production stages
+- P2: Export to Excel/CSV for calls and leads tables
+- P3: Replace deprecated Google Maps Autocomplete component
+- P3: Bulk edit mode in Price Matrix (select rows → add +10% / round up)
+- P3: KPI cards in Sales page ("Avg confirmed check", "Conversion %")
+- P3: Income forecast in Dealer Matrix based on expected monthly sales volume
+- P3: Comfino QR code in PDF
+- Refactor: split `routes/sauna.py` (2500+ lines), `WarehousePage.jsx` (1400+),
+  `useSaunaCalculator.js`.

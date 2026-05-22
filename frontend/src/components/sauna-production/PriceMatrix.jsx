@@ -536,7 +536,7 @@ export default function PriceMatrix() {
               <TableBody>
                 {filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={dealerId ? 12 : 8} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={dealerId ? 13 : 8} className="text-center py-8 text-muted-foreground">
                       Ничего не найдено
                     </TableCell>
                   </TableRow>
@@ -593,6 +593,15 @@ export default function PriceMatrix() {
                           testId={`pm-edit-b2b-${idx}`}
                           emptyHint="+ b2b"
                         />
+                      </TableCell>
+                    )}
+                    {dealerId && (
+                      <TableCell
+                        className="text-right text-sm text-muted-foreground"
+                        title={r.dealerB2BNetto != null ? 'B2B brutto / 1,23' : 'Нет B2B-цены для расчёта'}
+                        data-testid={`pm-b2b-netto-${idx}`}
+                      >
+                        {r.dealerB2BNetto != null ? fmtMoney(r.dealerB2BNetto) : '—'}
                       </TableCell>
                     )}
                     {dealerId && (
