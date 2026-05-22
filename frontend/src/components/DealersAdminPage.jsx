@@ -311,6 +311,7 @@ function CreateDealerDialog({ open, onClose }) {
   const [data, setData] = useState({
     username: '', password: '', name: '', email: '', phone: '', orderPrefix: '',
     defaultMarkupPercent: '', defaultMarkupBase: 'wm', defaultMarkupScope: 'all',
+    currency: 'PLN', eurRate: '',
   });
   const [saving, setSaving] = useState(false);
 
@@ -327,9 +328,13 @@ function CreateDealerDialog({ open, onClose }) {
         delete payload.defaultMarkupBase;
         delete payload.defaultMarkupScope;
       }
+      // Currency / EUR rate
+      payload.currency = (payload.currency || 'PLN').toUpperCase();
+      const r = parseFloat(String(payload.eurRate).replace(',', '.'));
+      payload.eurRate = Number.isFinite(r) && r > 0 ? r : null;
       await axios.post(`${API}/api/admin/dealers`, payload, { headers: authHeaders() });
       toast.success(`Дилер ${data.username} создан`);
-      setData({ username: '', password: '', name: '', email: '', phone: '', orderPrefix: '', defaultMarkupPercent: '', defaultMarkupBase: 'wm', defaultMarkupScope: 'all' });
+      setData({ username: '', password: '', name: '', email: '', phone: '', orderPrefix: '', defaultMarkupPercent: '', defaultMarkupBase: 'wm', defaultMarkupScope: 'all', currency: 'PLN', eurRate: '' });
       onClose();
     } catch (e) {
       toast.error(e?.response?.data?.detail || 'Ошибка');
@@ -377,6 +382,42 @@ function CreateDealerDialog({ open, onClose }) {
               data-testid="create-dealer-prefix"
             />
             <p className="text-[11px] text-muted-foreground mt-1">Необязательно. Если пусто — используется префикс WMS-D.</p>
+          </div>
+
+          {/* Currency / EUR rate */}
+          <div className="rounded-md border border-blue-200 dark:border-blue-900 bg-blue-50/40 dark:bg-blue-950/20 p-3 space-y-2" data-testid="create-currency-section">
+            <div className="text-xs font-semibold text-blue-800 dark:text-blue-300 uppercase tracking-wider">
+              Валюта
+            </div>
+            <div className="grid grid-cols-2 gap-2 items-end">
+              <div>
+                <Label className="text-[11px]">Основная валюта</Label>
+                <select
+                  value={data.currency}
+                  onChange={(e) => setData({ ...data, currency: e.target.value })}
+                  className="w-full h-8 px-2 rounded-md border bg-background text-sm"
+                  data-testid="create-dealer-currency"
+                >
+                  <option value="PLN">PLN (zł)</option>
+                  <option value="EUR">EUR (€)</option>
+                </select>
+              </div>
+              <div>
+                <Label className="text-[11px]">Курс EUR/PLN</Label>
+                <Input
+                  type="text"
+                  inputMode="decimal"
+                  value={data.eurRate}
+                  onChange={(e) => setData({ ...data, eurRate: e.target.value.replace(/[^\d.,]/g, '') })}
+                  placeholder="напр. 4.30"
+                  className="h-8"
+                  data-testid="create-dealer-eur-rate"
+                />
+              </div>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Если основная валюта <b>EUR</b> — в калькуляторе дилера и в матрицах цены покажутся в евро по этому курсу. Если поле пустое — берём 4.30 по умолчанию.
+            </p>
           </div>
 
           {/* Onboarding markup */}
@@ -450,6 +491,8 @@ function EditDealerDialog({ dealer, onClose }) {
     defaultMarkupPercent: dealer.defaultMarkupPercent != null ? String(dealer.defaultMarkupPercent) : '',
     defaultMarkupBase: dealer.defaultMarkupBase || 'wm',
     defaultMarkupScope: dealer.defaultMarkupScope || 'all',
+    currency: (dealer.currency || 'PLN').toUpperCase(),
+    eurRate: dealer.eurRate != null ? String(dealer.eurRate) : '',
     resetOnboarding: false,
   });
   const [saving, setSaving] = useState(false);
@@ -465,7 +508,10 @@ function EditDealerDialog({ dealer, onClose }) {
         orderPrefix: data.orderPrefix,
         defaultMarkupBase: data.defaultMarkupBase,
         defaultMarkupScope: data.defaultMarkupScope,
+        currency: (data.currency || 'PLN').toUpperCase(),
       };
+      const rate = parseFloat(String(data.eurRate).replace(',', '.'));
+      if (Number.isFinite(rate) && rate > 0) payload.eurRate = rate;
       if (data.password && data.password.trim().length > 0) {
         payload.password = data.password;
       }
@@ -521,6 +567,42 @@ function EditDealerDialog({ dealer, onClose }) {
               placeholder="Оставьте пустым, чтобы не менять"
               data-testid="edit-dealer-password"
             />
+          </div>
+
+          {/* Currency / EUR rate */}
+          <div className="rounded-md border border-blue-200 dark:border-blue-900 bg-blue-50/40 dark:bg-blue-950/20 p-3 space-y-2" data-testid="edit-currency-section">
+            <div className="text-xs font-semibold text-blue-800 dark:text-blue-300 uppercase tracking-wider">
+              Валюта
+            </div>
+            <div className="grid grid-cols-2 gap-2 items-end">
+              <div>
+                <Label className="text-[11px]">Основная валюта</Label>
+                <select
+                  value={data.currency}
+                  onChange={(e) => setData({ ...data, currency: e.target.value })}
+                  className="w-full h-8 px-2 rounded-md border bg-background text-sm"
+                  data-testid="edit-dealer-currency"
+                >
+                  <option value="PLN">PLN (zł)</option>
+                  <option value="EUR">EUR (€)</option>
+                </select>
+              </div>
+              <div>
+                <Label className="text-[11px]">Курс EUR/PLN</Label>
+                <Input
+                  type="text"
+                  inputMode="decimal"
+                  value={data.eurRate}
+                  onChange={(e) => setData({ ...data, eurRate: e.target.value.replace(/[^\d.,]/g, '') })}
+                  placeholder="напр. 4.30"
+                  className="h-8"
+                  data-testid="edit-dealer-eur-rate"
+                />
+              </div>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Если основная валюта <b>EUR</b> — в калькуляторе дилера и в матрицах цены покажутся в евро по этому курсу.
+            </p>
           </div>
 
           {/* Onboarding markup */}

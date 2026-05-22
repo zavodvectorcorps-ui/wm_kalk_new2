@@ -3,6 +3,7 @@
 ## Preview environment (DB: `test_database`)
 - Admin: `admin` / `admin123`
 - Test Dealer: `testdealer` / `dealer123` (access via `/dealer` path)
+  - Currency: EUR, eurRate: 4.35 (set Feb 2026 for EUR feature testing)
 
 ## Production / local-default (backend/.env ADMIN_PASSWORD)
 - Admin: `admin` / `159357` (recreated on first startup in fresh DB)

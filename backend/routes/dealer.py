@@ -967,6 +967,8 @@ async def admin_create_dealer(body: DealerCreate, _: dict = Depends(get_admin_us
         defaultMarkupPercent=body.defaultMarkupPercent,
         defaultMarkupBase=(body.defaultMarkupBase or None),
         defaultMarkupScope=(body.defaultMarkupScope or None),
+        currency=(body.currency or "PLN").upper() if (body.currency or "").upper() in ("PLN", "EUR") else "PLN",
+        eurRate=(float(body.eurRate) if body.eurRate not in (None, "", 0) else None),
     )
     doc = dealer.model_dump()
     await db.dealers.insert_one(doc)
@@ -983,6 +985,15 @@ async def admin_update_dealer(dealer_id: str, body: DealerUpdate, _: dict = Depe
         update["password"] = hash_password(update["password"])
     elif "password" in update:
         update.pop("password")
+    if "currency" in update:
+        c = str(update["currency"] or "").upper().strip()
+        update["currency"] = c if c in ("PLN", "EUR") else "PLN"
+    if "eurRate" in update:
+        try:
+            r = float(update["eurRate"])
+            update["eurRate"] = r if r > 0 else None
+        except (TypeError, ValueError):
+            update["eurRate"] = None
     if payload.get("resetOnboarding"):
         update["onboardedAt"] = None
     update["updatedAt"] = datetime.now(timezone.utc).isoformat()

@@ -954,3 +954,22 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
 - P3: Comfino QR code in PDF
 - Refactor: split `routes/sauna.py` (2500+ lines), `WarehousePage.jsx` (1400+),
   `useSaunaCalculator.js`.
+
+### EUR currency support (DONE - Feb 2026)
+- Per-dealer fields `currency` ("PLN" | "EUR") and `eurRate` (float, PLN per 1 €)
+  added to `Dealer` model + create/update endpoints.
+- Admin Dealers page: currency dropdown + EUR rate input in both Create and
+  Edit dialogs.
+- PriceMatrix.jsx: editable `€/zł` input (localStorage `pm_eur_rate`, auto-fills
+  from dealer.eurRate when dealer is picked) + 3 EUR columns
+  (Розница €, B2B brutto €, B2B netto €) gated on `eurRate > 0`. CSV export
+  includes the same 3 EUR columns + a header row noting the rate used.
+- DealerMatrix.jsx: same `€/zł` input (localStorage `dm_eur_rate`) + 3 EUR
+  columns (B2B brutto €, B2B netto €, Розница €). CSV updated.
+- DealerCalculatorWrapper: fetches `/api/dealer/auth/me`, shows a blue EUR
+  banner when `currency=EUR && eurRate>0`. ConfirmOrderDialog renders EUR
+  equivalents next to PLN total / manufacturer cost / dealer margin.
+- Rounding: 2 decimals everywhere (pl-PL locale formatting `1 234,56 €`).
+- Not touched: the big SaunaCalculator (~2000 lines) is intentionally left
+  in PLN — too invasive. Dealers see EUR figures at the confirmation step
+  and in the matrices/CSV exports as the user agreed.

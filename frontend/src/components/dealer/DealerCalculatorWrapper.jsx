@@ -124,7 +124,7 @@ function installInterceptor({ dealerToken, onOrderSaved }) {
 // ---------------------------------------------------------------------------
 // Confirm-order dialog — flips draft → confirmed via dealer endpoint
 // ---------------------------------------------------------------------------
-function ConfirmOrderDialog({ order, onClose, onConfirmed }) {
+function ConfirmOrderDialog({ order, onClose, onConfirmed, eurEnabled = false, eurRate = null }) {
   const [contractNumber, setContractNumber] = useState('');
   const [clientConfirmed, setClientConfirmed] = useState(false);
   const [deliveryDate, setDeliveryDate] = useState('');
@@ -134,6 +134,11 @@ function ConfirmOrderDialog({ order, onClose, onConfirmed }) {
   if (!order) return null;
 
   const canSubmit = clientConfirmed && contractNumber.trim().length > 0;
+  const fmtEur = (pln) => {
+    if (!eurEnabled || !Number.isFinite(eurRate) || eurRate <= 0) return null;
+    const v = Number(pln) / eurRate;
+    return `${v.toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
+  };
 
   const handleConfirm = async () => {
     if (!canSubmit) return;
@@ -179,6 +184,11 @@ function ConfirmOrderDialog({ order, onClose, onConfirmed }) {
             <div className="text-muted-foreground">{order.fullName || order.customerName || '—'}</div>
             <div className="font-semibold text-orange-600 mt-1">
               {Math.round(Number(order.total) || 0).toLocaleString('pl-PL').replace(/,/g, ' ')} PLN
+              {eurEnabled && (
+                <span className="ml-2 text-blue-600 text-sm font-medium" data-testid="confirm-total-eur">
+                  ≈ {fmtEur(order.total)}
+                </span>
+              )}
               <span className="text-xs font-normal text-muted-foreground ml-2">(klient płaci Tobie)</span>
             </div>
             {(() => {
@@ -194,6 +204,9 @@ function ConfirmOrderDialog({ order, onClose, onConfirmed }) {
                     <div className="font-mono font-semibold text-cyan-700" data-testid="confirm-manufacturer-total">
                       {Math.round(cost).toLocaleString('pl-PL').replace(/,/g, ' ')} PLN
                     </div>
+                    {eurEnabled && (
+                      <div className="font-mono text-[10px] text-cyan-600/80 mt-0.5">≈ {fmtEur(cost)}</div>
+                    )}
                   </div>
                   <div className={`rounded-md p-2 ${margin >= 0 ? 'bg-emerald-500/10 border border-emerald-500/20' : 'bg-red-500/10 border border-red-500/20'}`}>
                     <div className={`text-[10px] uppercase tracking-wider ${margin >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>Twoja marża</div>
@@ -201,6 +214,9 @@ function ConfirmOrderDialog({ order, onClose, onConfirmed }) {
                       {Math.round(margin).toLocaleString('pl-PL').replace(/,/g, ' ')} PLN
                       <span className="text-[10px] font-normal ml-1">({pct.toFixed(1)}%)</span>
                     </div>
+                    {eurEnabled && (
+                      <div className={`font-mono text-[10px] mt-0.5 ${margin >= 0 ? 'text-emerald-600/80' : 'text-red-600/80'}`}>≈ {fmtEur(margin)}</div>
+                    )}
                   </div>
                 </div>
               );
@@ -289,6 +305,7 @@ function ConfirmOrderDialog({ order, onClose, onConfirmed }) {
 export default function DealerCalculatorWrapper({ initialDraft = null, onDone = null }) {
   const [lastSavedOrder, setLastSavedOrder] = useState(initialDraft);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [dealerProfile, setDealerProfile] = useState(null);
   const orderRef = useRef(initialDraft);
 
   // If we open the wrapper with an existing draft (Edytuj from Orders tab),
@@ -300,6 +317,18 @@ export default function DealerCalculatorWrapper({ initialDraft = null, onDone = 
       setLastSavedOrder(initialDraft);
     }
   }, [initialDraft]);
+
+  // Load dealer profile to know primary currency + EUR rate (drives the
+  // EUR conversion banner and the EUR figures in the confirm dialog).
+  useEffect(() => {
+    axios.get(`${API}/api/dealer/auth/me`, { headers: dealerAuthHeaders() })
+      .then((r) => setDealerProfile(r.data || null))
+      .catch(() => { /* silent — banner just won't show */ });
+  }, []);
+
+  const currency = (dealerProfile?.currency || 'PLN').toUpperCase();
+  const eurRate = parseFloat(dealerProfile?.eurRate);
+  const eurEnabled = currency === 'EUR' && Number.isFinite(eurRate) && eurRate > 0;
 
   // Gate the SaunaCalculator behind interceptor readiness. Without this gate
   // the child's `fetchPrices` effect fires BEFORE the parent's `useEffect`
@@ -335,6 +364,22 @@ export default function DealerCalculatorWrapper({ initialDraft = null, onDone = 
 
   return (
     <div className="dealer-calc-wrapper" data-testid="dealer-calc-wrapper">
+      {/* EUR banner — visible only when dealer is configured for EUR */}
+      {eurEnabled && (
+        <div
+          className="mb-3 rounded-xl border border-blue-400/30 bg-blue-500/10 p-3 text-sm flex items-start gap-3"
+          data-testid="dealer-eur-banner"
+        >
+          <div className="text-blue-200 text-xs font-semibold uppercase tracking-wider shrink-0">€</div>
+          <div className="text-blue-100">
+            <div className="font-medium">Twoja waluta: EUR (kurs {eurRate.toFixed(4)} zł / €)</div>
+            <div className="text-blue-200/70 text-xs mt-0.5">
+              Kalkulator pokazuje ceny w PLN — równowartość w € zobaczysz w podsumowaniu zamówienia oraz w eksportach.
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Banner */}
       <div className="mb-4 rounded-xl border border-orange-500/30 bg-orange-500/5 p-3 text-sm flex items-start gap-3">
         <FileText className="h-5 w-5 text-orange-500 shrink-0 mt-0.5" />
@@ -366,6 +411,8 @@ export default function DealerCalculatorWrapper({ initialDraft = null, onDone = 
       {confirmOpen && lastSavedOrder && (
         <ConfirmOrderDialog
           order={lastSavedOrder}
+          eurEnabled={eurEnabled}
+          eurRate={eurEnabled ? eurRate : null}
           onClose={() => setConfirmOpen(false)}
           onConfirmed={(updated) => {
             setLastSavedOrder(updated);

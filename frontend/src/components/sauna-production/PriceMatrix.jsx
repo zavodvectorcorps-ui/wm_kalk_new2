@@ -45,6 +45,27 @@ export default function PriceMatrix() {
   const [typeFilter, setTypeFilter] = useState('all'); // all | model | variant | option | option_variant
   const [onlyMissing, setOnlyMissing] = useState(false);
 
+  // EUR-конвертация: курс PLN per 1 EUR. Хранится в localStorage. Если у
+  // выбранного дилера задан свой курс — подставится автоматически.
+  const [eurRate, setEurRate] = useState(() => {
+    const v = parseFloat(localStorage.getItem('pm_eur_rate') || '');
+    return Number.isFinite(v) && v > 0 ? v : 4.30;
+  });
+  useEffect(() => {
+    if (Number.isFinite(eurRate) && eurRate > 0) {
+      localStorage.setItem('pm_eur_rate', String(eurRate));
+    }
+  }, [eurRate]);
+  useEffect(() => {
+    if (!dealerId) return;
+    const d = dealers.find((x) => x.id === dealerId);
+    const r = d && d.eurRate ? parseFloat(d.eurRate) : null;
+    if (Number.isFinite(r) && r > 0) setEurRate(r);
+  }, [dealerId, dealers]);
+  const showEur = Number.isFinite(eurRate) && eurRate > 0;
+  const toEur = (pln) => (pln == null || !showEur ? null : pln / eurRate);
+  const fmtEur = (eur) => (eur == null ? '—' : `${eur.toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`);
+
   // первичная загрузка
   useEffect(() => {
     (async () => {
@@ -251,24 +272,33 @@ export default function PriceMatrix() {
     const dealerLabel = dealerId ? (dealers.find((d) => d.id === dealerId)?.name || dealerId) : '';
     const headers = [
       'Тип', 'Название',
-      'Розница brutto', 'Розница netto', 'Накладные',
+      'Розница brutto', 'Розница netto',
+      ...(showEur ? ['Розница € (netto)'] : []),
+      'Накладные',
       'Себестоимость', 'Маржа netto', 'Маржа %',
     ];
     if (dealerId) headers.push(
       `B2B brutto (${dealerLabel})`,
-      'Скидка от розницы %',
+      ...(showEur ? ['B2B brutto €'] : []),
       'B2B netto',
+      ...(showEur ? ['B2B netto €'] : []),
+      'Скидка от розницы %',
       'Маржа дилера',
       'Маржа дилера %',
       'Реком. розница дилера',
       'Розница дилера (его)',
     );
+    if (showEur) headers.push(`Курс EUR/PLN: ${eurRate.toFixed(4)}`);
     headers.push('Проблемы');
     const esc = (v) => {
       const s = String(v ?? '');
       return /[",;\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
     };
     const kindLabel = { model: 'Модель', variant: 'Вариант', option: 'Опция', option_variant: 'Вар.опции' };
+    const eurNum = (pln) => {
+      const v = toEur(pln);
+      return v == null ? '' : v.toFixed(2);
+    };
     const lines = [headers.map(esc).join(';')];
     for (const r of filtered) {
       const row = [
@@ -276,6 +306,7 @@ export default function PriceMatrix() {
         r.name,
         Math.round(r.retailBrutto),
         Math.round(r.retailNetto),
+        ...(showEur ? [r.flags.noRetail ? '' : eurNum(r.retailNetto)] : []),
         Math.round(r.retailExtra),
         Math.round(r.cost),
         Math.round(r.margin),
@@ -284,14 +315,17 @@ export default function PriceMatrix() {
       if (dealerId) {
         row.push(
           r.dealerB2B != null ? Math.round(r.dealerB2B) : '',
-          r.dealerDiscountPct != null ? r.dealerDiscountPct.toFixed(1) : '',
+          ...(showEur ? [eurNum(r.dealerB2B)] : []),
           r.dealerB2BNetto != null ? Math.round(r.dealerB2BNetto) : '',
+          ...(showEur ? [eurNum(r.dealerB2BNetto)] : []),
+          r.dealerDiscountPct != null ? r.dealerDiscountPct.toFixed(1) : '',
           r.dealerMargin != null ? Math.round(r.dealerMargin) : '',
           r.dealerMarginPct != null ? r.dealerMarginPct.toFixed(1) : '',
           r.recommendedDealerRetail != null ? Math.round(r.recommendedDealerRetail) : '',
           r.dealerRetail != null ? Math.round(r.dealerRetail) : '',
         );
       }
+      if (showEur) row.push(''); // empty cell under "Курс EUR/PLN: X.XXXX" header
       const probs = [];
       if (r.flags.noCard) probs.push('нет тех.карты');
       if (r.flags.noRetail) probs.push('нет розницы');
@@ -492,6 +526,24 @@ export default function PriceMatrix() {
               </SelectContent>
             </Select>
 
+            <div className="flex items-center gap-1.5 px-3 h-9 rounded-md border bg-background" title="Курс PLN за 1 EUR. При выборе дилера с заданным курсом подставится автоматически.">
+              <Label htmlFor="pm-eur-rate" className="text-xs">€/zł</Label>
+              <Input
+                id="pm-eur-rate"
+                type="text"
+                inputMode="decimal"
+                value={eurRate}
+                onChange={(e) => {
+                  const raw = e.target.value.replace(',', '.').replace(/[^\d.]/g, '');
+                  const v = parseFloat(raw);
+                  setEurRate(Number.isFinite(v) ? v : 0);
+                }}
+                placeholder="4.30"
+                className="h-7 w-[80px] text-sm"
+                data-testid="pm-eur-rate"
+              />
+            </div>
+
             <div className="flex items-center gap-2 px-3 h-9 rounded-md border bg-background">
               <Switch
                 id="pm-only-missing"
@@ -522,11 +574,14 @@ export default function PriceMatrix() {
                   <TableHead>Название</TableHead>
                   <TableHead className="text-right">Розница brutto</TableHead>
                   <TableHead className="text-right">Розница netto</TableHead>
+                  {showEur && <TableHead className="text-right text-blue-700">Розница €</TableHead>}
                   <TableHead className="text-right">Себестоимость</TableHead>
                   <TableHead className="text-right">Накладные</TableHead>
                   <TableHead className="text-right">Маржа</TableHead>
                   {dealerId && <TableHead className="text-right border-l-2">B2B brutto</TableHead>}
+                  {dealerId && showEur && <TableHead className="text-right text-blue-700">B2B brutto €</TableHead>}
                   {dealerId && <TableHead className="text-right">B2B netto</TableHead>}
+                  {dealerId && showEur && <TableHead className="text-right text-blue-700">B2B netto €</TableHead>}
                   {dealerId && <TableHead className="text-right">Скидка</TableHead>}
                   {dealerId && <TableHead className="text-right">Маржа дилера</TableHead>}
                   {dealerId && <TableHead className="text-right">Реком. розница дилера</TableHead>}
@@ -536,7 +591,7 @@ export default function PriceMatrix() {
               <TableBody>
                 {filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={dealerId ? 13 : 8} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={(dealerId ? 13 : 8) + (showEur ? (dealerId ? 3 : 1) : 0)} className="text-center py-8 text-muted-foreground">
                       Ничего не найдено
                     </TableCell>
                   </TableRow>
@@ -563,6 +618,15 @@ export default function PriceMatrix() {
                     <TableCell className="text-right text-sm text-muted-foreground">
                       {r.flags.noRetail ? '—' : fmtMoney(r.retailNetto)}
                     </TableCell>
+                    {showEur && (
+                      <TableCell
+                        className="text-right text-sm text-blue-700"
+                        title={r.flags.noRetail ? '' : `Розница netto / ${eurRate.toFixed(4)}`}
+                        data-testid={`pm-retail-eur-${idx}`}
+                      >
+                        {r.flags.noRetail ? '—' : fmtEur(toEur(r.retailNetto))}
+                      </TableCell>
+                    )}
                     <TableCell className={`text-right text-sm ${r.flags.noCard ? 'text-amber-700 font-semibold' : ''}`}>
                       {r.flags.noCard ? '—' : fmtMoney(r.cost)}
                     </TableCell>
@@ -595,6 +659,15 @@ export default function PriceMatrix() {
                         />
                       </TableCell>
                     )}
+                    {dealerId && showEur && (
+                      <TableCell
+                        className="text-right text-sm text-blue-700"
+                        title={r.dealerB2B != null ? `B2B brutto / ${eurRate.toFixed(4)}` : 'Нет B2B-цены'}
+                        data-testid={`pm-b2b-brutto-eur-${idx}`}
+                      >
+                        {fmtEur(toEur(r.dealerB2B))}
+                      </TableCell>
+                    )}
                     {dealerId && (
                       <TableCell
                         className="text-right text-sm text-muted-foreground"
@@ -602,6 +675,15 @@ export default function PriceMatrix() {
                         data-testid={`pm-b2b-netto-${idx}`}
                       >
                         {r.dealerB2BNetto != null ? fmtMoney(r.dealerB2BNetto) : '—'}
+                      </TableCell>
+                    )}
+                    {dealerId && showEur && (
+                      <TableCell
+                        className="text-right text-sm text-blue-700"
+                        title={r.dealerB2BNetto != null ? `B2B netto / ${eurRate.toFixed(4)}` : 'Нет B2B-цены'}
+                        data-testid={`pm-b2b-netto-eur-${idx}`}
+                      >
+                        {fmtEur(toEur(r.dealerB2BNetto))}
                       </TableCell>
                     )}
                     {dealerId && (

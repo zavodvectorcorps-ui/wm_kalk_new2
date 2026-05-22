@@ -45,6 +45,21 @@ export default function DealerMatrix() {
   const [typeFilter, setTypeFilter] = useState('all');
   const [onlyMissing, setOnlyMissing] = useState(false);
 
+  // EUR-конвертация: курс PLN per 1 EUR. Хранится в localStorage. При смене
+  // дилера подставляется его dealer.eurRate, если задан.
+  const [eurRate, setEurRate] = useState(() => {
+    const v = parseFloat(localStorage.getItem('dm_eur_rate') || '');
+    return Number.isFinite(v) && v > 0 ? v : 4.30;
+  });
+  useEffect(() => {
+    if (Number.isFinite(eurRate) && eurRate > 0) {
+      localStorage.setItem('dm_eur_rate', String(eurRate));
+    }
+  }, [eurRate]);
+  const showEur = Number.isFinite(eurRate) && eurRate > 0;
+  const toEur = (pln) => (pln == null || !showEur ? null : pln / eurRate);
+  const fmtEur = (eur) => (eur == null ? '—' : `${eur.toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`);
+
   // primary load
   useEffect(() => {
     (async () => {
@@ -183,6 +198,12 @@ export default function DealerMatrix() {
   }, [rows]);
 
   const dealer = useMemo(() => dealers.find((d) => d.id === dealerId), [dealers, dealerId]);
+  // Auto-apply dealer's own EUR rate when picking a dealer that has one.
+  useEffect(() => {
+    if (!dealer) return;
+    const r = dealer.eurRate ? parseFloat(dealer.eurRate) : null;
+    if (Number.isFinite(r) && r > 0) setEurRate(r);
+  }, [dealer]);
 
   // --- inline edits ---
   const saveDealerB2B = async (row, newB2B) => {
@@ -243,7 +264,9 @@ export default function DealerMatrix() {
       'Тип', 'Название',
       'WM розница brutto', 'Скидка от WM %',
       'Себестоимость дилера (B2B brutto)', 'B2B netto',
+      ...(showEur ? ['B2B brutto €', 'B2B netto €'] : []),
       'Розница дилера brutto', 'Розница дилера netto',
+      ...(showEur ? ['Розница дилера €'] : []),
       'Markup дилера %', 'Маржа', 'Маржа %',
       'Проблемы',
     ];
@@ -252,8 +275,13 @@ export default function DealerMatrix() {
       return /[",;\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
     };
     const kindLabel = { model: 'Модель', variant: 'Вариант', option: 'Опция', option_variant: 'Вар.опции' };
+    const eurNum = (pln) => {
+      const v = toEur(pln);
+      return v == null ? '' : v.toFixed(2);
+    };
     const lines = [
       `Прайс-лист дилера: ${dealerLabel}`,
+      ...(showEur ? [`Курс EUR/PLN: ${eurRate.toFixed(4)}`] : []),
       '',
       headers.map(esc).join(';'),
     ];
@@ -265,8 +293,10 @@ export default function DealerMatrix() {
         r.discountFromWmPct != null ? r.discountFromWmPct.toFixed(1) : '',
         r.b2bBrutto != null ? Math.round(r.b2bBrutto) : '',
         r.b2bNetto != null ? Math.round(r.b2bNetto) : '',
+        ...(showEur ? [eurNum(r.b2bBrutto), eurNum(r.b2bNetto)] : []),
         r.dealerRetail != null ? Math.round(r.dealerRetail) : '',
         r.dealerRetailNetto != null ? Math.round(r.dealerRetailNetto) : '',
+        ...(showEur ? [eurNum(r.dealerRetail)] : []),
         r.markupPct != null ? r.markupPct.toFixed(1) : '',
         r.margin != null ? Math.round(r.margin) : '',
         r.marginPct != null ? r.marginPct.toFixed(1) : '',
@@ -377,6 +407,24 @@ export default function DealerMatrix() {
               </SelectContent>
             </Select>
 
+            <div className="flex items-center gap-1.5 px-3 h-9 rounded-md border bg-background" title="Курс PLN за 1 EUR. При выборе дилера с заданным курсом подставится автоматически.">
+              <Label htmlFor="dm-eur-rate" className="text-xs">€/zł</Label>
+              <Input
+                id="dm-eur-rate"
+                type="text"
+                inputMode="decimal"
+                value={eurRate}
+                onChange={(e) => {
+                  const raw = e.target.value.replace(',', '.').replace(/[^\d.]/g, '');
+                  const v = parseFloat(raw);
+                  setEurRate(Number.isFinite(v) ? v : 0);
+                }}
+                placeholder="4.30"
+                className="h-7 w-[80px] text-sm"
+                data-testid="dm-eur-rate"
+              />
+            </div>
+
             <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
@@ -473,7 +521,10 @@ export default function DealerMatrix() {
                   <TableHead className="text-right text-muted-foreground">WM розница</TableHead>
                   <TableHead className="text-right">Скидка от WM</TableHead>
                   <TableHead className="text-right border-l-2">Себест. дилера (B2B)</TableHead>
+                  {showEur && <TableHead className="text-right text-blue-700">B2B brutto €</TableHead>}
+                  {showEur && <TableHead className="text-right text-blue-700">B2B netto €</TableHead>}
                   <TableHead className="text-right">Розница дилера</TableHead>
+                  {showEur && <TableHead className="text-right text-blue-700">Розница €</TableHead>}
                   <TableHead className="text-right">Markup</TableHead>
                   <TableHead className="text-right">Маржа дилера</TableHead>
                   <TableHead className="text-center w-[160px]">Проблемы</TableHead>
@@ -482,7 +533,7 @@ export default function DealerMatrix() {
               <TableBody>
                 {filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={9 + (showEur ? 3 : 0)} className="text-center py-8 text-muted-foreground">
                       Ничего не найдено
                     </TableCell>
                   </TableRow>
@@ -521,6 +572,24 @@ export default function DealerMatrix() {
                         emptyHint="+ B2B"
                       />
                     </TableCell>
+                    {showEur && (
+                      <TableCell
+                        className="text-right text-sm text-blue-700"
+                        title={r.b2bBrutto != null ? `B2B brutto / ${eurRate.toFixed(4)}` : 'Нет B2B-цены'}
+                        data-testid={`dm-b2b-brutto-eur-${idx}`}
+                      >
+                        {fmtEur(toEur(r.b2bBrutto))}
+                      </TableCell>
+                    )}
+                    {showEur && (
+                      <TableCell
+                        className="text-right text-sm text-blue-700"
+                        title={r.b2bNetto != null ? `B2B netto / ${eurRate.toFixed(4)}` : 'Нет B2B-цены'}
+                        data-testid={`dm-b2b-netto-eur-${idx}`}
+                      >
+                        {fmtEur(toEur(r.b2bNetto))}
+                      </TableCell>
+                    )}
                     <TableCell className={`text-right text-sm ${r.flags.noRetail ? 'text-yellow-700 font-semibold' : (r.flags.underWm ? 'text-red-700 font-semibold' : '')}`}>
                       <InlineNum
                         value={r.dealerRetail}
@@ -531,6 +600,15 @@ export default function DealerMatrix() {
                         emptyHint="+ розница"
                       />
                     </TableCell>
+                    {showEur && (
+                      <TableCell
+                        className="text-right text-sm text-blue-700"
+                        title={r.dealerRetail != null ? `Розница / ${eurRate.toFixed(4)}` : 'Нет розницы'}
+                        data-testid={`dm-retail-eur-${idx}`}
+                      >
+                        {fmtEur(toEur(r.dealerRetail))}
+                      </TableCell>
+                    )}
                     <TableCell className="text-right text-sm">
                       {r.markupPct != null ? (
                         <span className={`text-xs font-mono ${

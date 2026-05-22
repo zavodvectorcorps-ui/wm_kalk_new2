@@ -28,6 +28,11 @@ class Dealer(BaseModel):
     defaultMarkupBase: Optional[str] = None      # "b2b" | "wm"
     defaultMarkupScope: Optional[str] = None     # "all" | "models" | "options"
     onboardedAt: Optional[str] = None            # ISO timestamp when first-login markup ran
+    # Primary currency the dealer works in. "PLN" (default) keeps prices in zł
+    # everywhere. "EUR" tells admin matrices + the dealer's own calculator to
+    # also display prices converted to euro using ``eurRate``.
+    currency: str = "PLN"
+    eurRate: Optional[float] = None  # PLN per 1 EUR (e.g. 4.30)
     createdAt: str = Field(default_factory=_now_iso)
     updatedAt: str = Field(default_factory=_now_iso)
 
@@ -43,6 +48,8 @@ class DealerCreate(BaseModel):
     defaultMarkupPercent: Optional[float] = None
     defaultMarkupBase: Optional[str] = None
     defaultMarkupScope: Optional[str] = None
+    currency: Optional[str] = None  # "PLN" | "EUR"
+    eurRate: Optional[float] = None
 
 
 class DealerUpdate(BaseModel):
@@ -56,6 +63,8 @@ class DealerUpdate(BaseModel):
     defaultMarkupPercent: Optional[float] = None
     defaultMarkupBase: Optional[str] = None
     defaultMarkupScope: Optional[str] = None
+    currency: Optional[str] = None  # "PLN" | "EUR"
+    eurRate: Optional[float] = None
     # Setting this back to None clears onboardedAt → next login re-applies markup.
     resetOnboarding: Optional[bool] = None
 
