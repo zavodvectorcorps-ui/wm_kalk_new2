@@ -955,6 +955,28 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
 - Refactor: split `routes/sauna.py` (2500+ lines), `WarehousePage.jsx` (1400+),
   `useSaunaCalculator.js`.
 
+### Planner — multiple assignees per task (DONE - Feb 2026)
+- Backend `models/planner.py`: added `assigneeUserIds: List[str]` and
+  `assigneeUsernames: List[str]` to `TaskCreate`/`TaskUpdate` alongside
+  legacy single fields.
+- Backend `routes/planner.py`: new helper `_resolve_assignees(ids, legacy)`
+  normalises input to (ids, usernames). Create/update mirror the FIRST
+  element back to legacy `assigneeUserId`/`assigneeUsername` so older
+  filters, history rows and Telegram notifications keep working untouched.
+- `list_tasks` `assignee` and `mine` filters now match both single and
+  array fields via `$or`.
+- Frontend: new shared `<AssigneesPicker>` (multi-select popover, search,
+  initials chips, "+N" overflow). Used in `TaskDrawer`, `QuickCreate` and
+  `TasksTable` inline edit cell. `TasksBoard` card renders up to 3 avatar
+  initials + "+N" tooltip on hover for >3 assignees.
+- Backward compatibility: existing tasks with only single `assigneeUserId`
+  render correctly; AI parser (`AITaskParser.jsx`) and old endpoints still
+  work without modification.
+- ✅ `pytest backend/tests/test_planner.py` 15/15 pass.
+- ✅ curl: create with `assigneeUserIds: [U1, U2]` returns both array AND
+  legacy single fields; updates via either field stay in sync; filter by
+  `assignee=` matches array entries.
+
 ### EUR currency support (DONE - Feb 2026)
 - Per-dealer fields `currency` ("PLN" | "EUR") and `eurRate` (float, PLN per 1 €)
   added to `Dealer` model + create/update endpoints.

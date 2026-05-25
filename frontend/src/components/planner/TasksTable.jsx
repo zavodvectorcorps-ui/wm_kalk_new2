@@ -1,6 +1,7 @@
 import React from 'react';
 import { MessageSquare, ListChecks, AlertTriangle, Calendar, UserX } from 'lucide-react';
 import { STATUS_MAP, PRIORITY_MAP, isOverdue, formatDate, dirById } from './constants';
+import AssigneesPicker from './AssigneesPicker';
 
 /**
  * TasksTable — fast overview with inline edit for status/priority/assignee.
@@ -41,6 +42,9 @@ function TaskRow({ task, directions, users, onOpen, onPatch }) {
   const checklistDone = (task.checklist || []).filter((c) => c.done).length;
   const checklistTotal = (task.checklist || []).length;
   const commentsCount = (task.comments || []).length;
+  const assigneeIds = (task.assigneeUserIds && task.assigneeUserIds.length)
+    ? task.assigneeUserIds
+    : (task.assigneeUserId ? [task.assigneeUserId] : []);
 
   return (
     <tr
@@ -60,7 +64,7 @@ function TaskRow({ task, directions, users, onOpen, onPatch }) {
               {checklistTotal > 0 && (
                 <span className="inline-flex items-center gap-0.5"><ListChecks className="w-3 h-3" />{checklistDone}/{checklistTotal}</span>
               )}
-              {!task.assigneeUserId && <span className="inline-flex items-center gap-0.5 text-amber-600"><UserX className="w-3 h-3" />без ответственного</span>}
+              {assigneeIds.length === 0 && <span className="inline-flex items-center gap-0.5 text-amber-600"><UserX className="w-3 h-3" />без ответственного</span>}
               {!task.dueDate && <span className="text-slate-400">без срока</span>}
             </div>
           </div>
@@ -72,11 +76,15 @@ function TaskRow({ task, directions, users, onOpen, onPatch }) {
           {dir.name}
         </span>
       </td>
-      <td className="px-3 py-2 text-xs">
-        <InlineSelect
-          value={task.assigneeUserId || ''}
-          options={[{ value: '', label: '— не назначен —' }, ...(users || []).map((u) => ({ value: u.id, label: u.username }))]}
-          onChange={(v) => onPatch(task.id, { assigneeUserId: v })}
+      <td className="px-3 py-2 text-xs" onClick={(e) => e.stopPropagation()}>
+        <AssigneesPicker
+          value={assigneeIds}
+          users={users || []}
+          onChange={(ids) => onPatch(task.id, { assigneeUserIds: ids })}
+          placeholder="—"
+          size="sm"
+          testId={`row-assignees-${task.id}`}
+          buttonClassName="w-full"
         />
       </td>
       <td className="px-3 py-2 text-xs text-muted-foreground">{task.createdByUsername || '—'}</td>

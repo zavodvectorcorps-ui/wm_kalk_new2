@@ -49,7 +49,8 @@ class TaskCreate(BaseModel):
     title: str
     description: Optional[str] = ""
     businessDirection: str = "other"
-    assigneeUserId: Optional[str] = None
+    assigneeUserId: Optional[str] = None  # legacy: single assignee
+    assigneeUserIds: Optional[List[str]] = None  # NEW: multiple assignees
     status: Optional[str] = "planned"
     priority: Optional[str] = "medium"
     dueDate: Optional[str] = None
@@ -63,7 +64,8 @@ class TaskUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
     businessDirection: Optional[str] = None
-    assigneeUserId: Optional[str] = None  # use "" to clear
+    assigneeUserId: Optional[str] = None  # legacy single; "" to clear
+    assigneeUserIds: Optional[List[str]] = None  # NEW multi; [] to clear
     status: Optional[str] = None
     priority: Optional[str] = None
     dueDate: Optional[str] = None  # ISO date string; "" to clear

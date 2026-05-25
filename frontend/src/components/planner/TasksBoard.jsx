@@ -88,7 +88,11 @@ function BoardCard({ task, directions, onOpen, onPatch, onDragStart, onDragEnd, 
   const checklistTotal = (task.checklist || []).length;
   const isDone = task.status === 'done';
   const isCancelled = task.status === 'cancelled';
-  const isGeneral = !task.assigneeUserId;
+  // Normalise assignees: support both new array fields and legacy single ones.
+  const assigneeNames = (task.assigneeUsernames && task.assigneeUsernames.length)
+    ? task.assigneeUsernames
+    : (task.assigneeUsername ? [task.assigneeUsername] : []);
+  const isGeneral = assigneeNames.length === 0;
 
   const toggleDone = (e) => {
     e.stopPropagation();
@@ -148,11 +152,25 @@ function BoardCard({ task, directions, onOpen, onPatch, onDragStart, onDragEnd, 
                 <Users className="w-3 h-3" /> Общая задача
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1">
-                <span className="w-4 h-4 rounded-full bg-slate-200 inline-flex items-center justify-center text-[9px] text-slate-700 font-bold">
-                  {(task.assigneeUsername?.[0] || '?').toUpperCase()}
+              <span className="inline-flex items-center gap-1" title={assigneeNames.join(', ')}>
+                <span className="flex -space-x-1">
+                  {assigneeNames.slice(0, 3).map((nm, i) => (
+                    <span
+                      key={i}
+                      className="w-4 h-4 rounded-full bg-slate-200 ring-1 ring-white inline-flex items-center justify-center text-[9px] text-slate-700 font-bold"
+                    >
+                      {(nm?.[0] || '?').toUpperCase()}
+                    </span>
+                  ))}
                 </span>
-                {task.assigneeUsername}
+                {assigneeNames.length === 1 ? (
+                  <span className="ml-1">{assigneeNames[0]}</span>
+                ) : (
+                  <span className="ml-1">{assigneeNames.length} чел.</span>
+                )}
+                {assigneeNames.length > 3 && (
+                  <span className="text-[10px] text-muted-foreground">(+{assigneeNames.length - 3})</span>
+                )}
               </span>
             )}
             {task.dueDate && (

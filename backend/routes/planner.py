@@ -61,6 +61,40 @@ async def _ensure_user_lookup(user_id: Optional[str]) -> Optional[str]:
     return (u or {}).get("username") or ""
 
 
+async def _resolve_assignees(
+    user_ids: Optional[List[str]] = None,
+    legacy_single: Optional[str] = None,
+) -> tuple[List[str], List[str]]:
+    """Resolve a list of assignee user IDs into (ids, usernames).
+
+    Accepts either the new ``assigneeUserIds`` list or the legacy single
+    ``assigneeUserId``. Empty / None values are filtered out. Order is
+    preserved; duplicates are removed.
+
+    Returns ``(ids, usernames)`` — both same length, possibly empty.
+    """
+    raw: List[str] = []
+    if user_ids is not None:
+        raw = [str(x) for x in user_ids if x]
+    elif legacy_single:
+        raw = [str(legacy_single)]
+    # Dedup preserving order
+    seen: set = set()
+    ids: List[str] = []
+    for x in raw:
+        if x and x not in seen:
+            seen.add(x)
+            ids.append(x)
+    if not ids:
+        return [], []
+    docs = await db.users.find(
+        {"id": {"$in": ids}}, {"_id": 0, "id": 1, "username": 1}
+    ).to_list(length=len(ids))
+    by_id = {d["id"]: d.get("username") or "" for d in docs}
+    usernames = [by_id.get(i, "") for i in ids]
+    return ids, usernames
+
+
 async def _ensure_default_directions():
     """Seed default directions on first access."""
     total = await db.planner_directions.count_documents({})
@@ -137,13 +171,26 @@ async def list_tasks(
     if status:
         q["status"] = {"$in": status.split(",")}
     if assignee:
-        q["assigneeUserId"] = assignee
+        q["$or"] = [
+            {"assigneeUserId": assignee},
+            {"assigneeUserIds": assignee},
+        ]
     if direction:
         q["businessDirection"] = direction
     if priority:
         q["priority"] = {"$in": priority.split(",")}
     if mine:
-        q["assigneeUserId"] = _.get("sub") or _.get("id") or ""
+        mine_id = _.get("sub") or _.get("id") or ""
+        mine_or = [
+            {"assigneeUserId": mine_id},
+            {"assigneeUserIds": mine_id},
+        ]
+        # Merge with any existing $or (e.g. assignee filter) using $and.
+        if "$or" in q:
+            existing_or = q.pop("$or")
+            q["$and"] = [{"$or": existing_or}, {"$or": mine_or}]
+        else:
+            q["$or"] = mine_or
     if overdue:
         today = datetime.now(timezone.utc).date().isoformat()
         q["dueDate"] = {"$ne": "", "$lt": today}
@@ -173,15 +220,19 @@ async def _create_task_impl(body: TaskCreate, user: dict) -> dict:
         raise HTTPException(400, f"Invalid priority. Must be one of {PRIORITIES}")
 
     actor = _actor(user)
-    assignee_username = await _ensure_user_lookup(body.assigneeUserId)
+    ids, names = await _resolve_assignees(body.assigneeUserIds, body.assigneeUserId)
     now = _now()
     task = {
         "id": str(uuid.uuid4()),
         "title": body.title.strip(),
         "description": body.description or "",
         "businessDirection": body.businessDirection or "other",
-        "assigneeUserId": body.assigneeUserId or "",
-        "assigneeUsername": assignee_username,
+        # Mirror first assignee into legacy single fields so existing
+        # aggregations, filters and Telegram notifications keep working.
+        "assigneeUserId": ids[0] if ids else "",
+        "assigneeUsername": names[0] if names else "",
+        "assigneeUserIds": ids,
+        "assigneeUsernames": names,
         "createdByUserId": actor["userId"],
         "createdByUsername": actor["username"],
         "status": body.status or "planned",
@@ -438,11 +489,24 @@ async def update_task(task_id: str, body: TaskUpdate, user: dict = Depends(get_c
     if "businessDirection" in payload and payload["businessDirection"] != task.get("businessDirection"):
         update_data["businessDirection"] = payload["businessDirection"]
         _log("direction", task.get("businessDirection"), payload["businessDirection"])
-    if "assigneeUserId" in payload and payload["assigneeUserId"] != task.get("assigneeUserId"):
-        new_id = payload["assigneeUserId"] or ""
-        update_data["assigneeUserId"] = new_id
-        update_data["assigneeUsername"] = await _ensure_user_lookup(new_id)
-        _log("assignee", task.get("assigneeUsername") or task.get("assigneeUserId"), update_data["assigneeUsername"] or new_id)
+    if "assigneeUserIds" in payload or (
+        "assigneeUserId" in payload and payload.get("assigneeUserId") != task.get("assigneeUserId")
+    ):
+        # Either new multi-field provided, or legacy single-field changed.
+        # We always normalise to (ids, names) and mirror first → legacy fields.
+        ids_in = payload.get("assigneeUserIds")
+        single_in = payload.get("assigneeUserId")
+        # If only legacy single was provided, treat as a one-item list (or empty).
+        if ids_in is None:
+            ids_in = [single_in] if (single_in and single_in.strip()) else []
+        ids, names = await _resolve_assignees(ids_in, None)
+        update_data["assigneeUserIds"] = ids
+        update_data["assigneeUsernames"] = names
+        update_data["assigneeUserId"] = ids[0] if ids else ""
+        update_data["assigneeUsername"] = names[0] if names else ""
+        old_label = ", ".join(task.get("assigneeUsernames") or [task.get("assigneeUsername")] if (task.get("assigneeUsernames") or task.get("assigneeUsername")) else [])
+        new_label = ", ".join(names)
+        _log("assignee", old_label, new_label)
     if "status" in payload and payload["status"] != task.get("status"):
         if payload["status"] not in STATUSES:
             raise HTTPException(400, f"Invalid status. Must be one of {STATUSES}")

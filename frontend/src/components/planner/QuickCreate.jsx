@@ -10,12 +10,13 @@ import { Calendar as CalIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { getApiUrl } from '../../utils/api';
 import { getAuthHeaders, formatDate } from './constants';
+import AssigneesPicker from './AssigneesPicker';
 
 const API = getApiUrl();
 
 export default function QuickCreate({ users, directions, defaultDirection, onCreated }) {
   const [title, setTitle] = useState('');
-  const [assignee, setAssignee] = useState('');
+  const [assigneeIds, setAssigneeIds] = useState([]);
   const [direction, setDirection] = useState(defaultDirection || 'other');
   const [dueDate, setDueDate] = useState('');
   const [busy, setBusy] = useState(false);
@@ -27,12 +28,12 @@ export default function QuickCreate({ users, directions, defaultDirection, onCre
       const res = await axios.post(`${API}/api/planner/tasks`, {
         title: title.trim(),
         businessDirection: direction || 'other',
-        assigneeUserId: assignee || null,
+        assigneeUserIds: assigneeIds,
         dueDate: dueDate || null,
         status: 'planned',
       }, { headers: getAuthHeaders() });
       toast.success('Задача создана');
-      setTitle(''); setAssignee(''); setDueDate(''); setDirection(defaultDirection || 'other');
+      setTitle(''); setAssigneeIds([]); setDueDate(''); setDirection(defaultDirection || 'other');
       onCreated?.(res.data);
     } catch (e) {
       toast.error(e?.response?.data?.detail || 'Ошибка создания');
@@ -57,13 +58,14 @@ export default function QuickCreate({ users, directions, defaultDirection, onCre
           {(directions || []).map((d) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
         </SelectContent>
       </Select>
-      <Select value={assignee || '__none__'} onValueChange={(v) => setAssignee(v === '__none__' ? '' : v)}>
-        <SelectTrigger className="w-[180px] h-9" data-testid="quick-create-assignee"><SelectValue placeholder="Ответственный" /></SelectTrigger>
-        <SelectContent>
-          <SelectItem value="__none__">Общая задача</SelectItem>
-          {(users || []).map((u) => <SelectItem key={u.id} value={u.id}>{u.username}</SelectItem>)}
-        </SelectContent>
-      </Select>
+      <AssigneesPicker
+        value={assigneeIds}
+        users={users || []}
+        onChange={setAssigneeIds}
+        placeholder="Ответственные"
+        testId="quick-create-assignees"
+        buttonClassName="w-[200px]"
+      />
 
       <Popover>
         <PopoverTrigger asChild>

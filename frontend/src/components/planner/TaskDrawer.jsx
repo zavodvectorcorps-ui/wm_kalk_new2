@@ -14,6 +14,7 @@ import { Calendar } from '../ui/calendar';
 import { toast } from 'sonner';
 import { getApiUrl } from '../../utils/api';
 import { STATUSES, PRIORITIES, getAuthHeaders, formatDate, formatDateTime, dirById, isOverdue } from './constants';
+import AssigneesPicker from './AssigneesPicker';
 
 const API = getApiUrl();
 
@@ -192,14 +193,17 @@ export default function TaskDrawer({ task, users, directions, currentUser, onClo
               </SelectContent>
             </Select>
           </PropRow>
-          <PropRow label="Ответственный">
-            <Select value={draft.assigneeUserId || '__none__'} onValueChange={(v) => persist({ assigneeUserId: v === '__none__' ? '' : v })}>
-              <SelectTrigger className="h-8" data-testid="drawer-assignee"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none__">Общая задача</SelectItem>
-                {(users || []).map((u) => <SelectItem key={u.id} value={u.id}>{u.username}</SelectItem>)}
-              </SelectContent>
-            </Select>
+          <PropRow label="Ответственные">
+            <AssigneesPicker
+              value={draft.assigneeUserIds && draft.assigneeUserIds.length
+                ? draft.assigneeUserIds
+                : (draft.assigneeUserId ? [draft.assigneeUserId] : [])}
+              users={users || []}
+              onChange={(ids) => persist({ assigneeUserIds: ids })}
+              placeholder="Общая задача"
+              testId="drawer-assignees"
+              buttonClassName="w-full"
+            />
           </PropRow>
           <PropRow label="Дедлайн">
             <Popover>
