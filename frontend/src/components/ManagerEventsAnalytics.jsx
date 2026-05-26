@@ -537,62 +537,11 @@ const LeadList = ({ leads }) => {
 // ==================== EVENT SETTINGS ====================
 const EventSettings = ({ settings, setSettings, onSave, saving }) => (
   <div className="space-y-6 max-w-3xl" data-testid="event-settings">
-    <Card className="border">
-      <CardHeader><CardTitle className="text-base">Типы полезных событий</CardTitle></CardHeader>
-      <CardContent className="space-y-2">
-        {Object.entries(EVENT_TYPE_LABELS).map(([key, label]) => (
-          <div key={key} className="flex items-center gap-2">
-            <Checkbox checked={(settings.usefulEventTypes || []).includes(key)}
-              onCheckedChange={v => setSettings(prev => ({
-                ...prev,
-                usefulEventTypes: v ? [...(prev.usefulEventTypes || []), key] : (prev.usefulEventTypes || []).filter(t => t !== key)
-              }))} />
-            <Label className="cursor-pointer text-sm">{label} <span className="text-xs text-muted-foreground">({key})</span></Label>
-          </div>
-        ))}
-      </CardContent>
-    </Card>
-
-    <Card className="border">
-      <CardHeader><CardTitle className="text-base">Пороги времени</CardTitle></CardHeader>
-      <CardContent className="space-y-4">
-        <div>
-          <Label>SLA первого действия (часы)</Label>
-          <Input type="number" min="1" value={settings.slaFirstActionHours || 5}
-            onChange={e => setSettings(prev => ({ ...prev, slaFirstActionHours: parseInt(e.target.value) || 5 }))} className="w-32 mt-1" />
-        </div>
-        <div>
-          <Label>Порог зависания (часы)</Label>
-          <Input type="number" min="1" value={settings.stalledThresholdHours || 24}
-            onChange={e => setSettings(prev => ({ ...prev, stalledThresholdHours: parseInt(e.target.value) || 24 }))} className="w-32 mt-1" />
-        </div>
-      </CardContent>
-    </Card>
-
-    <Card className="border">
-      <CardHeader><CardTitle className="text-base">Веса рейтинга (итого 100)</CardTitle></CardHeader>
-      <CardContent className="space-y-3">
-        {[
-          ['weightReactionSpeed', 'Скорость реакции'],
-          ['weightProcessingPercent', 'Процент обработки'],
-          ['weightEventActivity', 'Активность по событиям'],
-          ['weightDealProgress', 'Прогресс по сделкам'],
-          ['weightFollowUp', 'Follow-up в 72ч (≥2 касания)'],
-          ['weightProblemLeads', 'Проблемные лиды (инверсия)'],
-        ].map(([key, label]) => (
-          <div key={key} className="flex items-center gap-3">
-            <Label className="w-48 text-sm">{label}</Label>
-            <Input type="number" min="0" max="100" value={settings[key] || 0}
-              onChange={e => setSettings(prev => ({ ...prev, [key]: parseInt(e.target.value) || 0 }))} className="w-20 h-8" />
-          </div>
-        ))}
-      </CardContent>
-    </Card>
-
-    <Card className="border border-blue-200 bg-blue-50/30">
+    {/* Daily Telegram report — moved to TOP so it's the first thing users see */}
+    <Card className="border-2 border-blue-400 bg-blue-50/40 shadow-sm">
       <CardHeader>
         <CardTitle className="text-base flex items-center gap-2">
-          📱 Ежедневный отчёт в Telegram
+          📱 Ежедневный отчёт в Telegram <span className="text-[10px] uppercase tracking-wider bg-blue-600 text-white px-2 py-0.5 rounded">новое</span>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -663,7 +612,8 @@ const EventSettings = ({ settings, setSettings, onSave, saving }) => (
               const res = await axios.post(`${API_URL}/api/lead-analytics/events/send-daily-report`, null, {
                 params: { period_label: 'тест (сейчас)' },
               });
-              toast.success(`Отправлено: ${res.data.managersInReport} менеджеров`);
+              const aiMark = res.data?.aiAdviceIncluded ? ' (с AI-советом)' : ' (без AI)';
+              toast.success(`Отправлено: ${res.data.managersInReport} менеджеров${aiMark}`);
             } catch (e) {
               const d = e.response?.data?.detail;
               const reason = d?.reason || (typeof d === 'string' ? d : e.message);
@@ -672,8 +622,60 @@ const EventSettings = ({ settings, setSettings, onSave, saving }) => (
           }}
           data-testid="daily-report-test-btn"
         >
-          Отправить тестовый отчёт
+          Отправить тестовый отчёт сейчас
         </Button>
+      </CardContent>
+    </Card>
+
+    <Card className="border">
+      <CardHeader><CardTitle className="text-base">Типы полезных событий</CardTitle></CardHeader>
+      <CardContent className="space-y-2">
+        {Object.entries(EVENT_TYPE_LABELS).map(([key, label]) => (
+          <div key={key} className="flex items-center gap-2">
+            <Checkbox checked={(settings.usefulEventTypes || []).includes(key)}
+              onCheckedChange={v => setSettings(prev => ({
+                ...prev,
+                usefulEventTypes: v ? [...(prev.usefulEventTypes || []), key] : (prev.usefulEventTypes || []).filter(t => t !== key)
+              }))} />
+            <Label className="cursor-pointer text-sm">{label} <span className="text-xs text-muted-foreground">({key})</span></Label>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+
+    <Card className="border">
+      <CardHeader><CardTitle className="text-base">Пороги времени</CardTitle></CardHeader>
+      <CardContent className="space-y-4">
+        <div>
+          <Label>SLA первого действия (часы)</Label>
+          <Input type="number" min="1" value={settings.slaFirstActionHours || 5}
+            onChange={e => setSettings(prev => ({ ...prev, slaFirstActionHours: parseInt(e.target.value) || 5 }))} className="w-32 mt-1" />
+        </div>
+        <div>
+          <Label>Порог зависания (часы)</Label>
+          <Input type="number" min="1" value={settings.stalledThresholdHours || 24}
+            onChange={e => setSettings(prev => ({ ...prev, stalledThresholdHours: parseInt(e.target.value) || 24 }))} className="w-32 mt-1" />
+        </div>
+      </CardContent>
+    </Card>
+
+    <Card className="border">
+      <CardHeader><CardTitle className="text-base">Веса рейтинга (итого 100)</CardTitle></CardHeader>
+      <CardContent className="space-y-3">
+        {[
+          ['weightReactionSpeed', 'Скорость реакции'],
+          ['weightProcessingPercent', 'Процент обработки'],
+          ['weightEventActivity', 'Активность по событиям'],
+          ['weightDealProgress', 'Прогресс по сделкам'],
+          ['weightFollowUp', 'Follow-up в 72ч (≥2 касания)'],
+          ['weightProblemLeads', 'Проблемные лиды (инверсия)'],
+        ].map(([key, label]) => (
+          <div key={key} className="flex items-center gap-3">
+            <Label className="w-48 text-sm">{label}</Label>
+            <Input type="number" min="0" max="100" value={settings[key] || 0}
+              onChange={e => setSettings(prev => ({ ...prev, [key]: parseInt(e.target.value) || 0 }))} className="w-20 h-8" />
+          </div>
+        ))}
       </CardContent>
     </Card>
 
@@ -758,7 +760,7 @@ const ManagerEventsAnalytics = () => {
 
   const tabs = [
     { id: 'managers', label: 'Менеджеры', icon: Users },
-    { id: 'settings', label: 'Настройки', icon: Settings },
+    { id: 'settings', label: 'Настройки + Telegram', icon: Settings },
   ];
 
   return (
