@@ -280,6 +280,36 @@ async def _compute_event_manager_stats(sync_id: str, ts_from: int = None, ts_to:
     if user_map is None:
         user_map = {}
 
+    # Pre-fetch authoritative call counts per manager from call_analytics_calls
+    # — note-based counts in lead_analytics miss Binotel-only calls and calls
+    # that arrive via call analytics sync (separate pipeline).
+    call_query = {}
+    if ts_from:
+        dt_from = datetime.fromtimestamp(ts_from, tz=timezone.utc).isoformat()
+        call_query["datetime"] = {"$gte": dt_from}
+    if ts_to:
+        dt_to = datetime.fromtimestamp(ts_to, tz=timezone.utc).isoformat()
+        call_query.setdefault("datetime", {})["$lte"] = dt_to
+    calls_pipeline = [
+        {"$match": call_query} if call_query else {"$match": {}},
+        {"$group": {
+            "_id": {"manager": "$manager_id", "direction": "$direction"},
+            "count": {"$sum": 1},
+        }},
+    ]
+    calls_by_mgr: dict[str, dict] = {}
+    try:
+        async for row in db.call_analytics_calls.aggregate(calls_pipeline):
+            mid = (row["_id"].get("manager") or "unknown")
+            direction = (row["_id"].get("direction") or "").lower()
+            slot = calls_by_mgr.setdefault(mid, {"out": 0, "in": 0})
+            if direction in ("outbound", "out", "outgoing"):
+                slot["out"] += row["count"]
+            elif direction in ("inbound", "in", "incoming"):
+                slot["in"] += row["count"]
+    except Exception as e:
+        logger.warning(f"Failed to aggregate call_analytics_calls: {e}")
+
     # Compute stats per manager
     all_stats = []
     max_events = 1
@@ -319,8 +349,14 @@ async def _compute_event_manager_stats(sync_id: str, ts_from: int = None, ts_to:
         # === Quality / "real work" guardrails (Feb 2026) ===
         # Manual vs automatic touch breakdown for THIS manager's leads.
         manual_actions = sum(l.get("manualActionCount", 0) or 0 for l in active_lds)
-        outgoing_calls = sum(l.get("outgoingCallCount", 0) or 0 for l in active_lds)
-        incoming_calls = sum(l.get("incomingCallCount", 0) or 0 for l in active_lds)
+        # Prefer authoritative counts from call_analytics_calls when available,
+        # fall back to amoCRM note-based counts when the calls collection is
+        # empty (e.g. Binotel sync not configured).
+        note_outgoing = sum(l.get("outgoingCallCount", 0) or 0 for l in active_lds)
+        note_incoming = sum(l.get("incomingCallCount", 0) or 0 for l in active_lds)
+        ca_calls = calls_by_mgr.get(uid, {"out": 0, "in": 0})
+        outgoing_calls = ca_calls["out"] or note_outgoing
+        incoming_calls = ca_calls["in"] or note_incoming
         outgoing_emails = sum(l.get("outgoingEmailCount", 0) or 0 for l in active_lds)
         outgoing_messages = sum(l.get("outgoingMessageCount", 0) or 0 for l in active_lds)
         # Follow-up: of leads that ever got a manual touch, how many got ≥2 inside 72 h.
