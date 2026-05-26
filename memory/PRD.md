@@ -1043,6 +1043,41 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
 - ✅ Screenshot: dialog renders fully with all four KPI cards and three
   tabs populated.
 
+### Manager analytics — guardrails against "fire-and-forget" (DONE - Feb 2026)
+**Goal**: detect managers who hit a single auto-email and then ghost the lead.
+- **lead_analytics.py `_compute_lead_metrics`**: per-lead now exposes
+  `manualActionCount`, `outgoingCallCount`, `incomingCallCount`,
+  `outgoingEmailCount`, `outgoingMessageCount`, `humanNoteCount`,
+  `autoStageChanges`, `followUpWithin72h`, `autoOnlyLead`,
+  `singleTouchLead`. The bot filter now also excludes `created_by == "0"`
+  in addition to the configured `botUserIds`.
+- **manager_events_analytics.py** per-manager aggregations:
+  `manualActions`, `avgActionsPerLead`, `outgoingCalls/Emails/Messages`,
+  `callsPerLead`, `followUpRate`, `singleTouchLeads/Percent`,
+  `autoOnlyLeads/Percent`, `autoEvents`, `manualEventShare`.
+- **Score formula rebalanced**: progress 25% + follow-up 20% (NEW) + reaction
+  20% + processing 20% + activity 10% + problems 5%. Soft single-touch
+  penalty (`min(20, singleTouchPct * 0.3)`) subtracted at the end.
+- **Settings model**: added `weightFollowUp: int = 20`; the GET endpoint now
+  back-fills missing fields with current defaults so older DB docs still
+  surface the new weight in the UI.
+- **Cross-link to call analytics**: `/manager-detail/{id}` now also returns
+  `recentCalls` (last 30) and `callKpi` (total, withAi, avgScore, critical)
+  pulled from `call_analytics_calls` for the same `manager_id`.
+- **Frontend `ManagerEventsAnalytics.jsx`** rewrite:
+  - Table columns updated to Score, %обр., Follow-up, Single-touch, Auto-only,
+    Действий/лид, Звон./лид, Ср.реакция, Проблемных. Suspicious managers
+    (score≥70 but follow-up<40% OR single-touch>40%) flagged with
+    `⚠ проверь` badge and orange row tint.
+  - Manager detail header strip adds 5 QualityKpi cards
+    (follow-up 72h, single-touch, auto-only, calls/lead, actions/lead) with
+    pos/warn/neg colours.
+  - New tabs in detail view: "⚠ Single-touch", "🤖 Auto-only", "📞 Звонки"
+    (cross-links to `/admin/call-analytics?manager_id=…`).
+  - ScoreBar block adds Follow-up bar; settings UI exposes the new weight.
+- **Pytest stub**: `_compute_lead_metrics` exercised by hand for 3 scenarios
+  (fire-and-forget, auto-only, good manager) — all flags computed correctly.
+
 ### EUR currency support (DONE - Feb 2026)
 - Per-dealer fields `currency` ("PLN" | "EUR") and `eurRate` (float, PLN per 1 €)
   added to `Dealer` model + create/update endpoints.

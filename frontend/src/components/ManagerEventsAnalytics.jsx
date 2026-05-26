@@ -84,52 +84,100 @@ const ManagerTable = ({ managers, loading, onSelectManager }) => {
             <tr className="border-b bg-muted/50">
               <th className="text-left py-3 px-2">#</th>
               <th className="text-left py-3 px-2">Менеджер</th>
-              <th className="text-center py-3 px-2">Балл</th>
+              <th className="text-center py-3 px-2" title="Скорректированный балл (учитывает follow-up + штраф за single-touch)">Балл</th>
               <th className="text-center py-3 px-2">Лидов</th>
-              <th className="text-center py-3 px-2">Обработано</th>
               <th className="text-center py-3 px-2">% обр.</th>
+              <th className="text-center py-3 px-2" title="Доля лидов, где было ≥2 ручных касаний в первые 72 ч">Follow-up</th>
+              <th className="text-center py-3 px-2" title="Доля лидов, где менеджер сделал ровно ОДНО действие — «отправил и забыл»">Single-touch</th>
+              <th className="text-center py-3 px-2" title="Доля лидов, где менеджер вообще ничего не делал (бот сам двигал)">Auto-only</th>
+              <th className="text-center py-3 px-2" title="Среднее количество ручных действий на лид">Дейст./лид</th>
+              <th className="text-center py-3 px-2" title="Исходящих звонков на лид">Звон./лид</th>
               <th className="text-center py-3 px-2">Ср. реакция</th>
-              <th className="text-center py-3 px-2">Событий</th>
-              <th className="text-center py-3 px-2">Смен этапов</th>
-              <th className="text-center py-3 px-2">Примечаний</th>
               <th className="text-center py-3 px-2">Проблемных</th>
               <th className="text-center py-3 px-2"></th>
             </tr>
           </thead>
           <tbody>
-            {sorted.map((m) => (
-              <tr key={m.userId} className="border-b hover:bg-muted/30 cursor-pointer transition-colors" onClick={() => onSelectManager(m)}>
+            {sorted.map((m) => {
+              // Suspicious badge: high score but weak fundamentals.
+              const followUp = m.followUpRate || 0;
+              const singleTouch = m.singleTouchPercent || 0;
+              const isSuspicious = m.performanceScore >= 70 && (followUp < 40 || singleTouch > 40);
+              return (
+              <tr
+                key={m.userId}
+                className={`border-b hover:bg-muted/30 cursor-pointer transition-colors ${isSuspicious ? 'bg-orange-50/40' : ''}`}
+                onClick={() => onSelectManager(m)}
+                data-testid={`mgr-row-${m.userId}`}
+              >
                 <td className="py-3 px-2">
                   <Badge variant={m.rank <= 3 ? 'default' : 'secondary'}
                     className={m.rank === 1 ? 'bg-amber-500' : m.rank === 2 ? 'bg-gray-400' : m.rank === 3 ? 'bg-amber-700' : ''}>
                     {m.rank}
                   </Badge>
                 </td>
-                <td className="py-3 px-2 font-medium">{m.userName}</td>
+                <td className="py-3 px-2 font-medium">
+                  <div className="flex items-center gap-1.5">
+                    {m.userName}
+                    {isSuspicious && (
+                      <span
+                        className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-orange-200 text-orange-900 font-bold"
+                        title="Высокий балл, но низкий follow-up или много single-touch — стоит присмотреться"
+                      >
+                        ⚠ проверь
+                      </span>
+                    )}
+                  </div>
+                </td>
                 <td className="text-center py-3 px-2">
                   <span className={`text-base font-bold ${m.performanceScore >= 70 ? 'text-emerald-600' : m.performanceScore >= 40 ? 'text-amber-600' : 'text-red-600'}`}>
                     {m.performanceScore}
                   </span>
+                  {m.singleTouchPenalty > 0 && (
+                    <div className="text-[9px] text-red-500" title="Штраф за single-touch">−{m.singleTouchPenalty}</div>
+                  )}
                 </td>
                 <td className="text-center py-3 px-2">{m.totalLeads}</td>
-                <td className="text-center py-3 px-2 text-emerald-700 font-medium">{m.processedLeads}</td>
                 <td className="text-center py-3 px-2">
                   <div className="flex items-center justify-center gap-1">
-                    <div className="w-12 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                    <div className="w-10 h-1.5 bg-gray-200 rounded-full overflow-hidden">
                       <div className={`h-full rounded-full ${m.processedPercent >= 80 ? 'bg-emerald-500' : m.processedPercent >= 50 ? 'bg-amber-500' : 'bg-red-500'}`}
                         style={{ width: `${m.processedPercent}%` }} />
                     </div>
                     <span className="text-xs">{m.processedPercent}%</span>
                   </div>
                 </td>
+                <td className="text-center py-3 px-2">
+                  <span className={`font-medium ${followUp >= 70 ? 'text-emerald-600' : followUp >= 40 ? 'text-amber-600' : 'text-red-600'}`}>
+                    {followUp}%
+                  </span>
+                </td>
+                <td className="text-center py-3 px-2">
+                  <span className={`font-medium ${singleTouch >= 40 ? 'text-red-600' : singleTouch >= 20 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                    {singleTouch}%
+                  </span>
+                </td>
+                <td className="text-center py-3 px-2">
+                  <span className={`text-xs ${(m.autoOnlyPercent || 0) > 20 ? 'text-red-600 font-medium' : 'text-muted-foreground'}`}>
+                    {m.autoOnlyPercent || 0}%
+                  </span>
+                </td>
+                <td className="text-center py-3 px-2">
+                  <span className={`text-xs font-medium ${(m.avgActionsPerLead || 0) < 1.5 ? 'text-red-600' : (m.avgActionsPerLead || 0) < 3 ? 'text-amber-600' : 'text-emerald-700'}`}>
+                    {(m.avgActionsPerLead || 0).toFixed(1)}
+                  </span>
+                </td>
+                <td className="text-center py-3 px-2">
+                  <span className={`text-xs ${(m.callsPerLead || 0) < 0.3 ? 'text-red-600' : 'text-foreground'}`}>
+                    {(m.callsPerLead || 0).toFixed(1)}
+                  </span>
+                </td>
                 <td className="text-center py-3 px-2">{formatHours(m.avgReactionHours)}</td>
-                <td className="text-center py-3 px-2 font-medium">{m.totalEvents}</td>
-                <td className="text-center py-3 px-2">{m.stageChanges}</td>
-                <td className="text-center py-3 px-2">{m.noteEvents}</td>
                 <td className="text-center py-3 px-2 text-red-600">{m.stalledLeads + m.notProcessedLeads}</td>
                 <td className="text-center py-3 px-2"><ArrowRight className="h-4 w-4 text-muted-foreground" /></td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -180,6 +228,9 @@ const ManagerDetail = ({ manager, onBack, dateFrom, dateTo }) => {
     { id: 'no_action', label: 'Без действий', count: detail?.noFirstAction?.length },
     { id: 'no_progress', label: 'Без прогресса', count: detail?.noProgress?.length },
     { id: 'idle', label: 'Зависшие', count: detail?.longIdle?.length },
+    { id: 'single_touch', label: '⚠ Single-touch', count: detail?.singleTouchLeads?.length },
+    { id: 'auto_only', label: '🤖 Auto-only', count: detail?.autoOnlyLeads?.length },
+    { id: 'calls', label: '📞 Звонки', count: detail?.callKpi?.total },
   ];
 
   return (
@@ -207,7 +258,13 @@ const ManagerDetail = ({ manager, onBack, dateFrom, dateTo }) => {
               <ScoreBar score={stats.processingScore || 0} label="Обработка" />
               <ScoreBar score={stats.activityScore || 0} label="Активность" />
               <ScoreBar score={stats.progressScore || 0} label="Прогресс" />
+              <ScoreBar score={stats.followUpScore || 0} label="Follow-up" />
               <ScoreBar score={stats.problemScore || 0} label="Проблемы" />
+              {stats.singleTouchPenalty > 0 && (
+                <div className="text-[11px] text-red-600 pt-1 border-t">
+                  Штраф single-touch: −{stats.singleTouchPenalty} баллов
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -216,7 +273,7 @@ const ManagerDetail = ({ manager, onBack, dateFrom, dateTo }) => {
           {[
             { label: 'Лидов', value: stats.totalLeads, icon: Target },
             { label: 'Обработано', value: stats.processedLeads, icon: CheckCircle },
-            { label: 'Событий', value: stats.totalEvents, icon: Activity },
+            { label: 'Событий', value: stats.totalEvents, icon: Activity, sub: stats.autoEvents > 0 ? `авто: ${stats.autoEvents}` : null },
             { label: 'Смен этапов', value: stats.stageChanges, icon: TrendingUp },
             { label: 'Примечаний', value: stats.noteEvents, icon: MessageSquare },
             { label: 'Задач', value: stats.taskEvents, icon: ListChecks },
@@ -225,10 +282,50 @@ const ManagerDetail = ({ manager, onBack, dateFrom, dateTo }) => {
               <CardContent className="p-3">
                 <div className="flex items-center gap-1.5 mb-1"><kpi.icon className="h-3.5 w-3.5 text-muted-foreground" /><span className="text-xs text-muted-foreground">{kpi.label}</span></div>
                 <div className="text-xl font-bold">{kpi.value || 0}</div>
+                {kpi.sub && <div className="text-[10px] text-amber-600 mt-0.5">{kpi.sub}</div>}
               </CardContent>
             </Card>
           ))}
         </div>
+      </div>
+
+      {/* Quality KPI strip — guardrails against "send and forget" */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+        <QualityKpi
+          label="Follow-up 72ч"
+          value={`${stats.followUpRate || 0}%`}
+          tone={(stats.followUpRate || 0) >= 70 ? 'pos' : (stats.followUpRate || 0) >= 40 ? 'warn' : 'neg'}
+          hint="≥2 ручных касания в 72ч после первого"
+          testId="qkpi-followup"
+        />
+        <QualityKpi
+          label="Single-touch"
+          value={`${stats.singleTouchPercent || 0}%`}
+          tone={(stats.singleTouchPercent || 0) <= 20 ? 'pos' : (stats.singleTouchPercent || 0) <= 40 ? 'warn' : 'neg'}
+          hint="Лиды с ровно ОДНИМ ручным действием"
+          testId="qkpi-single"
+        />
+        <QualityKpi
+          label="Auto-only"
+          value={`${stats.autoOnlyPercent || 0}%`}
+          tone={(stats.autoOnlyPercent || 0) <= 10 ? 'pos' : (stats.autoOnlyPercent || 0) <= 25 ? 'warn' : 'neg'}
+          hint="Лиды без единого ручного касания (двигал бот)"
+          testId="qkpi-autoonly"
+        />
+        <QualityKpi
+          label="Звонки / лид"
+          value={(stats.callsPerLead || 0).toFixed(2)}
+          tone={(stats.callsPerLead || 0) >= 1 ? 'pos' : (stats.callsPerLead || 0) >= 0.3 ? 'warn' : 'neg'}
+          hint={`Всего исх. звонков: ${stats.outgoingCalls || 0}`}
+          testId="qkpi-calls"
+        />
+        <QualityKpi
+          label="Действий / лид"
+          value={(stats.avgActionsPerLead || 0).toFixed(2)}
+          tone={(stats.avgActionsPerLead || 0) >= 3 ? 'pos' : (stats.avgActionsPerLead || 0) >= 1.5 ? 'warn' : 'neg'}
+          hint={`Manual: ${stats.manualActions || 0} · email: ${stats.outgoingEmails || 0}`}
+          testId="qkpi-actions"
+        />
       </div>
 
       {/* AI analysis */}
@@ -284,14 +381,123 @@ const ManagerDetail = ({ manager, onBack, dateFrom, dateTo }) => {
       )}
 
       {/* Lead lists */}
-      {['problems', 'no_action', 'no_progress', 'idle'].includes(activeSection) && (
+      {['problems', 'no_action', 'no_progress', 'idle', 'single_touch', 'auto_only'].includes(activeSection) && (
         <LeadList leads={
           activeSection === 'problems' ? detail?.problemLeads :
           activeSection === 'no_action' ? detail?.noFirstAction :
           activeSection === 'no_progress' ? detail?.noProgress :
+          activeSection === 'single_touch' ? detail?.singleTouchLeads :
+          activeSection === 'auto_only' ? detail?.autoOnlyLeads :
           detail?.longIdle
         } />
       )}
+
+      {/* Calls section — linked from call analytics */}
+      {activeSection === 'calls' && (
+        <CallsSection callKpi={detail?.callKpi} calls={detail?.recentCalls || []} userId={manager.userId} />
+      )}
+    </div>
+  );
+};
+
+// QualityKpi — small card used in ManagerDetail header strip
+const QualityKpi = ({ label, value, tone = 'neutral', hint, testId }) => {
+  const toneCls = tone === 'pos'
+    ? 'border-emerald-300 bg-emerald-50/50 text-emerald-800'
+    : tone === 'warn'
+      ? 'border-amber-300 bg-amber-50/50 text-amber-800'
+      : tone === 'neg'
+        ? 'border-red-300 bg-red-50/50 text-red-800'
+        : 'border-slate-200 bg-card';
+  return (
+    <Card className={`border-2 ${toneCls}`} data-testid={testId}>
+      <CardContent className="p-3">
+        <div className="text-[10px] uppercase tracking-wider font-semibold opacity-70">{label}</div>
+        <div className="text-xl font-bold font-mono mt-0.5">{value}</div>
+        {hint && <div className="text-[10px] opacity-70 mt-1">{hint}</div>}
+      </CardContent>
+    </Card>
+  );
+};
+
+const CallsSection = ({ callKpi, calls, userId }) => {
+  const k = callKpi || {};
+  return (
+    <div className="space-y-3" data-testid="manager-calls-section">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+        <Card className="border"><CardContent className="p-3">
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Звонков всего</div>
+          <div className="text-2xl font-bold">{k.total || 0}</div>
+        </CardContent></Card>
+        <Card className="border"><CardContent className="p-3">
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">С AI-анализом</div>
+          <div className="text-2xl font-bold">{k.withAi || 0}</div>
+        </CardContent></Card>
+        <Card className="border"><CardContent className="p-3">
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Средняя оценка</div>
+          <div className={`text-2xl font-bold ${(k.avgScore ?? 0) >= 8 ? 'text-emerald-600' : (k.avgScore ?? 0) >= 5 ? 'text-amber-600' : 'text-red-600'}`}>
+            {k.avgScore != null ? `${k.avgScore} / 10` : '—'}
+          </div>
+        </CardContent></Card>
+        <Card className="border"><CardContent className="p-3">
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Критичных</div>
+          <div className={`text-2xl font-bold ${(k.criticalCount || 0) > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+            {k.criticalCount || 0}
+          </div>
+        </CardContent></Card>
+      </div>
+      {calls.length === 0 ? (
+        <div className="text-center py-8 text-muted-foreground text-sm">
+          У этого менеджера ещё нет звонков (или они без AI-анализа)
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead><tr className="border-b bg-muted/50">
+              <th className="text-left py-2 px-2">Дата</th>
+              <th className="text-left py-2 px-2">Клиент</th>
+              <th className="text-left py-2 px-2">Тип</th>
+              <th className="text-center py-2 px-2">Длительность</th>
+              <th className="text-center py-2 px-2">Оценка AI</th>
+              <th className="text-left py-2 px-2">Краткий итог</th>
+            </tr></thead>
+            <tbody>
+              {calls.map((c, i) => (
+                <tr key={c.id || i} className="border-b hover:bg-muted/30">
+                  <td className="py-2 px-2 whitespace-nowrap">
+                    {c.datetime ? new Date(c.datetime).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'}
+                  </td>
+                  <td className="py-2 px-2 max-w-[180px] truncate">{c.client_name || c.client_phone || '—'}</td>
+                  <td className="py-2 px-2"><Badge variant="outline" className="text-[10px]">{c.direction === 'in' ? 'входящ.' : c.direction === 'out' ? 'исход.' : (c.direction || '—')}</Badge></td>
+                  <td className="text-center py-2 px-2">
+                    {c.duration_seconds ? `${Math.floor(c.duration_seconds / 60)}:${String(c.duration_seconds % 60).padStart(2, '0')}` : '—'}
+                  </td>
+                  <td className="text-center py-2 px-2">
+                    {typeof c.score === 'number' ? (
+                      <span className={`font-bold ${c.score >= 8 ? 'text-emerald-600' : c.score >= 5 ? 'text-amber-600' : 'text-red-600'}`}>
+                        {c.score}
+                        {c.has_strong_negative && <span className="ml-1 text-red-500" title="Сильный негатив">⚠</span>}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">{c.status === 'analyzed' ? '—' : c.status || '—'}</span>
+                    )}
+                  </td>
+                  <td className="py-2 px-2 max-w-[280px] truncate text-muted-foreground" title={c.summary}>{c.summary || '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <div className="text-right">
+        <a
+          href={`/admin/call-analytics?manager_id=${encodeURIComponent(userId || '')}`}
+          className="text-xs text-blue-600 hover:underline"
+          data-testid="open-call-analytics-link"
+        >
+          Открыть полную аналитику звонков по этому менеджеру →
+        </a>
+      </div>
     </div>
   );
 };
@@ -371,6 +577,7 @@ const EventSettings = ({ settings, setSettings, onSave, saving }) => (
           ['weightProcessingPercent', 'Процент обработки'],
           ['weightEventActivity', 'Активность по событиям'],
           ['weightDealProgress', 'Прогресс по сделкам'],
+          ['weightFollowUp', 'Follow-up в 72ч (≥2 касания)'],
           ['weightProblemLeads', 'Проблемные лиды (инверсия)'],
         ].map(([key, label]) => (
           <div key={key} className="flex items-center gap-3">

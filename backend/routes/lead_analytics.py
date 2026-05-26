@@ -459,6 +459,14 @@ def _compute_lead_metrics(lead: dict, events: list, notes: list, tasks: list,
     # Collect all human actions (excluding bot)
     actions = []
 
+    # Granular counters for "real work" detection
+    outgoing_call_count = 0
+    incoming_call_count = 0
+    outgoing_email_count = 0
+    outgoing_message_count = 0  # SMS / WhatsApp / chat
+    human_note_count = 0
+    auto_stage_changes = 0  # stage moved by bot only
+
     # Events (stage changes, etc.)
     has_stage_changes = False
     stage_change_count = 0
@@ -466,11 +474,13 @@ def _compute_lead_metrics(lead: dict, events: list, notes: list, tasks: list,
         ev_created = ev.get("created_at", 0)
         ev_user = str(ev.get("created_by", ""))
         ev_type = ev.get("type", "")
-        is_bot = ev_user in bot_ids
+        is_bot = ev_user in bot_ids or ev_user == "0"
 
         if ev_type == "lead_status_changed":
             has_stage_changes = True
             stage_change_count += 1
+            if is_bot:
+                auto_stage_changes += 1
 
         if not is_bot and count_stage and "status_changed" in ev_type:
             actions.append({"ts": ev_created, "type": "stage_change", "user": ev_user})
@@ -483,7 +493,7 @@ def _compute_lead_metrics(lead: dict, events: list, notes: list, tasks: list,
         n_created = note.get("created_at", 0)
         n_user = str(note.get("responsible_user_id", note.get("created_by", "")))
         n_type = note.get("note_type", "")
-        is_bot = n_user in bot_ids
+        is_bot = n_user in bot_ids or n_user == "0"
 
         note_count += 1
 
@@ -492,8 +502,21 @@ def _compute_lead_metrics(lead: dict, events: list, notes: list, tasks: list,
                        "amomail_message", "wechat", "whatsapp"):
             has_communication = True
 
+        # Granular per-channel counters (manual only).
+        if not is_bot:
+            if n_type == "call_out":
+                outgoing_call_count += 1
+            elif n_type == "call_in":
+                incoming_call_count += 1
+            elif n_type == "amomail_message":
+                outgoing_email_count += 1
+            elif n_type in ("sms_out", "wechat", "whatsapp", "message_cashier"):
+                outgoing_message_count += 1
+            else:
+                human_note_count += 1
+
         if not is_bot and count_note:
-            actions.append({"ts": n_created, "type": "note", "user": n_user})
+            actions.append({"ts": n_created, "type": "note", "user": n_user, "subtype": n_type})
 
     # Tasks
     has_tasks = len(tasks) > 0
@@ -501,7 +524,7 @@ def _compute_lead_metrics(lead: dict, events: list, notes: list, tasks: list,
     for task in tasks:
         t_created = task.get("created_at", 0)
         t_user = str(task.get("responsible_user_id", ""))
-        is_bot = t_user in bot_ids
+        is_bot = t_user in bot_ids or t_user == "0"
         task_count += 1
 
         if not is_bot and count_task:
@@ -555,6 +578,21 @@ def _compute_lead_metrics(lead: dict, events: list, notes: list, tasks: list,
     is_stalled = idle_hours is not None and idle_hours > stalled_hours and not is_in_success_stage and not is_closed_lost
     has_progress = stage_change_count > 1
 
+    # Follow-up detection — second meaningful manual touch within 72 h of
+    # the FIRST manual touch. This is the "не отправил и забыл" guardrail.
+    follow_up_within_72h = False
+    if first_action_ts is not None:
+        window_end_ts = first_action_ts + 72 * 3600
+        actions_in_window = sum(1 for a in actions if a["ts"] <= window_end_ts)
+        if actions_in_window >= 2:
+            follow_up_within_72h = True
+
+    manual_action_count = len(actions)
+    # "Auto-only" = lead has stage changes but no human touch — bot played alone.
+    auto_only_lead = (manual_action_count == 0) and (stage_change_count > 0)
+    # "Single-touch" — manager did exactly one thing and walked away.
+    single_touch_lead = (manual_action_count == 1) and not is_closed_lost
+
     return {
         "amocrm_lead_id": lead_id,
         "leadName": lead.get("name", ""),
@@ -575,12 +613,23 @@ def _compute_lead_metrics(lead: dict, events: list, notes: list, tasks: list,
         "hasProgress": has_progress,
         "hasStageChanges": has_stage_changes,
         "stageChangeCount": stage_change_count,
+        "autoStageChanges": auto_stage_changes,
         "hasNotes": has_notes,
         "noteCount": note_count,
         "hasTasks": has_tasks,
         "taskCount": task_count,
         "hasCommunication": has_communication,
-        "totalActions": len(actions),
+        "totalActions": manual_action_count,  # back-compat alias
+        # === NEW guardrail metrics ===
+        "manualActionCount": manual_action_count,
+        "outgoingCallCount": outgoing_call_count,
+        "incomingCallCount": incoming_call_count,
+        "outgoingEmailCount": outgoing_email_count,
+        "outgoingMessageCount": outgoing_message_count,
+        "humanNoteCount": human_note_count,
+        "followUpWithin72h": follow_up_within_72h,
+        "autoOnlyLead": auto_only_lead,
+        "singleTouchLead": single_touch_lead,
         "amocrm_link": f"https://{get_amocrm_settings().get('amocrm_domain', '')}/leads/detail/{lead_id}",
     }
 

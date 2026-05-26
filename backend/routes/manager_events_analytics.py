@@ -26,20 +26,29 @@ class EventAnalyticsSettings(BaseModel):
     successStageIds: List[str] = []
     slaFirstActionHours: int = 5
     stalledThresholdHours: int = 24
-    # Scoring weights (0-100)
-    weightReactionSpeed: int = 25
-    weightProcessingPercent: int = 25
-    weightEventActivity: int = 20
-    weightDealProgress: int = 20
-    weightProblemLeads: int = 10
+    # Scoring weights (must roughly sum to 100; UI shows percentage of total).
+    # Rebalanced Feb 2026 to punish "fire-and-forget" managers — progress &
+    # follow-up together carry 45%, raw activity only 10.
+    weightReactionSpeed: int = 20
+    weightProcessingPercent: int = 20
+    weightEventActivity: int = 10
+    weightDealProgress: int = 25
+    weightFollowUp: int = 20
+    weightProblemLeads: int = 5
 
 
 @router.get("/settings")
 async def get_event_analytics_settings():
     settings = await db.event_analytics_settings.find_one({"type": "event_analytics"}, {"_id": 0})
-    if not settings:
-        settings = EventAnalyticsSettings().dict()
-    return settings
+    # Always start from current model defaults so newly-added fields (e.g. the
+    # follow-up weight) appear even if the DB doc was created before the schema
+    # was extended.
+    defaults = EventAnalyticsSettings().dict()
+    if settings:
+        for k, v in defaults.items():
+            settings.setdefault(k, v)
+        return settings
+    return defaults
 
 
 @router.put("/settings")
@@ -218,11 +227,12 @@ async def _compute_event_manager_stats(sync_id: str, ts_from: int = None, ts_to:
     success_stages = set(str(x) for x in settings.get("successStageIds", []))
     progress_stages = set(str(x) for x in settings.get("progressStageIds", []))
     weights = {
-        "reaction": settings.get("weightReactionSpeed", 25),
-        "processing": settings.get("weightProcessingPercent", 25),
-        "activity": settings.get("weightEventActivity", 20),
-        "progress": settings.get("weightDealProgress", 20),
-        "problems": settings.get("weightProblemLeads", 10),
+        "reaction": settings.get("weightReactionSpeed", 20),
+        "processing": settings.get("weightProcessingPercent", 20),
+        "activity": settings.get("weightEventActivity", 10),
+        "progress": settings.get("weightDealProgress", 25),
+        "followUp": settings.get("weightFollowUp", 20),
+        "problems": settings.get("weightProblemLeads", 5),
     }
 
     # Get events for this sync period
@@ -301,6 +311,28 @@ async def _compute_event_manager_stats(sync_id: str, ts_from: int = None, ts_to:
         avg_reaction = round(sum(reaction_times) / len(reaction_times), 2) if reaction_times else None
         processed_pct = round(processed / total_leads * 100, 1) if total_leads > 0 else 0
 
+        # === Quality / "real work" guardrails (Feb 2026) ===
+        # Manual vs automatic touch breakdown for THIS manager's leads.
+        manual_actions = sum(l.get("manualActionCount", 0) or 0 for l in active_lds)
+        outgoing_calls = sum(l.get("outgoingCallCount", 0) or 0 for l in active_lds)
+        incoming_calls = sum(l.get("incomingCallCount", 0) or 0 for l in active_lds)
+        outgoing_emails = sum(l.get("outgoingEmailCount", 0) or 0 for l in active_lds)
+        outgoing_messages = sum(l.get("outgoingMessageCount", 0) or 0 for l in active_lds)
+        # Follow-up: of leads that ever got a manual touch, how many got ≥2 inside 72 h.
+        leads_with_touch = [l for l in active_lds if (l.get("manualActionCount", 0) or 0) > 0]
+        followups = sum(1 for l in leads_with_touch if l.get("followUpWithin72h"))
+        follow_up_rate = round(followups / len(leads_with_touch) * 100, 1) if leads_with_touch else 0
+        # Single-touch and auto-only leads.
+        single_touch = sum(1 for l in active_lds if l.get("singleTouchLead"))
+        auto_only = sum(1 for l in active_lds if l.get("autoOnlyLead"))
+        single_touch_pct = round(single_touch / total_leads * 100, 1) if total_leads > 0 else 0
+        auto_only_pct = round(auto_only / total_leads * 100, 1) if total_leads > 0 else 0
+        avg_actions_per_lead = round(manual_actions / total_leads, 2) if total_leads > 0 else 0
+        calls_per_lead = round(outgoing_calls / total_leads, 2) if total_leads > 0 else 0
+        # Auto-touch ratio for the events feed.
+        auto_events = sum(1 for e in evts if str(e.get("created_by", "")) in ("0",))  # bot events
+        manual_event_share = round((total_events - auto_events) / total_events * 100, 1) if total_events > 0 else 0
+
         # New lead actions
         new_lead_actions = sum(1 for e in evts if e.get("type") in ("lead_added", "lead_status_changed") and e.get("entity_type") == "lead")
 
@@ -317,6 +349,8 @@ async def _compute_event_manager_stats(sync_id: str, ts_from: int = None, ts_to:
             # Event metrics
             "totalEvents": total_events,
             "usefulEvents": useful_events,
+            "autoEvents": auto_events,
+            "manualEventShare": manual_event_share,
             "leadEvents": lead_events,
             "contactEvents": contact_events,
             "stageChanges": stage_changes,
@@ -337,6 +371,19 @@ async def _compute_event_manager_stats(sync_id: str, ts_from: int = None, ts_to:
             "firstActionLeads": first_action_leads,
             "avgReactionHours": avg_reaction,
             "processedPercent": processed_pct,
+            # Quality guardrails — Feb 2026
+            "manualActions": manual_actions,
+            "avgActionsPerLead": avg_actions_per_lead,
+            "outgoingCalls": outgoing_calls,
+            "incomingCalls": incoming_calls,
+            "outgoingEmails": outgoing_emails,
+            "outgoingMessages": outgoing_messages,
+            "callsPerLead": calls_per_lead,
+            "followUpRate": follow_up_rate,
+            "singleTouchLeads": single_touch,
+            "singleTouchPercent": single_touch_pct,
+            "autoOnlyLeads": auto_only,
+            "autoOnlyPercent": auto_only_pct,
         }
         all_stats.append(stat)
 
@@ -357,6 +404,13 @@ async def _compute_event_manager_stats(sync_id: str, ts_from: int = None, ts_to:
         activity_score = min(100, round(stat["totalEvents"] / max(max_events, 1) * 100))
         progress_score = min(100, round(stat["withProgress"] / max(max_progress, 1) * 100))
         problem_score = 100 - min(100, round((stat["stalledLeads"] + stat["notProcessedLeads"]) / max(stat["totalLeads"], 1) * 100))
+        # New: follow-up score directly mirrors the % of leads with ≥2 manual
+        # touches in 72 h. 0 if no leads with any touch (avoid /0).
+        follow_up_score = stat.get("followUpRate", 0)
+        # Soft penalty for fire-and-forget (single-touch) leads. We translate
+        # the % into a -20..0 deduction applied at the end.
+        single_touch_pct = stat.get("singleTouchPercent", 0) or 0
+        single_touch_penalty = min(20, round(single_touch_pct * 0.3))  # 70% single-touch → -20
 
         total_weight = sum(weights.values()) or 100
         score = round(
@@ -364,14 +418,18 @@ async def _compute_event_manager_stats(sync_id: str, ts_from: int = None, ts_to:
              processing_score * weights["processing"] +
              activity_score * weights["activity"] +
              progress_score * weights["progress"] +
+             follow_up_score * weights["followUp"] +
              problem_score * weights["problems"]) / total_weight
         )
+        score = max(0, score - single_touch_penalty)
 
         stat["reactionScore"] = reaction_score
         stat["processingScore"] = processing_score
         stat["activityScore"] = activity_score
         stat["progressScore"] = progress_score
+        stat["followUpScore"] = follow_up_score
         stat["problemScore"] = problem_score
+        stat["singleTouchPenalty"] = single_touch_penalty
         stat["performanceScore"] = score
 
     # Rank by score
@@ -438,7 +496,10 @@ async def get_manager_detail(user_id: str, date_from: str = None, date_to: str =
     no_first_action = [l for l in all_leads if l.get("processingStatus") == "not_processed"]
     no_progress = [l for l in all_leads if not l.get("hasProgress") and l.get("totalActions", 0) > 0]
     long_idle = [l for l in all_leads if l.get("isStalled")]
-
+    # "Fire-and-forget": exactly one manual touch, then silence.
+    single_touch_leads = [l for l in all_leads if l.get("singleTouchLead")]
+    # Auto-only: bot moved the lead, manager never touched.
+    auto_only_leads = [l for l in all_leads if l.get("autoOnlyLead")]
     # Latest stats
     last_sync = await db.event_analytics_sync.find_one(
         {"status": "completed"}, {"_id": 0}, sort=[("completedAt", -1)]
@@ -449,6 +510,41 @@ async def get_manager_detail(user_id: str, date_from: str = None, date_to: str =
             {"userId": user_id, "sync_id": last_sync["sync_id"]}, {"_id": 0}
         )
 
+    # Cross-link to call analytics: pull last 30 calls scored by this manager.
+    recent_calls = []
+    try:
+        recent_calls = await db.call_analytics_calls.find(
+            {"manager_id": user_id, "audio_url": {"$ne": ""}},
+            {
+                "_id": 0,
+                "id": 1,
+                "datetime": 1,
+                "duration_seconds": 1,
+                "client_phone": 1,
+                "client_name": 1,
+                "status": 1,
+                "score": 1,
+                "has_strong_negative": 1,
+                "direction": 1,
+                "summary": 1,
+            },
+        ).sort("datetime", -1).to_list(length=30)
+    except Exception:
+        recent_calls = []
+    # Quick call KPIs.
+    call_kpi = {"total": 0, "withAi": 0, "avgScore": None, "criticalCount": 0}
+    if recent_calls:
+        scored = [c for c in recent_calls if isinstance(c.get("score"), (int, float))]
+        call_kpi["total"] = len(recent_calls)
+        call_kpi["withAi"] = len(scored)
+        if scored:
+            call_kpi["avgScore"] = round(sum(c["score"] for c in scored) / len(scored), 1)
+        call_kpi["criticalCount"] = sum(
+            1 for c in recent_calls
+            if (isinstance(c.get("score"), (int, float)) and c["score"] < 5)
+            or c.get("has_strong_negative") is True
+        )
+
     return {
         "stats": stats,
         "events": events[:200],
@@ -457,6 +553,10 @@ async def get_manager_detail(user_id: str, date_from: str = None, date_to: str =
         "noFirstAction": no_first_action[:50],
         "noProgress": no_progress[:50],
         "longIdle": long_idle[:50],
+        "singleTouchLeads": single_touch_leads[:50],
+        "autoOnlyLeads": auto_only_leads[:50],
+        "recentCalls": recent_calls,
+        "callKpi": call_kpi,
     }
 
 
