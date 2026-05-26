@@ -1106,6 +1106,25 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
   In preview the Telegram bot is already configured — test report was
   delivered successfully even with 0 managers in the digest.
 
+### Manager analytics — AI advice in daily digest (DONE - Feb 2026)
+- New setting `dailyReportAiAdvice: bool = True` on `EventAnalyticsSettings`.
+- `services/manager_analytics_report.py` now has `_get_ai_advice()` which
+  builds a compact stats dump and calls GPT-5.2 via `EMERGENT_PROXY` (same
+  pattern as `lead_analytics._call_llm`). System prompt instructs the model
+  to return three sections — `🔍 ГЛАВНОЕ` / `⚠ РИСКИ` (с именами менеджеров) /
+  `✅ ДЕЙСТВИЯ` — without markdown headers, max 3-4 lines each.
+- `send_manager_digest()` gained `include_ai: bool = True`. When AI advice
+  is produced, it is appended as `🤖 Совет AI` block at the bottom of the
+  Telegram HTML message.
+- Both the manual endpoint and the daily scheduler read `dailyReportAiAdvice`
+  from settings and pass it through.
+- Graceful fallback: if `EMERGENT_LLM_KEY` is missing or the LLM call fails,
+  the digest is still sent without AI (logged at warning level).
+- UI: new checkbox under the daily-report card — "🤖 Добавлять совет AI"
+  with hint about Universal Key cost.
+- ✅ Curl with 0 managers returns `aiAdviceIncluded: false` (no LLM spent on
+  empty data); with real managers on prod the AI block will appear.
+
 ### EUR currency support (DONE - Feb 2026)
 - Per-dealer fields `currency` ("PLN" | "EUR") and `eurRate` (float, PLN per 1 €)
   added to `Dealer` model + create/update endpoints.

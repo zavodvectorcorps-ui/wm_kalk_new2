@@ -39,6 +39,7 @@ class EventAnalyticsSettings(BaseModel):
     dailyReportEnabled: bool = False
     dailyReportHour: int = 8  # UTC hour, 0..23
     dailyReportChatId: str = ""  # leave empty → use TELEGRAM_CHAT_ID env
+    dailyReportAiAdvice: bool = True  # append GPT-5.2 insights at the bottom
 
 
 @router.get("/settings")
@@ -681,8 +682,10 @@ async def send_daily_report(period_label: Optional[str] = None,
         {"type": "event_analytics"}, {"_id": 0}
     ) or {}
     effective_chat_id = chat_id or settings.get("dailyReportChatId") or None
+    include_ai = settings.get("dailyReportAiAdvice", True)
     result = await send_manager_digest(
-        db, period_label=period_label, chat_id=effective_chat_id
+        db, period_label=period_label, chat_id=effective_chat_id,
+        include_ai=include_ai,
     )
     if not result.get("ok"):
         # 4xx if no sync yet, 5xx if telegram fails — informative for UI.

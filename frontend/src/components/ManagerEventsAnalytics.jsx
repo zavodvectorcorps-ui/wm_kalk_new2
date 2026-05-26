@@ -610,6 +610,20 @@ const EventSettings = ({ settings, setSettings, onSave, saving }) => (
             </span>
           </Label>
         </div>
+        <div className="flex items-center gap-3 pt-2 border-t border-blue-100">
+          <Checkbox
+            id="daily-report-ai-advice"
+            checked={settings.dailyReportAiAdvice !== false}
+            onCheckedChange={(v) => setSettings(prev => ({ ...prev, dailyReportAiAdvice: !!v }))}
+            data-testid="daily-report-ai-advice"
+          />
+          <Label htmlFor="daily-report-ai-advice" className="cursor-pointer text-sm">
+            🤖 Добавлять совет AI
+            <span className="block text-[11px] text-muted-foreground">
+              GPT-5.2 разберёт сводку и подскажет, на каких менеджеров обратить внимание и что им сказать. Стоит немного токенов из Universal Key.
+            </span>
+          </Label>
+        </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <Label className="text-sm">Час отправки (UTC, 0–23)</Label>

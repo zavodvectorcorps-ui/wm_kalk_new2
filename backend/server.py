@@ -276,8 +276,10 @@ async def manager_analytics_daily_scheduler():
                     from services.manager_analytics_report import send_manager_digest
                     yesterday_disp = (now - timedelta(days=1)).strftime("%d.%m.%Y")
                     chat_id = settings.get("dailyReportChatId") or None
+                    include_ai = settings.get("dailyReportAiAdvice", True)
                     result = await send_manager_digest(
-                        db, period_label=f"вчера ({yesterday_disp})", chat_id=chat_id
+                        db, period_label=f"вчера ({yesterday_disp})",
+                        chat_id=chat_id, include_ai=include_ai,
                     )
                     logger.info(f"Manager-analytics daily digest sent: {result}")
                 except Exception as e:
