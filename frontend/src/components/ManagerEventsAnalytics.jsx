@@ -589,6 +589,80 @@ const EventSettings = ({ settings, setSettings, onSave, saving }) => (
       </CardContent>
     </Card>
 
+    <Card className="border border-blue-200 bg-blue-50/30">
+      <CardHeader>
+        <CardTitle className="text-base flex items-center gap-2">
+          📱 Ежедневный отчёт в Telegram
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex items-center gap-3">
+          <Checkbox
+            id="daily-report-enabled"
+            checked={!!settings.dailyReportEnabled}
+            onCheckedChange={(v) => setSettings(prev => ({ ...prev, dailyReportEnabled: !!v }))}
+            data-testid="daily-report-enabled"
+          />
+          <Label htmlFor="daily-report-enabled" className="cursor-pointer text-sm">
+            Включить ежедневный отчёт
+            <span className="block text-[11px] text-muted-foreground">
+              Утром скрипт автоматически синхронизируется с amoCRM и отправляет сводку за вчерашний день в Telegram.
+            </span>
+          </Label>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label className="text-sm">Час отправки (UTC, 0–23)</Label>
+            <Input
+              type="number" min="0" max="23"
+              value={settings.dailyReportHour ?? 8}
+              onChange={e => setSettings(prev => ({ ...prev, dailyReportHour: parseInt(e.target.value) || 0 }))}
+              className="w-32 mt-1"
+              data-testid="daily-report-hour"
+            />
+            <p className="text-[11px] text-muted-foreground mt-1">
+              По МСК прибавьте +3ч (например 5:00 UTC = 8:00 МСК).
+            </p>
+          </div>
+          <div>
+            <Label className="text-sm">Telegram chat_id (необязательно)</Label>
+            <Input
+              type="text"
+              value={settings.dailyReportChatId || ''}
+              onChange={e => setSettings(prev => ({ ...prev, dailyReportChatId: e.target.value.trim() }))}
+              placeholder="оставьте пустым — возьмём из env"
+              className="mt-1"
+              data-testid="daily-report-chat-id"
+            />
+          </div>
+        </div>
+        {settings.lastDailyReportDate && (
+          <div className="text-xs text-muted-foreground">
+            Последний отчёт: <b>{settings.lastDailyReportDate}</b>
+          </div>
+        )}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={async () => {
+            try {
+              const res = await axios.post(`${API_URL}/api/lead-analytics/events/send-daily-report`, null, {
+                params: { period_label: 'тест (сейчас)' },
+              });
+              toast.success(`Отправлено: ${res.data.managersInReport} менеджеров`);
+            } catch (e) {
+              const d = e.response?.data?.detail;
+              const reason = d?.reason || (typeof d === 'string' ? d : e.message);
+              toast.error(`Не отправлено: ${reason}`);
+            }
+          }}
+          data-testid="daily-report-test-btn"
+        >
+          Отправить тестовый отчёт
+        </Button>
+      </CardContent>
+    </Card>
+
     <Button onClick={onSave} disabled={saving} className="w-full">
       {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
       Сохранить настройки

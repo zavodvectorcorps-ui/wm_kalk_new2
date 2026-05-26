@@ -6,7 +6,7 @@ from starlette.middleware.cors import CORSMiddleware
 import os
 import logging
 import asyncio
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from database import client
 from routes.auth import router as auth_router
@@ -57,6 +57,7 @@ logger = logging.getLogger(__name__)
 # Background task control
 backup_scheduler_task = None
 crm_auto_sync_task = None
+manager_analytics_daily_task = None
 
 # Create the main app
 app = FastAPI(
@@ -216,6 +217,88 @@ async def crm_auto_sync_scheduler():
             logger.error(f"CRM auto-sync scheduler error: {e}")
             await asyncio.sleep(300)
 
+
+
+async def manager_analytics_daily_scheduler():
+    """Run lead-analytics sync once per day and send a Telegram digest.
+
+    Settings (in ``event_analytics_settings``):
+      • ``dailyReportEnabled``: master toggle.
+      • ``dailyReportHour``: UTC hour 0..23 — fires when we cross this hour.
+
+    The job tracks the last successful run date in
+    ``event_analytics_settings.lastDailyReportDate`` (YYYY-MM-DD UTC) to
+    guarantee at most one digest per day, even across container restarts.
+    """
+    logger.info("Manager-analytics daily scheduler started")
+    await asyncio.sleep(60)  # let everything else boot
+    while True:
+        try:
+            settings = await db.event_analytics_settings.find_one(
+                {"type": "event_analytics"}, {"_id": 0}
+            ) or {}
+            enabled = bool(settings.get("dailyReportEnabled"))
+            target_hour = int(settings.get("dailyReportHour") or 8)
+            if not enabled:
+                await asyncio.sleep(600)  # re-check every 10 min in case toggle flipped
+                continue
+
+            now = datetime.now(timezone.utc)
+            today_str = now.strftime("%Y-%m-%d")
+            last_run = settings.get("lastDailyReportDate") or ""
+
+            if now.hour >= target_hour and last_run != today_str:
+                logger.info(f"Manager-analytics daily job firing at {now.isoformat()} (target hour={target_hour})")
+                # 1) Kick off a fresh sync (full sync from yesterday onward).
+                try:
+                    yesterday = (now - timedelta(days=1)).strftime("%Y-%m-%d")
+                    from routes.lead_analytics import _run_sync
+                    import uuid as _uuid
+                    sync_id = str(_uuid.uuid4())
+                    sync_settings = await db.lead_analytics_settings.find_one(
+                        {"type": "lead_analytics"}, {"_id": 0}
+                    ) or {}
+                    await db.lead_analytics_sync.insert_one({
+                        "sync_id": sync_id,
+                        "status": "running",
+                        "startedAt": now.isoformat(),
+                        "trigger": "daily_scheduler",
+                    })
+                    # Run synchronously so the digest reflects the latest data.
+                    await _run_sync(sync_id, sync_settings,
+                                    date_from_str=yesterday, date_to_str=None,
+                                    force=False)
+                except Exception as e:
+                    logger.error(f"Daily sync failed (will still try to send last data): {e}")
+
+                # 2) Compose & send the Telegram digest.
+                try:
+                    from services.manager_analytics_report import send_manager_digest
+                    yesterday_disp = (now - timedelta(days=1)).strftime("%d.%m.%Y")
+                    chat_id = settings.get("dailyReportChatId") or None
+                    result = await send_manager_digest(
+                        db, period_label=f"вчера ({yesterday_disp})", chat_id=chat_id
+                    )
+                    logger.info(f"Manager-analytics daily digest sent: {result}")
+                except Exception as e:
+                    logger.error(f"Failed to send daily digest: {e}")
+
+                # 3) Record completion regardless of digest success — we
+                #    don't want a stuck failure to spam Telegram on retry.
+                await db.event_analytics_settings.update_one(
+                    {"type": "event_analytics"},
+                    {"$set": {"lastDailyReportDate": today_str}},
+                    upsert=True,
+                )
+
+            # Re-check every 10 minutes.
+            await asyncio.sleep(600)
+        except asyncio.CancelledError:
+            logger.info("Manager-analytics daily scheduler cancelled")
+            break
+        except Exception as e:
+            logger.error(f"Manager-analytics daily scheduler error: {e}")
+            await asyncio.sleep(600)
 
 
 async def backup_scheduler():
@@ -423,6 +506,11 @@ async def startup_event():
     crm_auto_sync_task = asyncio.create_task(crm_auto_sync_scheduler())
     logger.info("CRM auto-sync scheduler started")
 
+    # Start manager-analytics daily digest scheduler
+    global manager_analytics_daily_task
+    manager_analytics_daily_task = asyncio.create_task(manager_analytics_daily_scheduler())
+    logger.info("Manager-analytics daily scheduler task started")
+
 
 @app.on_event("shutdown")
 async def shutdown_event():
@@ -455,6 +543,15 @@ async def shutdown_event():
         except asyncio.CancelledError:
             pass
         logger.info("CRM auto-sync scheduler stopped")
+
+    # Cancel manager-analytics daily scheduler
+    if manager_analytics_daily_task:
+        manager_analytics_daily_task.cancel()
+        try:
+            await manager_analytics_daily_task
+        except asyncio.CancelledError:
+            pass
+        logger.info("Manager-analytics daily scheduler stopped")
 
 
 # Health check endpoint for Kubernetes (without /api prefix)

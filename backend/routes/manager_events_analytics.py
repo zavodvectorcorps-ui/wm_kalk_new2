@@ -35,6 +35,10 @@ class EventAnalyticsSettings(BaseModel):
     weightDealProgress: int = 25
     weightFollowUp: int = 20
     weightProblemLeads: int = 5
+    # Daily Telegram digest (sent once per day after auto-sync).
+    dailyReportEnabled: bool = False
+    dailyReportHour: int = 8  # UTC hour, 0..23
+    dailyReportChatId: str = ""  # leave empty → use TELEGRAM_CHAT_ID env
 
 
 @router.get("/settings")
@@ -658,3 +662,30 @@ async def ai_manager_deep_analysis(user_id: str):
     except Exception as e:
         logger.error(f"AI manager deep analysis error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+
+# --- Daily Telegram digest (manual trigger) ---
+
+@router.post("/send-daily-report")
+async def send_daily_report(period_label: Optional[str] = None,
+                             chat_id: Optional[str] = None):
+    """Send the manager-analytics digest to Telegram on demand.
+
+    Used both by the morning cron job and the "Send test" button in
+    settings UI. Falls back to the chat_id from EventAnalyticsSettings if
+    none provided in the request.
+    """
+    from services.manager_analytics_report import send_manager_digest
+    settings = await db.event_analytics_settings.find_one(
+        {"type": "event_analytics"}, {"_id": 0}
+    ) or {}
+    effective_chat_id = chat_id or settings.get("dailyReportChatId") or None
+    result = await send_manager_digest(
+        db, period_label=period_label, chat_id=effective_chat_id
+    )
+    if not result.get("ok"):
+        # 4xx if no sync yet, 5xx if telegram fails — informative for UI.
+        status = 409 if result.get("reason") == "no_sync_yet" else 502
+        raise HTTPException(status_code=status, detail=result)
+    return result

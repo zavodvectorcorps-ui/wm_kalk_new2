@@ -1078,6 +1078,34 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
 - **Pytest stub**: `_compute_lead_metrics` exercised by hand for 3 scenarios
   (fire-and-forget, auto-only, good manager) — all flags computed correctly.
 
+### Manager analytics — daily Telegram digest (DONE - Feb 2026)
+- **Settings extended** in `EventAnalyticsSettings`:
+  - `dailyReportEnabled: bool = False`
+  - `dailyReportHour: int = 8` (UTC, 0..23)
+  - `dailyReportChatId: str = ""` (optional override; empty → use `TELEGRAM_CHAT_ID` env)
+  - Persistent run-marker `lastDailyReportDate` (YYYY-MM-DD UTC) so the job
+    fires at most once per day across container restarts.
+- **New scheduler** `manager_analytics_daily_scheduler()` in `server.py`:
+  registered/cancelled alongside backup + CRM auto-sync. Polls settings
+  every 10 min, fires when `now.hour >= dailyReportHour` and last run !=
+  today. Steps: (1) full lead-analytics sync from yesterday, (2) build &
+  send Telegram digest, (3) mark today as done.
+- **Report builder** `services/manager_analytics_report.py`:
+  - HTML message (Telegram parse_mode=HTML) with team totals + top-3 by
+    score + suspicious (score≥70 & follow-up<40% or single-touch>40%) +
+    bottom-3 by follow-up.
+  - Reuses existing `send_telegram_message` helper.
+- **Manual trigger** `POST /api/lead-analytics/events/send-daily-report`
+  (optional `?period_label=...&chat_id=...`). Returns 409 if no sync yet,
+  502 if Telegram fails. Curl-verified end-to-end (`ok:true, sent`).
+- **Settings UI** in `ManagerEventsAnalytics.jsx`:
+  - Blue card "📱 Ежедневный отчёт в Telegram" with toggle, UTC hour input,
+    optional chat_id, "last report" badge, and "Отправить тестовый отчёт"
+    button (calls the manual endpoint and toasts the result).
+- **Note on env**: requires `TELEGRAM_BOT_TOKEN` + (default) `TELEGRAM_CHAT_ID`.
+  In preview the Telegram bot is already configured — test report was
+  delivered successfully even with 0 managers in the digest.
+
 ### EUR currency support (DONE - Feb 2026)
 - Per-dealer fields `currency` ("PLN" | "EUR") and `eurRate` (float, PLN per 1 €)
   added to `Dealer` model + create/update endpoints.
