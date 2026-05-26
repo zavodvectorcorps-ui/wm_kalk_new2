@@ -654,7 +654,7 @@ async def process_pending(background_tasks: BackgroundTasks, limit: int = 10):
     return {"queued_transcribe": len(new_calls), "queued_analyze": len(transcribed), "skipped_short": skipped.modified_count}
 
 
-async def _reset_stale_calls(stale_minutes: int = 10) -> int:
+async def _reset_stale_calls(stale_minutes: int = 5) -> int:
     """Mark as 'error' any call stuck in transcribing/analyzing longer than stale_minutes.
 
     Background tasks can be killed by a server restart while the DB still says

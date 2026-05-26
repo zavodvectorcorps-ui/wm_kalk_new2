@@ -308,6 +308,16 @@ const SyncTab = () => {
             }} data-testid="purge-empty-btn">
               <Trash2 className="h-4 w-4 mr-1"/> Очистить пустые
             </Button>
+            <Button size="sm" variant="ghost" className="text-amber-700 hover:text-amber-800 hover:bg-amber-50 dark:text-amber-300 dark:hover:bg-amber-950/40" onClick={async () => {
+              if (!window.confirm('Сбросить зависшие звонки (в статусе «transcribing» / «analyzing» >5 мин)? После сброса нажми «Обработать все», чтобы они снова попали в очередь.')) return;
+              try {
+                const r = await axios.post(`${API}/api/call-analytics/reset-stale`, null, { params: { stale_minutes: 5 } });
+                toast.success(`Разблокировано: ${r.data.reset} зависших звонков`);
+                setProcessRefresh(x => x + 1);
+              } catch(e) { toast.error('Ошибка'); }
+            }} data-testid="reset-stale-btn">
+              <RefreshCw className="h-4 w-4 mr-1"/> Разблокировать зависшие
+            </Button>
             <Button size="sm" variant="ghost" className="text-violet-700 hover:text-violet-800 hover:bg-violet-50 dark:text-violet-300 dark:hover:bg-violet-950/40" onClick={async () => {
               if (!window.confirm('Перезапустить диаризацию (М/К) и анализ для последних 100 звонков? Whisper НЕ перезапускается, только разметка диалога и AI-оценка. Это поможет улучшить разбиение спикеров после обновления промта.')) return;
               try {
