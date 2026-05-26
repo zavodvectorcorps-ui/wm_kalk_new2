@@ -233,6 +233,40 @@ export const OptionEditDialog = memo(({
             />
             <p className="text-[11px] text-muted-foreground">Используется только для расчёта маржи в CRM.</p>
           </div>
+
+          {/* Default + Gratis flags */}
+          <div className="grid grid-cols-2 gap-3 rounded-lg border border-blue-200 bg-blue-50/40 p-3">
+            <label className="flex items-start gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={!!formData.isDefault}
+                onChange={(e) => setFormData({ ...formData, isDefault: e.target.checked })}
+                className="mt-1 h-4 w-4 accent-blue-600"
+                data-testid="balia-option-is-default"
+              />
+              <span className="text-sm">
+                <span className="font-medium block">По умолчанию</span>
+                <span className="text-[11px] text-muted-foreground block">
+                  Сразу выбран при открытии калькулятора.
+                </span>
+              </span>
+            </label>
+            <label className="flex items-start gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={!!formData.isGratis}
+                onChange={(e) => setFormData({ ...formData, isGratis: e.target.checked })}
+                className="mt-1 h-4 w-4 accent-emerald-600"
+                data-testid="balia-option-is-gratis"
+              />
+              <span className="text-sm">
+                <span className="font-medium block">В подарок (Gratis)</span>
+                <span className="text-[11px] text-muted-foreground block">
+                  В калькуляторе и PDF вместо цены покажется «GRATIS».
+                </span>
+              </span>
+            </label>
+          </div>
           
           {/* Color Preview for color options */}
           <div className="space-y-2">

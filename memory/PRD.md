@@ -977,6 +977,35 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
   legacy single fields; updates via either field stay in sync; filter by
   `assignee=` matches array entries.
 
+### Balia options — `isDefault` + `isGratis` (DONE - Feb 2026)
+- `CategoryOption` (`models/balia.py`) has `model_config = ConfigDict(extra="allow")`,
+  so the two new flags pass through Pydantic without explicit schema changes.
+- Admin UI:
+  - `OptionEditDialog.jsx` — two new checkboxes: "По умолчанию"
+    (pre-select when calc opens) and "В подарок (Gratis)" (show GRATIS instead
+    of price). `data-testid="balia-option-is-default"` /
+    `data-testid="balia-option-is-gratis"`.
+  - `OptionItem.jsx` — shows blue "по умолч." and green "gratis" pills next
+    to option name; price column renders "GRATIS" for gratis options.
+- Customer calculator (`CalculatorPage.jsx`):
+  - Initial selections: radio categories pre-select `options.find(o => o.isDefault)`;
+    checkbox categories pre-tick every `isDefault` option. Same logic in the
+    rebuild path used by `editingOrder`.
+  - Subtotal/total/getOptionsTotal skip `opt.isGratis` so gifts don't add to
+    the price.
+  - Tile, checkbox and select-dropdown renderers display "GRATIS" (green,
+    bold) instead of the numeric `+price`.
+  - `selectedOptions` payload includes `isGratis` so the PDF backend can
+    reuse the flag.
+- PDF (`routes/balia.py`):
+  - Legacy options table: row shows option image + name + bold green
+    "GRATIS" (and is NOT lumped with the "Bez X" grey rows even if the name
+    starts with "bez").
+  - New options table: per-option `is_gratis_opt` branch renders a
+    Paragraph "GRATIS" with `#059669` colour, mirroring the existing
+    admin-marked gift logic; counted in `gifts_total`, not `total_options_price`.
+- Backward compatibility: options without the flags behave exactly as before.
+
 ### EUR currency support (DONE - Feb 2026)
 - Per-dealer fields `currency` ("PLN" | "EUR") and `eurRate` (float, PLN per 1 €)
   added to `Dealer` model + create/update endpoints.

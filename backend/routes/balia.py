@@ -968,6 +968,7 @@ async def generate_pdf_bytes(request: PDFRequest) -> bytes:
             opt_price = opt.get('optionPrice') or opt.get('price', 0)
             opt_image_url = opt.get('imageUrl', '')
             currency_symbol = request.currencySymbol or 'zł'
+            is_gratis = bool(opt.get('isGratis'))
             
             # Check if this is a "without" option by name pattern
             # These should always be shown in gray with "-" price
@@ -982,7 +983,7 @@ async def generate_pdf_bytes(request: PDFRequest) -> bytes:
                 name_lower.startswith('standardowy') or
                 name_lower.startswith('стандартн') or
                 opt.get('notSelected', False)
-            )
+            ) and not is_gratis  # gratis option is always shown as a chosen extra
             
             # Try to load image
             img_cell = ""
@@ -1009,6 +1010,11 @@ async def generate_pdf_bytes(request: PDFRequest) -> bytes:
                 options_data.append([img_cell, opt_name, "-"])
                 # Row index is idx + 1 (because header is row 0)
                 options_styles.append(('TEXTCOLOR', (1, idx + 1), (2, idx + 1), MUTED))
+            elif is_gratis:
+                # Gift option — show "GRATIS" instead of price, mark row green.
+                options_data.append([img_cell, opt_name, "GRATIS"])
+                options_styles.append(('TEXTCOLOR', (2, idx + 1), (2, idx + 1), colors.HexColor('#059669')))
+                options_styles.append(('FONTNAME', (2, idx + 1), (2, idx + 1), 'DejaVuSans-Bold'))
             else:
                 # Regular selected option - normal text with price
                 if opt_price > 0:
@@ -1521,12 +1527,14 @@ async def generate_pdf(request: PDFRequest):
             cat_id = opt.get('categoryId', '')
             opt_id = opt.get('optionId', '') or opt.get('id', '')
             price = opt.get('price', 0)
-            is_not_selected = opt.get('notSelected', False) or opt_id is None or 'not_selected' in str(opt.get('id', ''))
+            is_gratis_opt = bool(opt.get('isGratis'))
+            is_not_selected = (opt.get('notSelected', False) or opt_id is None or 'not_selected' in str(opt.get('id', ''))) and not is_gratis_opt
             
             # Check if this option is a gift
             is_gift = opt_id in admin_gifts if opt_id else False
             
-            if is_gift:
+            if is_gift or is_gratis_opt:
+                # Per-option gratis flag also counts toward gifts_total.
                 gifts_total += price
             elif not is_not_selected:
                 total_options_price += price
@@ -1591,6 +1599,17 @@ async def generate_pdf(request: PDFRequest):
                     price_text = f"<strike>{price:,.0f} {currency}</strike><br/>🎁 Prezent od WM-Group".replace(',', ' ')
                     price_cell = Paragraph(price_text, gift_price_style)
                     gift_rows.append(idx + 1)  # +1 because of header row
+                elif is_gratis_opt:
+                    # Persistent per-option gratis flag — show big "GRATIS" label.
+                    gratis_style = ParagraphStyle(
+                        'GratisPrice',
+                        fontName='DejaVuSans-Bold',
+                        fontSize=11,
+                        textColor=colors.HexColor('#059669'),
+                        alignment=TA_RIGHT,
+                    )
+                    price_cell = Paragraph("GRATIS", gratis_style)
+                    gift_rows.append(idx + 1)
                 else:
                     price_text = f"+{price:,.0f} {currency}".replace(',', ' ') if price > 0 else 'W cenie'
                     price_cell = Paragraph(price_text, normal_price_style)

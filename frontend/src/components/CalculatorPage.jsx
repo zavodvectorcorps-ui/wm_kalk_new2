@@ -400,11 +400,15 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
         const rebuiltSelections = {};
         prices.categories.forEach(cat => {
           if (cat.inputType === 'checkbox') {
-            rebuiltSelections[cat.id] = {};
+            const checkboxState = {};
+            (cat.options || []).forEach(o => {
+              if (o.isDefault) checkboxState[o.id] = true;
+            });
+            rebuiltSelections[cat.id] = checkboxState;
           } else {
-            // Set first option as default
-            const firstOption = cat.options?.[0];
-            rebuiltSelections[cat.id] = firstOption?.id || '';
+            // Prefer isDefault option; otherwise empty (user-mandatory).
+            const defOpt = (cat.options || []).find(o => o.isDefault);
+            rebuiltSelections[cat.id] = defOpt ? defOpt.id : '';
           }
         });
         
@@ -497,10 +501,16 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
         const initialSelections = {};
         categories.forEach(cat => {
           if (cat.inputType === 'checkbox') {
-            initialSelections[cat.id] = {};
+            // Pre-tick every option flagged isDefault in checkbox categories.
+            const checkboxState = {};
+            (cat.options || []).forEach(o => {
+              if (o.isDefault) checkboxState[o.id] = true;
+            });
+            initialSelections[cat.id] = checkboxState;
           } else {
-            // Start with empty selection - user must choose
-            initialSelections[cat.id] = '';
+            // Radio category: if an option is flagged isDefault, pre-select it.
+            const defOpt = (cat.options || []).find(o => o.isDefault);
+            initialSelections[cat.id] = defOpt ? defOpt.id : '';
           }
         });
         
@@ -580,13 +590,13 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
         Object.entries(selection || {}).forEach(([optId, isSelected]) => {
           if (isSelected) {
             const opt = category.options?.find(o => o.id === optId);
-            if (opt) total += opt.price || 0;
+            if (opt && !opt.isGratis) total += opt.price || 0;
           }
         });
       } else {
         // Single selection
         const opt = category.options?.find(o => o.id === selection);
-        if (opt) total += opt.price || 0;
+        if (opt && !opt.isGratis) total += opt.price || 0;
       }
     });
     
@@ -621,12 +631,12 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
         Object.entries(selection || {}).forEach(([optId, isSelected]) => {
           if (isSelected) {
             const opt = category.options?.find(o => o.id === optId);
-            if (opt) total += opt.price || 0;
+            if (opt && !opt.isGratis) total += opt.price || 0;
           }
         });
       } else {
         const opt = category.options?.find(o => o.id === selection);
-        if (opt) total += opt.price || 0;
+        if (opt && !opt.isGratis) total += opt.price || 0;
       }
     });
     
@@ -740,7 +750,8 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
                   optionId: opt.id,
                   optionName: opt[`name${lang === 'pl' ? 'Pl' : 'Ru'}`] || opt.name,
                   name: opt[`name${lang === 'pl' ? 'Pl' : 'Ru'}`] || opt.name,
-                  price: opt.price,
+                  price: opt.isGratis ? 0 : opt.price,
+                  isGratis: !!opt.isGratis,
                   imageUrl: opt.imageUrl || cat.imageUrl || ''
                 });
               }
@@ -757,7 +768,8 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
               optionId: opt.id,
               optionName: opt[`name${lang === 'pl' ? 'Pl' : 'Ru'}`] || opt.name,
               name: opt[`name${lang === 'pl' ? 'Pl' : 'Ru'}`] || opt.name,
-              price: opt.price,
+              price: opt.isGratis ? 0 : opt.price,
+              isGratis: !!opt.isGratis,
               imageUrl: opt.imageUrl || cat.imageUrl || ''
             });
           }
@@ -1660,11 +1672,15 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
                             <div className="text-xs font-medium text-center line-clamp-2">
                               {getOptionName(option)}
                             </div>
-                            {option.price > 0 && (
+                            {option.isGratis ? (
+                              <div className="text-xs text-emerald-600 font-bold text-center mt-1">
+                                GRATIS
+                              </div>
+                            ) : option.price > 0 ? (
                               <div className="text-xs text-blue-600 font-semibold text-center mt-1">
                                 +{option.price} {prices.currencySymbol}
                               </div>
-                            )}
+                            ) : null}
                           </div>
                         );
                       })}
@@ -1705,12 +1721,14 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
                                   className="ml-1"
                                 />
                               )}
-                              {option.price > 0 && (
+                              {option.isGratis ? (
+                                <span className="ml-1 text-emerald-600 font-bold">GRATIS</span>
+                              ) : option.price > 0 ? (
                                 <span className={`ml-1 ${isGift ? 'line-through text-gray-400' : 'text-blue-600'}`}>
                                   +{option.price} {prices.currencySymbol}
                                 </span>
-                              )}
-                              {isGift && <span className="text-emerald-600 font-medium ml-1">0 {prices.currencySymbol}</span>}
+                              ) : null}
+                              {isGift && !option.isGratis && <span className="text-emerald-600 font-medium ml-1">0 {prices.currencySymbol}</span>}
                             </Label>
                             {/* Admin gift button - only in edit mode */}
                             {isAdminUser && isEditMode && isSelected && (
@@ -1777,7 +1795,9 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
                                 )}
                                 <span className="flex items-center gap-1">
                                   {getOptionName(option)}
-                                  {option.price > 0 && ` (+${option.price} ${prices.currencySymbol})`}
+                                  {option.isGratis ? (
+                                    <span className="text-emerald-600 font-bold ml-1">(GRATIS)</span>
+                                  ) : option.price > 0 ? ` (+${option.price} ${prices.currencySymbol})` : ''}
                                 </span>
                               </div>
                             </SelectItem>

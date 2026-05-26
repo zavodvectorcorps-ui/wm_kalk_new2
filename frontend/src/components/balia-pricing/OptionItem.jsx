@@ -33,10 +33,22 @@ export const OptionItem = memo(({
         <img src={getFullImageUrl(option.imageUrl)} alt={getName(option)} className="w-8 h-8 object-contain rounded" loading="lazy" />
       )}
       <span className="text-sm">{getName(option)}</span>
+      {option.isDefault && (
+        <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-semibold" title="Выбран по умолчанию">
+          по умолч.
+        </span>
+      )}
+      {option.isGratis && (
+        <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 font-semibold" title="В подарок">
+          gratis
+        </span>
+      )}
     </div>
     <div className="flex items-center gap-2">
       <span className="text-sm font-medium text-blue-600">
-        {option.price > 0 ? `+${option.price} ${currencySymbol}` : '-'}
+        {option.isGratis ? (
+          <span className="text-emerald-600 font-bold">GRATIS</span>
+        ) : option.price > 0 ? `+${option.price} ${currencySymbol}` : '-'}
       </span>
       {canEdit && (
         <>
