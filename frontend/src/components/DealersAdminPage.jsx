@@ -11,6 +11,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs';
 import { toast } from 'sonner';
 import PriceImportExport from './sauna-pricing/PriceImportExport';
 import DealerComparisonPage from './DealerComparisonPage';
+import DealerDetailDialog from './DealerDetailDialog';
 
 const API = getApiUrl();
 
@@ -26,6 +27,7 @@ export default function DealersAdminPage() {
   const [editDealer, setEditDealer] = useState(null); // dealer being edited
   const [pricesModal, setPricesModal] = useState(null); // {dealer}
   const [hardDeleteDealer, setHardDeleteDealer] = useState(null); // dealer to permanently delete
+  const [detailDealerId, setDetailDealerId] = useState(null); // id of dealer to show detail page
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -113,9 +115,25 @@ export default function DealersAdminPage() {
                   </thead>
                   <tbody>
                     {dealers.map((d) => (
-                      <tr key={d.id} className="border-t hover:bg-muted/20" data-testid={`dealer-row-${d.id}`}>
+                      <tr
+                        key={d.id}
+                        className="border-t hover:bg-orange-50/40 cursor-pointer transition-colors"
+                        data-testid={`dealer-row-${d.id}`}
+                        onClick={(e) => {
+                          // Only open detail when the click is on a non-button area of the row.
+                          if (e.target.closest('button, a, [role="button"]')) return;
+                          setDetailDealerId(d.id);
+                        }}
+                      >
                         <td className="px-4 py-3">
-                          <div className="font-medium">{d.name || '—'}</div>
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setDetailDealerId(d.id); }}
+                            className="font-medium text-left hover:text-orange-600 hover:underline"
+                            data-testid={`dealer-name-${d.id}`}
+                          >
+                            {d.name || '—'}
+                          </button>
                           <div className="text-xs text-muted-foreground font-mono">@{d.username}</div>
                           {d.orderPrefix && (
                             <div className="text-[11px] text-orange-600 font-mono mt-0.5">Префикс: {d.orderPrefix}-</div>
@@ -206,6 +224,13 @@ export default function DealersAdminPage() {
           dealer={hardDeleteDealer}
           onClose={() => setHardDeleteDealer(null)}
           onDeleted={() => { setHardDeleteDealer(null); load(); }}
+        />
+      )}
+      {detailDealerId && (
+        <DealerDetailDialog
+          dealerId={detailDealerId}
+          onClose={() => setDetailDealerId(null)}
+          onEdit={(d) => { setDetailDealerId(null); setEditDealer(d); }}
         />
       )}
     </div>

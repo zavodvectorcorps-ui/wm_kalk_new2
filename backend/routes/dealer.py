@@ -1177,6 +1177,89 @@ async def admin_get_dealer_overrides(dealer_id: str, _: dict = Depends(get_admin
     return {"overrides": overrides}
 
 
+@router.get("/api/admin/dealers/{dealer_id}/detail")
+async def admin_dealer_detail(dealer_id: str, _: dict = Depends(get_admin_user)):
+    """Return everything we know about a single dealer in one shot.
+
+    Used by the admin Dealer Detail page (clicking a dealer row). Includes:
+      • profile fields (without password)
+      • aggregate KPIs (orders count, revenue, mfg cost, dealer margin, avg check)
+      • recent orders (top 50)
+      • overrides count (B2B + recommended retail)
+    """
+    dealer = await db.dealers.find_one(
+        {"id": dealer_id}, {"_id": 0, "password": 0}
+    )
+    if not dealer:
+        raise HTTPException(status_code=404, detail="Dealer not found")
+
+    # Pull all orders once and bucket them in Python — small enough.
+    all_orders = await db.sauna_orders.find(
+        {"dealerId": dealer_id}, {"_id": 0}
+    ).sort("createdAt", -1).to_list(length=5000)
+
+    def _num(x) -> float:
+        try:
+            return float(x or 0)
+        except (TypeError, ValueError):
+            return 0.0
+
+    confirmed = [o for o in all_orders if (o.get("status") == "confirmed")]
+    drafts = [o for o in all_orders if (o.get("status") or "draft") == "draft"]
+
+    revenue = sum(_num(o.get("total")) for o in confirmed)
+    mfg_cost = sum(_num(o.get("manufacturerTotal")) for o in confirmed)
+    margin = revenue - mfg_cost
+    margin_pct = (margin / mfg_cost * 100.0) if mfg_cost > 0 else 0.0
+    avg_check = (revenue / len(confirmed)) if confirmed else 0.0
+
+    # Overrides: count both B2B and recommended retail rows.
+    ov_b2b = await db.dealer_price_overrides.count_documents({
+        "dealerId": dealer_id,
+        "price": {"$exists": True, "$ne": None},
+    })
+    ov_retail = await db.dealer_price_overrides.count_documents({
+        "dealerId": dealer_id,
+        "dealerRetailPrice": {"$exists": True, "$ne": None},
+    })
+
+    # Trim recent orders payload for the table.
+    recent = []
+    for o in all_orders[:50]:
+        recent.append({
+            "id": o.get("id"),
+            "createdAt": o.get("createdAt"),
+            "confirmedAt": o.get("confirmedAt"),
+            "status": o.get("status") or "draft",
+            "total": _num(o.get("total")),
+            "manufacturerTotal": _num(o.get("manufacturerTotal")),
+            "margin": _num(o.get("total")) - _num(o.get("manufacturerTotal")),
+            "modelName": o.get("modelName") or o.get("model") or "",
+            "contractNumber": o.get("contractNumber") or "",
+            "clientName": (o.get("client") or {}).get("name") or o.get("clientName") or "",
+        })
+
+    return {
+        "dealer": dealer,
+        "kpis": {
+            "ordersTotal": len(all_orders),
+            "confirmedCount": len(confirmed),
+            "draftCount": len(drafts),
+            "revenue": round(revenue, 2),
+            "manufacturerCost": round(mfg_cost, 2),
+            "margin": round(margin, 2),
+            "marginPct": round(margin_pct, 2),
+            "avgCheck": round(avg_check, 2),
+        },
+        "overrides": {
+            "b2b": ov_b2b,
+            "retail": ov_retail,
+            "total": ov_b2b + ov_retail,
+        },
+        "recentOrders": recent,
+    }
+
+
 @router.put("/api/admin/dealers/{dealer_id}/overrides")
 async def admin_put_dealer_overrides(
     dealer_id: str,

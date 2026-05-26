@@ -966,6 +966,9 @@ async def generate_pdf_bytes(request: PDFRequest) -> bytes:
         for idx, opt in enumerate(request.selectedOptions):
             opt_name = opt.get('optionName') or opt.get('name') or opt.get('namePl', '-')
             opt_price = opt.get('optionPrice') or opt.get('price', 0)
+            opt_qty = int(opt.get('quantity') or 1)
+            if opt_qty > 1:
+                opt_name = f"{opt_name} × {opt_qty}"
             opt_image_url = opt.get('imageUrl', '')
             currency_symbol = request.currencySymbol or 'zł'
             is_gratis = bool(opt.get('isGratis'))
@@ -1527,6 +1530,7 @@ async def generate_pdf(request: PDFRequest):
             cat_id = opt.get('categoryId', '')
             opt_id = opt.get('optionId', '') or opt.get('id', '')
             price = opt.get('price', 0)
+            opt_qty = int(opt.get('quantity') or 1)
             is_gratis_opt = bool(opt.get('isGratis'))
             is_not_selected = (opt.get('notSelected', False) or opt_id is None or 'not_selected' in str(opt.get('id', ''))) and not is_gratis_opt
             
@@ -1577,6 +1581,8 @@ async def generate_pdf(request: PDFRequest):
             else:
                 opt_info = cat_info.get('options', {}).get(opt_id, {})
                 opt_name = opt_info.get('name', opt.get('optionName', '') or opt.get('name', ''))
+                if opt_qty > 1:
+                    opt_name = f"{opt_name} × {opt_qty}"
                 
                 # Get image URL - priority: request > DB option > DB category
                 # First try from request (frontend sends imageUrl in selectedOptions)

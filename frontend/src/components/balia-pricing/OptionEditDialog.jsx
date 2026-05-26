@@ -267,6 +267,43 @@ export const OptionEditDialog = memo(({
               </span>
             </label>
           </div>
+
+          {/* Quantity selection */}
+          <div className="rounded-lg border border-amber-200 bg-amber-50/40 p-3 space-y-2">
+            <label className="flex items-start gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={!!formData.quantityEnabled}
+                onChange={(e) => setFormData({ ...formData, quantityEnabled: e.target.checked })}
+                className="mt-1 h-4 w-4 accent-amber-600"
+                data-testid="balia-option-quantity-enabled"
+              />
+              <span className="text-sm">
+                <span className="font-medium block">Можно выбрать количество</span>
+                <span className="text-[11px] text-muted-foreground block">
+                  Например, 3 подушки. В калькуляторе после выбора появится поле «штук».
+                </span>
+              </span>
+            </label>
+            {formData.quantityEnabled && (
+              <div className="pl-6">
+                <Label className="text-xs text-amber-800">Максимум штук (опционально)</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={formData.maxQuantity ?? ''}
+                  onChange={(e) => {
+                    const v = parseInt(e.target.value, 10);
+                    setFormData({ ...formData, maxQuantity: Number.isFinite(v) && v > 0 ? v : null });
+                  }}
+                  placeholder="без лимита"
+                  className="h-8 mt-1 w-32 text-sm"
+                  data-testid="balia-option-max-quantity"
+                />
+              </div>
+            )}
+          </div>
           
           {/* Color Preview for color options */}
           <div className="space-y-2">

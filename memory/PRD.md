@@ -1006,6 +1006,43 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
     admin-marked gift logic; counted in `gifts_total`, not `total_options_price`.
 - Backward compatibility: options without the flags behave exactly as before.
 
+### Balia options — quantity per option (DONE - Feb 2026)
+- Admin: `OptionEditDialog.jsx` adds a "Можно выбрать количество" toggle plus
+  optional "Макс. шт." field (`option.quantityEnabled`, `option.maxQuantity`).
+- Customer calc (`CalculatorPage.jsx`):
+  - Checkbox selections now store either `true` (qty=1) or a positive int (qty).
+  - `handleQuantityChange` + `handleCheckboxChange` keep the value coherent
+    (turning off → false; turning on preserves last qty if any).
+  - +/- stepper with `<input type="number">` (no spinners) appears only after
+    the option is ticked AND `quantityEnabled` is set. Same UI in tile-mode.
+  - `calculateSubtotal` / `getOptionsTotal` multiply price × qty.
+  - `selectedOptions` payload now carries `quantity`, `unitPrice` and the
+    pre-multiplied `price`.
+  - Restore-from-existing-order path preserves the integer quantity.
+- PDF (`routes/balia.py`): when `quantity > 1`, the option name is rendered
+  as `Name × N` in BOTH PDF paths (legacy + new); the price column already
+  uses the pre-multiplied `price` from the payload.
+
+### Dealer detail page (DONE - Feb 2026)
+- New backend endpoint `GET /api/admin/dealers/{id}/detail` aggregates the
+  dealer profile + KPIs (orders, revenue, mfg cost, margin, avg check) +
+  overrides count (B2B / retail) + recent 50 orders in one call.
+- New frontend component `DealerDetailDialog.jsx` (full-screen Dialog):
+  - Header with name, prefix, currency, active status, Edit + Close buttons.
+  - 4 KPI cards (orders, revenue, margin with pos/neg tone, overrides count).
+  - Tabs: «Информация» (contacts, params, timestamps, notes),
+    «Заказы» (paginated table with status badges, totals, mfg, margin),
+    «Цены» (override counts + pointer to Dealer Matrix).
+- `DealersAdminPage.jsx`: dealer rows are now clickable (click anywhere in
+  the row except action buttons opens the detail); dealer name is also a
+  link-style button. The detail dialog can call back into the existing
+  edit dialog via `onEdit`.
+- ✅ curl: `/api/admin/dealers/{id}/detail` returns
+  `{dealer, kpis, overrides, recentOrders}` correctly for testdealer
+  (10/10 confirmed orders, 200 000 PLN revenue, 33.3% WM margin, 2 overrides).
+- ✅ Screenshot: dialog renders fully with all four KPI cards and three
+  tabs populated.
+
 ### EUR currency support (DONE - Feb 2026)
 - Per-dealer fields `currency` ("PLN" | "EUR") and `eurRate` (float, PLN per 1 €)
   added to `Dealer` model + create/update endpoints.

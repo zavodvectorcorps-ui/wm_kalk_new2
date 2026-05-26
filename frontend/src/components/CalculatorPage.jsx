@@ -417,9 +417,10 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
           const category = prices.categories.find(c => c.id === opt.categoryId);
           if (category) {
             if (category.inputType === 'checkbox') {
+              const qty = Number.isInteger(opt.quantity) && opt.quantity > 1 ? opt.quantity : true;
               rebuiltSelections[opt.categoryId] = {
                 ...(rebuiltSelections[opt.categoryId] || {}),
-                [opt.optionId]: true
+                [opt.optionId]: qty
               };
             } else {
               rebuiltSelections[opt.categoryId] = opt.optionId;
@@ -586,11 +587,14 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
       const selection = formData.selections[category.id];
       
       if (category.inputType === 'checkbox') {
-        // Sum all selected checkboxes
-        Object.entries(selection || {}).forEach(([optId, isSelected]) => {
-          if (isSelected) {
+        // Sum all selected checkboxes (multiplying by quantity when enabled).
+        Object.entries(selection || {}).forEach(([optId, val]) => {
+          if (val) {
             const opt = category.options?.find(o => o.id === optId);
-            if (opt && !opt.isGratis) total += opt.price || 0;
+            if (opt && !opt.isGratis) {
+              const qty = opt.quantityEnabled && Number.isInteger(val) && val > 0 ? val : 1;
+              total += (opt.price || 0) * qty;
+            }
           }
         });
       } else {
@@ -628,10 +632,13 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
       const selection = formData.selections[category.id];
       
       if (category.inputType === 'checkbox') {
-        Object.entries(selection || {}).forEach(([optId, isSelected]) => {
-          if (isSelected) {
+        Object.entries(selection || {}).forEach(([optId, val]) => {
+          if (val) {
             const opt = category.options?.find(o => o.id === optId);
-            if (opt && !opt.isGratis) total += opt.price || 0;
+            if (opt && !opt.isGratis) {
+              const qty = opt.quantityEnabled && Number.isInteger(val) && val > 0 ? val : 1;
+              total += (opt.price || 0) * qty;
+            }
           }
         });
       } else {
@@ -709,10 +716,37 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
         ...prev.selections,
         [categoryId]: {
           ...prev.selections[categoryId],
+          // When turning ON we keep the previous integer quantity if any,
+          // otherwise default to `true` (semantically equivalent to qty=1).
           [optionId]: checked
+            ? (Number.isInteger(prev.selections[categoryId]?.[optionId]) && prev.selections[categoryId][optionId] > 0
+                ? prev.selections[categoryId][optionId]
+                : true)
+            : false
         }
       }
     }));
+  };
+
+  /** Update the quantity stored against a selected checkbox option. */
+  const handleQuantityChange = (categoryId, optionId, qty) => {
+    const n = Math.max(1, parseInt(qty, 10) || 1);
+    setFormData(prev => ({
+      ...prev,
+      selections: {
+        ...prev.selections,
+        [categoryId]: {
+          ...prev.selections[categoryId],
+          [optionId]: n,
+        },
+      },
+    }));
+  };
+
+  /** Read the effective quantity (>=1) for a selected checkbox option. */
+  const getOptionQty = (categoryId, optionId) => {
+    const raw = formData.selections?.[categoryId]?.[optionId];
+    return Number.isInteger(raw) && raw > 0 ? raw : 1;
   };
 
   const handleSaveOrderAndGeneratePdf = async () => {
@@ -738,11 +772,13 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
         let hasSelection = false;
         
         if (cat.inputType === 'checkbox') {
-          Object.entries(selection || {}).forEach(([optId, isSelected]) => {
-            if (isSelected) {
+          Object.entries(selection || {}).forEach(([optId, val]) => {
+            if (val) {
               const opt = cat.options?.find(o => o.id === optId);
               if (opt) {
                 hasSelection = true;
+                const qty = opt.quantityEnabled && Number.isInteger(val) && val > 0 ? val : 1;
+                const unitPrice = opt.isGratis ? 0 : (opt.price || 0);
                 selectedOptions.push({
                   id: opt.id,
                   categoryId: cat.id,
@@ -750,7 +786,9 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
                   optionId: opt.id,
                   optionName: opt[`name${lang === 'pl' ? 'Pl' : 'Ru'}`] || opt.name,
                   name: opt[`name${lang === 'pl' ? 'Pl' : 'Ru'}`] || opt.name,
-                  price: opt.isGratis ? 0 : opt.price,
+                  unitPrice,
+                  quantity: qty,
+                  price: unitPrice * qty,
                   isGratis: !!opt.isGratis,
                   imageUrl: opt.imageUrl || cat.imageUrl || ''
                 });
@@ -1681,6 +1719,47 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
                                 +{option.price} {prices.currencySymbol}
                               </div>
                             ) : null}
+                            {/* Tile-mode quantity stepper for checkbox categories */}
+                            {category.inputType === 'checkbox' && isSelected && option.quantityEnabled && !option.isGratis && (() => {
+                              const rawSel = formData.selections[category.id]?.[option.id];
+                              const qty = Number.isInteger(rawSel) && rawSel > 0 ? rawSel : 1;
+                              return (
+                                <div
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="mt-2 flex items-center justify-center gap-1 border rounded-md bg-amber-50 px-1 py-0.5"
+                                  data-testid={`balia-qty-tile-${option.id}`}
+                                >
+                                  <button
+                                    type="button"
+                                    onClick={() => handleQuantityChange(category.id, option.id, qty - 1)}
+                                    disabled={qty <= 1}
+                                    className="w-5 h-5 inline-flex items-center justify-center text-amber-700 hover:bg-amber-100 disabled:opacity-30 rounded"
+                                    aria-label="−"
+                                  >−</button>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    max={option.maxQuantity || undefined}
+                                    value={qty}
+                                    onChange={(e) => handleQuantityChange(category.id, option.id, e.target.value)}
+                                    className="w-8 h-5 text-center text-xs bg-transparent border-0 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const next = qty + 1;
+                                      if (!option.maxQuantity || next <= option.maxQuantity) {
+                                        handleQuantityChange(category.id, option.id, next);
+                                      }
+                                    }}
+                                    disabled={!!option.maxQuantity && qty >= option.maxQuantity}
+                                    className="w-5 h-5 inline-flex items-center justify-center text-amber-700 hover:bg-amber-100 disabled:opacity-30 rounded"
+                                    aria-label="+"
+                                  >+</button>
+                                  <span className="text-[9px] text-amber-700">szt.</span>
+                                </div>
+                              );
+                            })()}
                           </div>
                         );
                       })}
@@ -1692,8 +1771,10 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
                         const optName = (option.namePl || option.name || '').toLowerCase();
                         return !optName.startsWith('bez ') && !optName.startsWith('без ');
                       }).map(option => {
-                        const isSelected = formData.selections[category.id]?.[option.id] || false;
+                        const rawSel = formData.selections[category.id]?.[option.id];
+                        const isSelected = !!rawSel;
                         const isGift = adminGifts.includes(option.id);
+                        const currentQty = Number.isInteger(rawSel) && rawSel > 0 ? rawSel : 1;
                         return (
                           <div key={option.id} className={`flex items-center gap-2 p-1 rounded ${isGift ? 'bg-emerald-50' : ''}`}>
                             {option.imageUrl && (
@@ -1726,10 +1807,56 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
                               ) : option.price > 0 ? (
                                 <span className={`ml-1 ${isGift ? 'line-through text-gray-400' : 'text-blue-600'}`}>
                                   +{option.price} {prices.currencySymbol}
+                                  {option.quantityEnabled && currentQty > 1 && (
+                                    <span className="ml-1 text-amber-700 font-semibold">
+                                      × {currentQty} = {option.price * currentQty} {prices.currencySymbol}
+                                    </span>
+                                  )}
                                 </span>
                               ) : null}
                               {isGift && !option.isGratis && <span className="text-emerald-600 font-medium ml-1">0 {prices.currencySymbol}</span>}
                             </Label>
+                            {/* Quantity stepper — visible only after the option is ticked AND admin enabled quantity */}
+                            {isSelected && option.quantityEnabled && !option.isGratis && (
+                              <div
+                                className="flex items-center gap-1 border rounded-md bg-amber-50 px-1 ml-2"
+                                data-testid={`balia-qty-wrap-${option.id}`}
+                              >
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.preventDefault(); handleQuantityChange(category.id, option.id, currentQty - 1); }}
+                                  disabled={currentQty <= 1}
+                                  className="w-6 h-6 inline-flex items-center justify-center text-amber-700 hover:bg-amber-100 disabled:opacity-30 rounded"
+                                  data-testid={`balia-qty-minus-${option.id}`}
+                                  aria-label="−"
+                                >−</button>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  max={option.maxQuantity || undefined}
+                                  value={currentQty}
+                                  onChange={(e) => handleQuantityChange(category.id, option.id, e.target.value)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="w-10 h-6 text-center text-sm bg-transparent border-0 focus:outline-none focus:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                  data-testid={`balia-qty-input-${option.id}`}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    const next = currentQty + 1;
+                                    if (!option.maxQuantity || next <= option.maxQuantity) {
+                                      handleQuantityChange(category.id, option.id, next);
+                                    }
+                                  }}
+                                  disabled={!!option.maxQuantity && currentQty >= option.maxQuantity}
+                                  className="w-6 h-6 inline-flex items-center justify-center text-amber-700 hover:bg-amber-100 disabled:opacity-30 rounded"
+                                  data-testid={`balia-qty-plus-${option.id}`}
+                                  aria-label="+"
+                                >+</button>
+                                <span className="text-[10px] text-amber-700 px-1">szt.</span>
+                              </div>
+                            )}
                             {/* Admin gift button - only in edit mode */}
                             {isAdminUser && isEditMode && isSelected && (
                               <Button
