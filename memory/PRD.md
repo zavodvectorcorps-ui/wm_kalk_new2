@@ -1168,3 +1168,48 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
 - **Fix (frontend, `ManagerEventsAnalytics.jsx`):** `fetchData` now forwards
   `dateFrom`/`dateTo` to `manager-stats` so live counts respect the filter.
 - ✅ Verified: 7/7 pytest checks via testing agent (iteration 100).
+
+### Manager Analytics — Binotel Live Source (DONE - Feb 27, 2026)
+- **Driver:** прошлая итерация (live-counts из `call_analytics_calls`) всё ещё
+  не давала корректных цифр, потому что коллекция заполняется только по
+  лидам с amoCRM-нотами. Решение — тянуть статистику напрямую из Binotel
+  API, где находится "источник правды" телефонии.
+- **New module `routes/binotel_analytics.py`:**
+  - `aggregate_by_employee(date_from, date_to)` — POST на
+    `/api/4.0/stats/incoming-calls-for-period.json` + outgoing, агрегирует
+    по `internalAdditionalData.employeeData.employeeID` (с fallback на
+    плоский `employeeID`/`companyEmployeeID`); считает `outgoing`,
+    `incoming`, `answered`, `missed`, `totalTalkSec`, `answeredTalkSec`,
+    `answerRate`, `avgTalkSec`.
+  - `aggregate_by_amocrm_user(date_from, date_to)` — применяет сохранённый
+    маппинг `binotel_user_mapping` (binotelEmployeeId → amocrmUserId)
+    и схлопывает несколько Binotel-сотрудников на одного менеджера amoCRM.
+  - Эндпоинты:
+    - `GET /api/lead-analytics/binotel/config` — есть ли credentials.
+    - `GET /api/lead-analytics/binotel/stats` — статы по amoCRM userId.
+    - `GET /api/lead-analytics/binotel/employees` — список Binotel
+      сотрудников за период (для UI маппинга).
+    - `GET/PUT /api/lead-analytics/binotel/mapping` — CRUD маппинга.
+    - `POST /api/lead-analytics/binotel/mapping/automap` — авто-маппинг
+      по совпадению токенов имени (≥2 общих токена или подмножество).
+    - `GET /api/lead-analytics/binotel/amocrm-users` — для дропдауна в UI.
+  - Storage: коллекция `binotel_user_mapping`
+    `{binotelEmployeeId, binotelEmployeeName, amocrmUserId, amocrmUserName}`.
+- **Integration (`manager_events_analytics.py`):**
+  - `GET /manager-stats`: после live-counts применяется Binotel overlay;
+    `outgoingCalls`/`incomingCalls`/`callsPerLead` заменяются на Binotel,
+    добавляются `binotelTotal`, `binotelAnswered`, `binotelMissed`,
+    `binotelAnswerRate`, `binotelAvgTalkSec`. Возвращается флаг
+    `binotelUsed: bool`.
+  - `GET /manager-detail/{user_id}`: то же + поле `binotelStats` в ответе
+    с раскладкой по сотруднику; `callKpi.total` берёт Binotel total.
+- **Frontend:**
+  - Новая колонка `% дозв.` и `Ср. длит.` в `ManagerTable`.
+  - Полоска `Binotel · телефония live` в `ManagerDetail` с 5 KPI
+    (всего, отвечено, пропущено, % дозвона, ср. длительность).
+  - Новый компонент `BinotelMappingDialog.jsx` с поиском, автомаппингом
+    и ручным выбором amoCRM-пользователя для каждого Binotel-сотрудника.
+  - Кнопка `Binotel ↔ amoCRM` в шапке Manager Analytics (видна только
+    когда `binotelConfigured=true`).
+- **Тесты:** 13/13 новых + 7/7 регрессионных pytest (iteration 101).
+
