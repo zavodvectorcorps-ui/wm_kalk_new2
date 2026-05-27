@@ -81,29 +81,68 @@ async def _fetch_period(start_ts: int, end_ts: int, direction: str) -> List[dict
 # ─────────────────────────── Field extraction ───────────────────────────
 
 def _extract_employee(call: dict) -> tuple[str, str]:
-    """Return (employeeID, employeeName) — defensive against schema drift."""
-    # Newer schema: internalAdditionalData.employeeData
-    iad = call.get("internalAdditionalData") or {}
-    emp = iad.get("employeeData") if isinstance(iad, dict) else None
-    if isinstance(emp, dict):
-        eid = emp.get("employeeID") or emp.get("employeeId")
-        name = emp.get("employeeName") or emp.get("name") or ""
+    """Return (employeeID, employeeName) — defensive against schema drift.
+
+    Real Binotel responses store the answering operator at the top level as
+    ``employeeData`` (dict with ``name`` + ``email`` — no numeric ID), e.g.::
+
+        "employeeData": {"name": "Viyaleta WM-sauna ПК",
+                          "email": "wmsauna10+1@gmail.com"}
+
+    For unanswered calls the field is an empty list ``[]``. We also look in
+    ``historyData[*].employeeData`` because the answering operator can be in
+    a later history entry (e.g. queue → ring → answer). For mapping
+    purposes we use ``email`` as the stable ID (falling back to name).
+    """
+    def _parse_emp_dict(emp) -> tuple[str, str]:
+        if not isinstance(emp, dict) or not emp:
+            return ("", "")
+        # Prefer explicit numeric employeeID when present.
+        eid = (
+            emp.get("employeeID") or emp.get("employeeId")
+            or emp.get("id") or emp.get("email") or emp.get("name") or ""
+        )
+        name = emp.get("employeeName") or emp.get("name") or emp.get("email") or ""
         if eid:
             return (str(eid), str(name))
-    # Older / flat schema
-    eid = call.get("employeeID") or call.get("employeeId") or call.get("companyEmployeeID")
-    name = call.get("employeeName") or call.get("employee_name") or ""
+        return ("", "")
+
+    # 1. Top-level employeeData (most common in real Binotel responses)
+    eid, name = _parse_emp_dict(call.get("employeeData"))
     if eid:
+        return (eid, name)
+
+    # 2. Older nested schema: internalAdditionalData.employeeData
+    iad = call.get("internalAdditionalData") or {}
+    if isinstance(iad, dict):
+        eid, name = _parse_emp_dict(iad.get("employeeData"))
+        if eid:
+            return (eid, name)
+
+    # 3. Flat schema (legacy)
+    eid = call.get("employeeID") or call.get("employeeId") or call.get("companyEmployeeID")
+    if eid:
+        name = call.get("employeeName") or call.get("employee_name") or ""
         return (str(eid), str(name))
-    # `employees` array (some setups)
+
+    # 4. ``employees`` array (some setups)
     emps = call.get("employees") or []
-    if isinstance(emps, list) and emps:
-        first = emps[0]
-        if isinstance(first, dict):
-            eid = first.get("employeeID") or first.get("id")
-            name = first.get("employeeName") or first.get("name") or ""
+    if isinstance(emps, list) and emps and isinstance(emps[0], dict):
+        eid, name = _parse_emp_dict(emps[0])
+        if eid:
+            return (eid, name)
+
+    # 5. historyData[*].employeeData — answering operator may live here when
+    # the call passed through a queue/IVR before being picked up.
+    hd = call.get("historyData") or []
+    if isinstance(hd, list):
+        for h in hd:
+            if not isinstance(h, dict):
+                continue
+            eid, name = _parse_emp_dict(h.get("employeeData"))
             if eid:
-                return (str(eid), str(name))
+                return (eid, name)
+
     return ("", "")
 
 

@@ -1515,3 +1515,29 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
   возвращает HTTP 200, `updated:0, unchanged:18, skipped:13`.
 - **Action для пользователя:** задеплоить на Production
   (`wm-kalkulator.pl`), иначе ошибка не исчезнет.
+
+
+### 🔴 P0: Маппинг Binotel ↔ amoCRM не подтягивал сотрудников
+- **Симптом:** в модалке «Сопоставление Binotel ↔ amoCRM» —
+  «Сопоставлено: 0/0», «Нет сотрудников Binotel в этот период»,
+  хотя за выбранный диапазон есть сотни звонков.
+- **Root cause:** функция `_extract_employee` в
+  `routes/binotel_analytics.py` искала employee в нескольких
+  местах, **но не в `call.employeeData` верхнего уровня** — а
+  именно так реальный Binotel API отдаёт данные. Реальная
+  схема:
+  ```json
+  "employeeData": {"name": "Viyaleta WM-sauna ПК",
+                    "email": "wmsauna10+1@gmail.com"}
+  ```
+  Причём поля `employeeID` нет вовсе — есть только `name` + `email`.
+- **Fix:** переписана `_extract_employee` — добавлен приоритетный
+  парсинг top-level `employeeData`, fallback на `historyData[*]`
+  (для звонков через очередь/IVR), и в качестве `binotelEmployeeId`
+  используется `email` (стабильный уникальный идентификатор), а
+  если нет — `name`.
+- **Verified (Preview, 2026-05-11 → 2026-05-27):**
+  `/api/lead-analytics/binotel/employees` возвращает 6 сотрудников
+  с правильными именами и звонками (Vlada — 625, Viyaleta — 446,
+  Andrzej — 321 и т.д.). Автомаппинг сработает по совпадению имён.
+- **Action для пользователя:** задеплоить на Production.
