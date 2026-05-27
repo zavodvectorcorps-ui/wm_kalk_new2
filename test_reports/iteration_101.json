@@ -1,0 +1,37 @@
+{
+  "summary": "Iteration 101 — Binotel Analytics integration tested end-to-end. Wrote 13 new tests covering: /config, /mapping (GET+PUT+dedup+idempotency), /employees, /stats, /mapping/automap, /amocrm-users, /events/manager-stats binotelUsed flag, and in-process aggregation via monkeypatch on _fetch_period (verifies employeeID/billsec/disposition extraction, incoming/outgoing split, answerRate, avgTalkSec, mapping → amoCRM userId). All 13/13 passed. Regression suite from iteration_100 (7 tests on live call_analytics_calls overlay) also re-run and 7/7 passed. binotel_user_mapping collection cleaned before & after run.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_binotel_analytics_iteration101.py",
+    "/app/backend/tests/test_manager_events_calls_live_iteration100.py",
+    "/app/test_reports/pytest/pytest_results_iteration101.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "binotel_analytics.py uses MappingItem.dict() — Pydantic V2 deprecates .dict() in favor of .model_dump(). Will keep working in Pydantic 2.x but emits warnings; consider migrating.",
+    "_fetch_period swallows ALL exceptions and returns [] — fine for resilience but masks misconfiguration. Consider surfacing a single warning counter for ops visibility.",
+    "automap endpoint: existing mapping is preserved for employees not seen in current period, but if an admin renames a Binotel employee, the stale binotelEmployeeName persists. Acceptable trade-off, just worth documenting.",
+    "aggregate_by_employee converts date_to via .replace(hour=23,...) only when hour & minute are both 0 — if a user passes '2026-01-31T01:00' it'll silently use 01:00 as upper bound which is probably surprising. Consider always extending to 23:59:59 unless explicit T-time provided with non-zero hour AND minute AND seconds.",
+    "_load_mapping returns ALL docs with str(amocrmUserId or '') — empty strings are kept in the mapping result dict but they're filtered out by aggregate_by_amocrm_user via `if not amo_uid: continue`. Works, but the dict could be slimmed at the source.",
+    "manager_events_analytics.py is 890 lines — already flagged in iteration_100 review; this iteration added ~50 lines of Binotel overlay code, pushing it further. Strongly consider splitting Binotel overlay logic into a helper module.",
+    "GET /binotel/employees raises HTTPException(400) when not configured but GET /binotel/stats returns {configured:false,...} for the same situation. Inconsistent — pick one pattern (the silent fallback is friendlier for the UI)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_binotel_analytics_iteration101.py (new)"
+  ],
+  "success_rate": {"backend": "100% (13/13 new + 7/7 regression)", "frontend": "n/a (skipped per request)"},
+  "test_credentials": "admin/admin123 — not used; binotel endpoints currently unauthenticated.",
+  "seed_data_creation": "Transient: 2 docs in binotel_user_mapping during test_aggregate_by_amocrm_user_uses_mapping (cleaned in finally). PUT /mapping wrote 2 docs which are deleted by the module-scoped cleanup_mapping fixture after the run. Verified collection is empty post-run.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Run `pytest backend/tests/test_binotel_analytics_iteration101.py -v` to retest. The test file self-cleans binotel_user_mapping (module-scoped fixture) and uses monkeypatch for in-process aggregation tests so it doesn't require external Binotel API reachability. BINOTEL_API_KEY/SECRET present in backend/.env means /config returns configured:true and /employees doesn't 400 — but the real Binotel API is unreachable from preview, so _fetch_period yields []. To force the unconfigured branch in HTTP tests, temporarily unset the env vars and restart backend.",
+  "rca of the issue": "N/A — this is a feature-addition iteration, not a bug fix. Verified that (a) configuration detection works via env vars, (b) mapping CRUD is idempotent and dedupes by binotelEmployeeId, (c) when Binotel is configured but returns 0 calls the overlay simply doesn't override snapshot values and binotelUsed=false, (d) automap and other endpoints return ≤4xx (never 5xx) even when downstream APIs are unreachable, (e) aggregation correctly splits incoming/outgoing, computes answerRate over total attempts, computes avgTalkSec over answered only, and respects the saved Binotel→amoCRM mapping."
+}

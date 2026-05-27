@@ -12,10 +12,11 @@ import {
   Users, RefreshCw, Loader2, Clock, ChevronLeft, CheckCircle, XCircle,
   AlertTriangle, TrendingUp, ExternalLink, Activity, Timer, Target, Zap,
   ArrowUpDown, Filter, BarChart3, MessageSquare, ListChecks, ArrowRight,
-  Settings, Star, Award, ChevronDown, ChevronUp
+  Settings, Star, Award, ChevronDown, ChevronUp, Phone
 } from 'lucide-react';
 
 import { getApiUrl } from '../utils/api';
+import BinotelMappingDialog from './BinotelMappingDialog';
 const API_URL = getApiUrl();
 
 const formatHours = (h) => {
@@ -92,6 +93,8 @@ const ManagerTable = ({ managers, loading, onSelectManager }) => {
               <th className="text-center py-3 px-2" title="Доля лидов, где менеджер вообще ничего не делал (бот сам двигал)">Auto-only</th>
               <th className="text-center py-3 px-2" title="Среднее количество ручных действий на лид">Дейст./лид</th>
               <th className="text-center py-3 px-2" title="Исходящих звонков на лид">Звон./лид</th>
+              <th className="text-center py-3 px-2" title="Доля отвеченных звонков из Binotel">% дозв.</th>
+              <th className="text-center py-3 px-2" title="Средняя длительность разговора (сек)">Ср. длит.</th>
               <th className="text-center py-3 px-2">Ср. реакция</th>
               <th className="text-center py-3 px-2">Проблемных</th>
               <th className="text-center py-3 px-2"></th>
@@ -170,6 +173,20 @@ const ManagerTable = ({ managers, loading, onSelectManager }) => {
                 <td className="text-center py-3 px-2">
                   <span className={`text-xs ${(m.callsPerLead || 0) < 0.3 ? 'text-red-600' : 'text-foreground'}`}>
                     {(m.callsPerLead || 0).toFixed(1)}
+                  </span>
+                </td>
+                <td className="text-center py-3 px-2">
+                  {m.binotelTotal != null ? (
+                    <span className={`text-xs font-medium ${(m.binotelAnswerRate || 0) >= 70 ? 'text-emerald-600' : (m.binotelAnswerRate || 0) >= 40 ? 'text-amber-600' : 'text-red-600'}`}>
+                      {(m.binotelAnswerRate || 0).toFixed(0)}%
+                    </span>
+                  ) : <span className="text-xs text-muted-foreground">—</span>}
+                </td>
+                <td className="text-center py-3 px-2">
+                  <span className="text-xs text-muted-foreground">
+                    {m.binotelAvgTalkSec
+                      ? `${Math.floor(m.binotelAvgTalkSec / 60)}:${String(m.binotelAvgTalkSec % 60).padStart(2, '0')}`
+                      : '—'}
                   </span>
                 </td>
                 <td className="text-center py-3 px-2">{formatHours(m.avgReactionHours)}</td>
@@ -327,6 +344,60 @@ const ManagerDetail = ({ manager, onBack, dateFrom, dateTo }) => {
           testId="qkpi-actions"
         />
       </div>
+
+      {/* Binotel call KPIs — visible only when overlay returned data */}
+      {detail?.binotelStats && (
+        <div className="rounded-lg border border-indigo-200 bg-indigo-50/40 p-3" data-testid="binotel-kpi-strip">
+          <div className="flex items-center gap-2 mb-2">
+            <Phone className="h-4 w-4 text-indigo-600" />
+            <span className="text-xs font-semibold uppercase tracking-wider text-indigo-700">
+              Binotel · телефония live
+            </span>
+            <span className="text-[10px] text-muted-foreground">
+              (источник: API)
+            </span>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+            <QualityKpi
+              label="Звонков всего"
+              value={detail.binotelStats.total || 0}
+              tone="neutral"
+              hint={`Исх: ${detail.binotelStats.outgoing} · Вх: ${detail.binotelStats.incoming}`}
+              testId="bkpi-total"
+            />
+            <QualityKpi
+              label="Отвечено"
+              value={detail.binotelStats.answered || 0}
+              tone="pos"
+              hint="Звонки с разговором >0 сек"
+              testId="bkpi-answered"
+            />
+            <QualityKpi
+              label="Пропущено"
+              value={detail.binotelStats.missed || 0}
+              tone={(detail.binotelStats.missed || 0) > (detail.binotelStats.answered || 0) ? 'neg' : 'warn'}
+              hint="Не дозвонились / занято / отменено"
+              testId="bkpi-missed"
+            />
+            <QualityKpi
+              label="% дозвона"
+              value={`${detail.binotelStats.answerRate || 0}%`}
+              tone={(detail.binotelStats.answerRate || 0) >= 70 ? 'pos' : (detail.binotelStats.answerRate || 0) >= 40 ? 'warn' : 'neg'}
+              hint="Доля отвеченных от всех"
+              testId="bkpi-rate"
+            />
+            <QualityKpi
+              label="Ср. длительность"
+              value={detail.binotelStats.avgTalkSec
+                ? `${Math.floor(detail.binotelStats.avgTalkSec / 60)}:${String(detail.binotelStats.avgTalkSec % 60).padStart(2, '0')}`
+                : '—'}
+              tone="neutral"
+              hint="Время разговора по отвеченным"
+              testId="bkpi-avg"
+            />
+          </div>
+        </div>
+      )}
 
       {/* AI analysis */}
       <Card className="border border-violet-200">
@@ -698,6 +769,8 @@ const ManagerEventsAnalytics = () => {
   const [saving, setSaving] = useState(false);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [showBinotelMapping, setShowBinotelMapping] = useState(false);
+  const [binotelConfigured, setBinotelConfigured] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -705,14 +778,16 @@ const ManagerEventsAnalytics = () => {
       const params = {};
       if (dateFrom) params.date_from = dateFrom;
       if (dateTo) params.date_to = dateTo;
-      const [mgrRes, statusRes, settingsRes] = await Promise.all([
+      const [mgrRes, statusRes, settingsRes, binotelCfg] = await Promise.all([
         axios.get(`${API_URL}/api/lead-analytics/events/manager-stats`, { params }),
         axios.get(`${API_URL}/api/lead-analytics/events/sync-status`),
         axios.get(`${API_URL}/api/lead-analytics/events/settings`),
+        axios.get(`${API_URL}/api/lead-analytics/binotel/config`).catch(() => ({ data: { configured: false } })),
       ]);
       setManagers(mgrRes.data.managers || []);
       setSyncStatus(statusRes.data);
       setSettings(settingsRes.data);
+      setBinotelConfigured(!!binotelCfg.data?.configured);
     } catch (e) {
       console.error('Error fetching event analytics:', e);
     } finally { setLoading(false); }
@@ -785,12 +860,31 @@ const ManagerEventsAnalytics = () => {
           <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="w-36 h-9" />
           <span className="text-muted-foreground">—</span>
           <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="w-36 h-9" />
+          {binotelConfigured && (
+            <Button
+              onClick={() => setShowBinotelMapping(true)}
+              size="sm"
+              variant="outline"
+              className="border-indigo-300 text-indigo-700 hover:bg-indigo-50"
+              data-testid="binotel-mapping-open"
+            >
+              <Phone className="h-4 w-4 mr-1" />
+              Binotel ↔ amoCRM
+            </Button>
+          )}
           <Button onClick={handleSync} disabled={syncing} size="sm">
             {syncing ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <RefreshCw className="h-4 w-4 mr-1" />}
             Синхронизировать
           </Button>
         </div>
       </div>
+
+      <BinotelMappingDialog
+        open={showBinotelMapping}
+        onClose={() => { setShowBinotelMapping(false); fetchData(); }}
+        dateFrom={dateFrom}
+        dateTo={dateTo}
+      />
 
       <div className="flex gap-1 border-b">
         {tabs.map(tab => {

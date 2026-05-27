@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from database import db
 from routes.amocrm import get_amocrm_settings
 from routes.lead_analytics import _amo_get, _fetch_all_pages
+from routes.binotel_analytics import aggregate_by_amocrm_user as _binotel_by_amocrm_user, _is_configured as _binotel_is_configured
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/lead-analytics/events", tags=["Manager Events Analytics"])
@@ -565,7 +566,44 @@ async def get_event_manager_stats(date_from: str = None, date_to: str = None):
             if total_leads > 0:
                 m["callsPerLead"] = round(m["outgoingCalls"] / total_leads, 2)
 
-    return {"managers": managers, "sync_id": sync_id}
+    # Binotel is the authoritative source for call counts when configured.
+    # Overlay (replacing earlier estimates) so the UI shows live phone-system
+    # data instead of an amoCRM-note-derived snapshot.
+    binotel_used = False
+    if _binotel_is_configured():
+        try:
+            bino = await _binotel_by_amocrm_user(df, dt)
+            if bino:
+                binotel_used = True
+                for m in managers:
+                    uid = str(m.get("userId", ""))
+                    bs = bino.get(uid)
+                    if not bs:
+                        # Mapped users with no calls in period still get zeros.
+                        m["binotelTotal"] = 0
+                        m["binotelOutgoing"] = 0
+                        m["binotelIncoming"] = 0
+                        m["binotelAnswered"] = 0
+                        m["binotelMissed"] = 0
+                        m["binotelAnswerRate"] = 0
+                        m["binotelAvgTalkSec"] = 0
+                        continue
+                    m["outgoingCalls"] = bs["outgoing"]
+                    m["incomingCalls"] = bs["incoming"]
+                    m["binotelTotal"] = bs["total"]
+                    m["binotelOutgoing"] = bs["outgoing"]
+                    m["binotelIncoming"] = bs["incoming"]
+                    m["binotelAnswered"] = bs["answered"]
+                    m["binotelMissed"] = bs["missed"]
+                    m["binotelAnswerRate"] = bs["answerRate"]
+                    m["binotelAvgTalkSec"] = bs["avgTalkSec"]
+                    total_leads = m.get("totalLeads") or 0
+                    if total_leads > 0:
+                        m["callsPerLead"] = round(bs["outgoing"] / total_leads, 2)
+        except Exception as e:
+            logger.warning(f"Binotel overlay failed (non-fatal): {e}")
+
+    return {"managers": managers, "sync_id": sync_id, "binotelUsed": binotel_used}
 
 
 @router.get("/manager-detail/{user_id}")
@@ -678,6 +716,34 @@ async def get_manager_detail(user_id: str, date_from: str = None, date_to: str =
             if total_leads > 0:
                 stats["callsPerLead"] = round(stats["outgoingCalls"] / total_leads, 2)
 
+    # Binotel overlay — authoritative when configured.
+    binotel_stats = None
+    if _binotel_is_configured():
+        try:
+            bino = await _binotel_by_amocrm_user(date_from, date_to)
+            bs = bino.get(str(user_id))
+            if bs:
+                binotel_stats = bs
+                if stats:
+                    stats["outgoingCalls"] = bs["outgoing"]
+                    stats["incomingCalls"] = bs["incoming"]
+                    stats["binotelTotal"] = bs["total"]
+                    stats["binotelAnswered"] = bs["answered"]
+                    stats["binotelMissed"] = bs["missed"]
+                    stats["binotelAnswerRate"] = bs["answerRate"]
+                    stats["binotelAvgTalkSec"] = bs["avgTalkSec"]
+                    total_leads = stats.get("totalLeads") or 0
+                    if total_leads > 0:
+                        stats["callsPerLead"] = round(bs["outgoing"] / total_leads, 2)
+                # Promote Binotel totals into the call KPI panel
+                call_kpi["total"] = bs["total"]
+                call_kpi["binotelAnswered"] = bs["answered"]
+                call_kpi["binotelMissed"] = bs["missed"]
+                call_kpi["binotelAnswerRate"] = bs["answerRate"]
+                call_kpi["binotelAvgTalkSec"] = bs["avgTalkSec"]
+        except Exception as e:
+            logger.warning(f"Binotel detail overlay failed: {e}")
+
     return {
         "stats": stats,
         "events": events[:200],
@@ -690,6 +756,7 @@ async def get_manager_detail(user_id: str, date_from: str = None, date_to: str =
         "autoOnlyLeads": auto_only_leads[:50],
         "recentCalls": recent_calls,
         "callKpi": call_kpi,
+        "binotelStats": binotel_stats,
     }
 
 
