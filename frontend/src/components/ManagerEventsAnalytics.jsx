@@ -788,6 +788,31 @@ const ManagerEventsAnalytics = () => {
       setSyncStatus(statusRes.data);
       setSettings(settingsRes.data);
       setBinotelConfigured(!!binotelCfg.data?.configured);
+      // Auto-resume the polling banner if a sync was started elsewhere and is
+      // still running on the backend.
+      if (statusRes.data?.status === 'running') {
+        setSyncing(s => {
+          if (s) return s;
+          const poll = setInterval(async () => {
+            try {
+              const r = await axios.get(`${API_URL}/api/lead-analytics/events/sync-status`);
+              setSyncStatus(r.data);
+              if (r.data.status !== 'running') {
+                clearInterval(poll);
+                setSyncing(false);
+                if (r.data.status === 'completed') {
+                  toast.success(`Синхронизировано: ${r.data.eventsProcessed} событий`);
+                  const mgr = await axios.get(`${API_URL}/api/lead-analytics/events/manager-stats`);
+                  setManagers(mgr.data.managers || []);
+                } else if (r.data.status === 'error') {
+                  toast.error('Синхронизация остановлена: ' + (r.data.error || 'ошибка'));
+                }
+              }
+            } catch (_) { /* keep polling */ }
+          }, 3000);
+          return true;
+        });
+      }
     } catch (e) {
       console.error('Error fetching event analytics:', e);
     } finally { setLoading(false); }
@@ -804,22 +829,38 @@ const ManagerEventsAnalytics = () => {
       await axios.post(`${API_URL}/api/lead-analytics/events/sync`, null, { params });
       toast.success('Синхронизация событий запущена');
       const poll = setInterval(async () => {
-        const res = await axios.get(`${API_URL}/api/lead-analytics/events/sync-status`);
-        setSyncStatus(res.data);
-        if (res.data.status !== 'running') {
-          clearInterval(poll);
-          setSyncing(false);
-          if (res.data.status === 'completed') {
-            toast.success(`Синхронизировано: ${res.data.eventsProcessed} событий`);
-            fetchData();
-          } else {
-            toast.error('Ошибка синхронизации');
+        try {
+          const res = await axios.get(`${API_URL}/api/lead-analytics/events/sync-status`);
+          setSyncStatus(res.data);
+          if (res.data.status !== 'running') {
+            clearInterval(poll);
+            setSyncing(false);
+            if (res.data.status === 'completed') {
+              toast.success(`Синхронизировано: ${res.data.eventsProcessed} событий`);
+              fetchData();
+            } else {
+              toast.error('Синхронизация остановлена: ' + (res.data.error || 'ошибка'));
+            }
           }
+        } catch (e) {
+          // network blip — keep polling
         }
       }, 3000);
     } catch (e) {
       toast.error(e.response?.data?.detail || 'Ошибка');
       setSyncing(false);
+    }
+  };
+
+  const handleCancelSync = async () => {
+    try {
+      await axios.post(`${API_URL}/api/lead-analytics/events/sync/cancel`);
+      toast.success('Синхронизация отменена');
+      setSyncing(false);
+      const res = await axios.get(`${API_URL}/api/lead-analytics/events/sync-status`);
+      setSyncStatus(res.data);
+    } catch (e) {
+      toast.error('Не удалось отменить: ' + (e.response?.data?.detail || e.message));
     }
   };
 
@@ -850,9 +891,29 @@ const ManagerEventsAnalytics = () => {
             Статистика менеджеров (по событиям)
           </h2>
           {syncStatus && syncStatus.status !== 'never' && (
-            <p className="text-xs text-muted-foreground mt-1">
-              Последняя синхронизация: {syncStatus.completedAt ? new Date(syncStatus.completedAt).toLocaleString('ru-RU') : 'в процессе'}
-              {syncStatus.eventsProcessed != null && ` (${syncStatus.eventsProcessed} событий)`}
+            <p className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
+              {syncStatus.status === 'running' ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin text-indigo-600" />
+                  <span className="text-indigo-700">Синхронизация: {syncStatus.progress || 'в процессе…'}</span>
+                  <button
+                    onClick={handleCancelSync}
+                    className="text-red-600 hover:underline ml-1"
+                    data-testid="cancel-sync-btn"
+                  >
+                    отменить
+                  </button>
+                </>
+              ) : syncStatus.status === 'error' ? (
+                <span className="text-red-600">
+                  Ошибка синхронизации: {syncStatus.error || 'неизвестно'}
+                </span>
+              ) : (
+                <>
+                  Последняя синхронизация: {syncStatus.completedAt ? new Date(syncStatus.completedAt).toLocaleString('ru-RU') : '—'}
+                  {syncStatus.eventsProcessed != null && ` (${syncStatus.eventsProcessed} событий)`}
+                </>
+              )}
             </p>
           )}
         </div>

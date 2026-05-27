@@ -156,11 +156,21 @@ def _normalize_event(ev: dict, user_map: dict) -> dict:
 async def start_events_sync(background_tasks: BackgroundTasks,
                               date_from: str = None, date_to: str = None):
     """Start background sync of events from amoCRM."""
+    # Auto-cancel any stale running sync so the user can always restart.
+    await db.event_analytics_sync.update_many(
+        {"status": "running"},
+        {"$set": {
+            "status": "error",
+            "error": "Заменено новой синхронизацией",
+            "completedAt": datetime.now(timezone.utc).isoformat(),
+        }}
+    )
     sync_id = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     await db.event_analytics_sync.insert_one({
         "sync_id": sync_id, "status": "running",
         "startedAt": datetime.now(timezone.utc).isoformat(),
-        "date_from": date_from, "date_to": date_to
+        "date_from": date_from, "date_to": date_to,
+        "progress": "Запуск…",
     })
     background_tasks.add_task(_run_events_sync, sync_id, date_from, date_to)
     return {"status": "started", "sync_id": sync_id}
@@ -169,16 +179,62 @@ async def start_events_sync(background_tasks: BackgroundTasks,
 @router.get("/sync-status")
 async def get_events_sync_status():
     status = await db.event_analytics_sync.find_one({}, {"_id": 0}, sort=[("startedAt", -1)])
-    return status or {"status": "never"}
+    if not status:
+        return {"status": "never"}
+    # Auto-recover stale "running" syncs — if the backend was restarted (or the
+    # task crashed silently) the doc would otherwise stay "running" forever and
+    # block the user from kicking off a fresh sync.
+    if status.get("status") == "running":
+        started_at = status.get("startedAt")
+        try:
+            started_dt = datetime.fromisoformat(started_at) if started_at else None
+        except Exception:
+            started_dt = None
+        if started_dt:
+            age_min = (datetime.now(timezone.utc) - started_dt).total_seconds() / 60
+            if age_min > 15:  # 15 min is more than enough for a normal sync
+                await db.event_analytics_sync.update_one(
+                    {"sync_id": status["sync_id"]},
+                    {"$set": {
+                        "status": "error",
+                        "error": f"Sync stuck >{int(age_min)} min — auto-marked as error. Перезапустите.",
+                        "completedAt": datetime.now(timezone.utc).isoformat(),
+                    }}
+                )
+                status["status"] = "error"
+                status["error"] = "Sync stuck — auto-marked as error. Запустите синхронизацию заново."
+    return status
+
+
+@router.post("/sync/cancel")
+async def cancel_running_sync():
+    """Mark any currently-running sync as cancelled so a new one can start."""
+    res = await db.event_analytics_sync.update_many(
+        {"status": "running"},
+        {"$set": {
+            "status": "error",
+            "error": "Отменено пользователем",
+            "completedAt": datetime.now(timezone.utc).isoformat(),
+        }}
+    )
+    return {"cancelled": res.modified_count}
 
 
 async def _run_events_sync(sync_id: str, date_from_str: str = None, date_to_str: str = None):
     """Background: fetch events, normalize, store, compute stats."""
+    async def _set_progress(text: str):
+        try:
+            await db.event_analytics_sync.update_one(
+                {"sync_id": sync_id}, {"$set": {"progress": text}}
+            )
+        except Exception:
+            pass
     try:
         ts_from = int(datetime.fromisoformat(date_from_str).timestamp()) if date_from_str else None
         ts_to = int(datetime.fromisoformat(date_to_str).timestamp()) if date_to_str else None
 
         # Fetch users
+        await _set_progress("Загрузка пользователей amoCRM…")
         users_data = await _amo_get("/api/v4/users")
         user_map = {}
         if users_data:
@@ -186,8 +242,10 @@ async def _run_events_sync(sync_id: str, date_from_str: str = None, date_to_str:
                 user_map[str(u["id"])] = u.get("name", f"User {u['id']}")
 
         # Fetch all events for the period
+        await _set_progress("Загрузка событий из amoCRM…")
         events = await _fetch_events_batch(ts_from, ts_to)
         logger.info(f"Events sync {sync_id}: fetched {len(events)} events")
+        await _set_progress(f"Получено {len(events)} событий, сохранение…")
 
         # Normalize and store
         stored = 0
@@ -200,8 +258,11 @@ async def _run_events_sync(sync_id: str, date_from_str: str = None, date_to_str:
                 upsert=True
             )
             stored += 1
+            if stored % 500 == 0:
+                await _set_progress(f"Сохранено {stored}/{len(events)} событий…")
 
         # Compute manager stats from events
+        await _set_progress("Расчёт статистики по менеджерам…")
         await _compute_event_manager_stats(sync_id, ts_from, ts_to, user_map)
 
         await db.event_analytics_sync.update_one(
@@ -209,7 +270,8 @@ async def _run_events_sync(sync_id: str, date_from_str: str = None, date_to_str:
             {"$set": {
                 "status": "completed",
                 "completedAt": datetime.now(timezone.utc).isoformat(),
-                "eventsProcessed": stored
+                "eventsProcessed": stored,
+                "progress": f"Готово · {stored} событий",
             }}
         )
         logger.info(f"Events sync {sync_id}: completed, {stored} events stored")
@@ -218,7 +280,8 @@ async def _run_events_sync(sync_id: str, date_from_str: str = None, date_to_str:
         await db.event_analytics_sync.update_one(
             {"sync_id": sync_id},
             {"$set": {"status": "error", "error": str(e),
-                       "completedAt": datetime.now(timezone.utc).isoformat()}}
+                       "completedAt": datetime.now(timezone.utc).isoformat(),
+                       "progress": f"Ошибка: {str(e)[:200]}"}}
         )
 
 
@@ -280,6 +343,20 @@ async def _compute_event_manager_stats(sync_id: str, ts_from: int = None, ts_to:
     all_managers = set(mgr_events.keys()) | set(leads_by_manager.keys())
     if user_map is None:
         user_map = {}
+
+    # Apply bot exclusion + (optional) manager whitelist from lead_analytics
+    # settings so we don't waste compute or DB space on bot accounts.
+    la_settings = await db.lead_analytics_settings.find_one(
+        {"type": "lead_analytics"}, {"_id": 0}
+    ) or {}
+    bot_ids = {str(x) for x in (la_settings.get("botUserIds") or [])}
+    bot_ids.update({"0", "", "None", "unknown"})
+    manager_whitelist = {str(x) for x in (la_settings.get("managerUserIds") or [])}
+    all_managers = {
+        uid for uid in all_managers
+        if str(uid) not in bot_ids
+        and (not manager_whitelist or str(uid) in manager_whitelist)
+    }
 
     # Pre-fetch authoritative call counts per manager from call_analytics_calls
     # — note-based counts in lead_analytics miss Binotel-only calls and calls
@@ -548,7 +625,31 @@ async def get_event_manager_stats(date_from: str = None, date_to: str = None):
     sync_id = last_sync.get("sync_id")
     managers = await db.event_manager_stats.find(
         {"sync_id": sync_id}, {"_id": 0}
-    ).sort("rank", 1).to_list(length=100)
+    ).sort("rank", 1).to_list(length=200)
+
+    # Filter out bot accounts and (when configured) restrict to known managers.
+    # Both lists live in lead_analytics settings — single source of truth.
+    la_settings = await db.lead_analytics_settings.find_one(
+        {"type": "lead_analytics"}, {"_id": 0}
+    ) or {}
+    bot_ids = {str(x) for x in (la_settings.get("botUserIds") or [])}
+    manager_ids = {str(x) for x in (la_settings.get("managerUserIds") or [])}
+    # Always hide synthetic "ID:0" / unknown bucket — that's amoCRM bot events
+    # without a real user.
+    bot_ids.update({"0", "", "None"})
+
+    def _keep(m: dict) -> bool:
+        uid = str(m.get("userId", ""))
+        if uid in bot_ids:
+            return False
+        if manager_ids and uid not in manager_ids:
+            return False
+        return True
+
+    managers = [m for m in managers if _keep(m)]
+    # Re-rank after filtering so the UI numbering matches what's visible.
+    for i, m in enumerate(managers):
+        m["rank"] = i + 1
 
     # Use the sync's own date range so call counts match the analyzed period.
     df = date_from or last_sync.get("date_from")

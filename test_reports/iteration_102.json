@@ -1,0 +1,36 @@
+{
+  "summary": "Iteration 102 — Bot filtering + stale-sync auto-recovery in Manager Events Analytics tested end-to-end. Wrote 10 new pytest cases: (1) bots in botUserIds + synthetic '0' filtered AND managerUserIds whitelist applied AND remaining managers re-ranked sequentially from 1; (2) synthetic '0' filtered even when botUserIds is empty; (3) empty whitelist keeps all non-bot managers; (4) stale running sync (>15 min old) auto-marked 'error' both in response AND in DB by GET /sync-status; (5) fresh running sync (<15 min) NOT touched; (6) POST /sync marks any existing running doc as error='Заменено новой синхронизацией' and inserts new doc with progress='Запуск…'; (7) POST /sync/cancel marks ALL running docs as error='Отменено пользователем' and returns cancelled count; (8) cancel returns 0 when nothing running; (9-10) regression: /manager-stats still returns 200 with managers[] + sync_id + binotelUsed shape from iter 101, /sync-status reachable. All 10/10 new pass. Iteration 100 regression (7 tests) + iteration 101 regression (13 tests) re-run together — 20/20 also pass. Total: 30/30.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_manager_events_filter_and_recovery_iteration102.py",
+    "/app/test_reports/pytest/pytest_results_iteration102.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "manager_events_analytics.py has grown to ~990 lines — repeatedly flagged in iter 100/101. The new filter logic is duplicated: get_event_manager_stats (lines 632-649) AND _compute_event_manager_stats (lines 349-359) each read lead_analytics_settings and build the same bot_ids/manager_whitelist sets. Extract into a single helper `_load_bot_and_manager_filters() -> tuple[set, set]`.",
+    "Stale-sync threshold is hardcoded to 15 minutes in get_events_sync_status (line 195). Consider exposing as a setting or module constant STALE_SYNC_MINUTES = 15 for testability/configurability.",
+    "get_events_sync_status: when startedAt is unparsable (try/except sets started_dt=None), the running doc silently stays 'running' forever — which is exactly the bug being fixed. Suggest logger.warning and/or treating unparsable startedAt as stale.",
+    "POST /sync auto-cancels existing running docs but the background task launched by the cancelled sync_id KEEPS running and will eventually overwrite the doc back to status='completed' (via update_one on sync_id). The new fix masks the symptom but doesn't actually stop the in-flight task. Acceptable for the 'restart after crash' case but worth documenting; for the 'cancel a live sync' case the cancellation is cosmetic.",
+    "_set_progress swallows ALL exceptions silently (line 230) — if Mongo is down the user gets no progress updates AND no error logged. At minimum logger.debug the exception.",
+    "GET /sync-status response field name mismatch on auto-recover: DB gets error='Sync stuck >N min — auto-marked as error. Перезапустите.' but the response gets error='Sync stuck — auto-marked as error. Запустите синхронизацию заново.' — two different strings for the same event. The frontend will see one, the DB the other. Pick one.",
+    "Cancel endpoint has no auth requirement — any unauthenticated POST can cancel a running sync. Consider adding the same admin check that protects sensitive operations elsewhere in the codebase (most other lead-analytics endpoints appear similarly unauthenticated, but worth confirming consistency)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_manager_events_filter_and_recovery_iteration102.py (new)"
+  ],
+  "success_rate": {"backend": "100% (10/10 new + 20/20 regression from iter 100+101)", "frontend": "n/a (skipped per request)"},
+  "test_credentials": "admin/admin123 — not used; tested endpoints are currently unauthenticated.",
+  "seed_data_creation": "Transient inside each test: docs in lead_analytics_settings (type='lead_analytics' with _test_marker), event_analytics_sync (sync_id prefix 'TEST_ITER102_' and _test=True), event_manager_stats (_test=True). Module-scoped cleanup fixture removes all of them before AND after the run. Verified no residual TEST_ITER102_ documents remain post-run.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Run `pytest backend/tests/test_manager_events_filter_and_recovery_iteration102.py -v` to retest the iter 102 fixes. The file self-cleans via a module-scoped autouse fixture. BASE_URL is auto-discovered from /app/frontend/.env (REACT_APP_BACKEND_URL) so it works whether or not the env var is exported. The tests do NOT mock the background sync task — POST /sync inserts a real doc and kicks off the real background task; cleanup afterwards is safe because the task only updates docs by its own sync_id (and we delete those by prefix). For iter 100+101 regression: `pytest backend/tests/test_manager_events_calls_live_iteration100.py backend/tests/test_binotel_analytics_iteration101.py -v` still 20/20.",
+  "rca of the issue": "N/A — feature/bug-fix verification only. Verified both fixes work as documented: (a) READ-time filter in /manager-stats correctly drops bot userIds + synthetic '0' + entries outside managerUserIds whitelist, then re-numbers `rank` 1..N. (b) GET /sync-status correctly detects startedAt > 15 min ago and atomically updates the doc to status='error' AND returns the recovered status in the response. (c) POST /sync auto-cancel of stale running docs works (error='Заменено новой синхронизацией'). (d) POST /sync/cancel correctly bulk-marks all running docs and returns modified_count."
+}
