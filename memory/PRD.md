@@ -1316,3 +1316,30 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
 - **Verified:** Node REPL подтвердил корректность для разных часов
   (6 UTC → 08:00 Варшава CEST = UTC+2, 22 UTC → 00:00 след. день).
 
+
+
+### Planner — раздел «Закупки» (Procurement) (DONE - Feb 27, 2026)
+- **Driver:** Пользователь попросил раздел Закупок в Планнере,
+  связанный с каталогом `sauna_components`, с авто-Telegram уведомлениями.
+- **Backend (`routes/procurement.py`, новый):**
+  - Коллекция `procurement_requests`: id, title, componentId, componentName,
+    quantity, unitPrice, totalPrice, supplier, status, priority, dueDate,
+    assignee*, reminderDaysBefore, notifyTelegram, notifications{created,
+    reminder, overdue}.
+  - Endpoints: GET/POST /components (+ quick-create), GET/POST/PUT/DELETE
+    /requests, GET /stats, POST /notifications/run.
+  - Авто-подстановка `unitPrice`/`supplier` из `sauna_components`,
+    пересчёт `totalPrice` при PUT, сброс notification флагов при сдвиге
+    `dueDate` в будущее, `isOverdue` декорация на READ-time.
+- **Scheduler:** `run_procurement_notifications()` в существующем
+  `manager_analytics_daily_scheduler` с дедупом `lastProcurementNotifDate`.
+  Идемпотентность — флаги ставятся unconditionally чтобы не было повторов
+  после добавления TG creds.
+- **Frontend (`planner/ProcurementTab.jsx`, новый):**
+  - 5 KPI плиток (Всего, Просрочено, Скоро 7 дн, Получено, Сумма открытых).
+  - ComponentPicker с поиском и `+ Создать новое` inline.
+  - RequestDialog — авто-подстановка цены, live total, dueDate, reminder
+    days, TG-toggle.
+  - Красная подсветка просроченных строк.
+- **PlannerPage:** новый таб `Закупки` (ShoppingCart icon).
+- **Тесты:** ✅ 16/17 backend pytest (iteration 104).

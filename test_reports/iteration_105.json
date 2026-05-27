@@ -1,0 +1,31 @@
+{
+  "summary": "Backend testing of multi-line procurement requests (/api/procurement/*) — 16/16 PASSED. All target scenarios verified: multi-line create with items[], catalog auto-fill (name/category/unit/unitPrice), supplier auto-fill from first component, empty items[] fallback to legacy, manual items without componentId, legacy single-line still works, PUT replaces items+recomputes totalPrice (clears single-line scalars), PUT without items preserves existing multi-line, PUT legacy single-line recomputes via qty*price, GET returns both shapes with isOverdue decoration, multi-line Telegram HTML format includes positions list + Итого, single-line keeps Кол-во format, regression on /stats, /components, /components/quick-create.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "PUT /api/procurement/requests/{id}", "issue": "When `items` is included but empty list ([]) in PUT body, body.model_dump(exclude_unset=True) keeps key, but update dict filters out `None` only — `items=[]` is kept and would replace existing items with []. This is the documented behavior, but FE should never PATCH-style send items=[] when intending to keep existing. No bug — flagged for awareness."}
+    ]
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_procurement_multiline.py",
+    "/app/backend/tests/test_procurement.py",
+    "/app/test_reports/pytest/pytest_iter105.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "_normalize_items autofill: per-line unit/category/name fallback only fills when body value is empty string/None — correct. unitPrice is only autofilled when `not float(line.get('unitPrice') or 0)` — meaning 0.0 is treated as 'empty'. FE should be aware: if user intentionally sets price=0, catalog price will override.",
+    "PUT branch: `if 'items' in update` triggers only when client explicitly sent the key (exclude_unset=True). Sending `items: null` is filtered by `v is not None` guard — preserves existing items (good). Sending `items: []` replaces with empty list AND clears single-line scalars only when norm_items is truthy — so empty items array leaves quantity/unitPrice untouched but totalPrice becomes 0. Slight inconsistency: legacy single-line recompute is in the else-branch, so PUT items=[] will NOT recompute totalPrice from qty/price (sets it to 0). FE should avoid sending items=[] for legacy update.",
+    "create_request multi-line: doc.componentId set to None, but componentName/category/unit set to empty strings — list_requests sort key uses dueDate fallback ok. No effect on isOverdue.",
+    "Telegram multi-line message truncates at 10 lines and adds '… и ещё N поз.' — good. Each line uses {price:.2f} which works for ints/floats. ",
+    "Idempotency notifications.created flag set only on TG send — in preview without TG creds, multi-line creates flag stays False. Same caveat as iteration_104 — flag attempts vs flag success trade-off."
+  ],
+  "updated_files": ["/app/backend/tests/test_procurement_multiline.py"],
+  "success_rate": {"backend": "100% (16/16)", "frontend": "not tested (backend-only request)"},
+  "test_credentials": "Admin: admin/admin123 (preview).",
+  "seed_data_creation": "Tests create TEST_-prefixed procurement_requests and TEST_MULTI_/TEST_REG_ sauna_components; teardown deletes requests via DELETE endpoint. Leftover TEST_ components (no public DELETE endpoint) cleaned via direct Mongo after run. Verified 0 TEST_ procurement_requests and 0 TEST_ sauna_components remain.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Multi-line procurement now covered by /app/backend/tests/test_procurement_multiline.py (16 tests, all passing). The earlier /app/backend/tests/test_procurement.py (17 tests, 1 skipped due to missing non-admin user) still relevant for full coverage. Both can run together with `pytest tests/test_procurement*`. To extend: actually mock telegram_service.send_telegram_message and verify HTML body is delivered (currently we test _format_request_message directly).",
+  "rca of the issue": "N/A — no functional bugs found."
+}

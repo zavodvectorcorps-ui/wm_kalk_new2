@@ -34,14 +34,19 @@ const PRIORITY_META = {
   urgent: { label: 'Срочный', color: 'text-red-600 font-semibold' },
 };
 
-const emptyForm = () => ({
-  title: '',
+const emptyLine = () => ({
   componentId: '',
   componentName: '',
   category: '',
   unit: 'шт',
   quantity: 1,
   unitPrice: 0,
+  note: '',
+});
+
+const emptyForm = () => ({
+  title: '',
+  items: [emptyLine()],
   supplier: '',
   note: '',
   status: 'draft',
@@ -218,36 +223,90 @@ const RequestDialog = ({ open, onClose, initial, onSaved, components, users, ref
   const [saving, setSaving] = useState(false);
   const [quickOpen, setQuickOpen] = useState(false);
   const [quickInitial, setQuickInitial] = useState('');
+  const [quickLineIdx, setQuickLineIdx] = useState(null);
 
   useEffect(() => {
-    if (open) setForm(initial ? { ...emptyForm(), ...initial } : emptyForm());
+    if (open) {
+      // Hydrate from existing doc. If doc has `items` array → multi-line.
+      // Otherwise wrap legacy single-line scalars into a 1-row items array
+      // so the UI is always multi-line internally.
+      if (initial?.id) {
+        const items = (initial.items && initial.items.length)
+          ? initial.items.map(it => ({ ...emptyLine(), ...it }))
+          : [{
+              ...emptyLine(),
+              componentId: initial.componentId || '',
+              componentName: initial.componentName || '',
+              category: initial.category || '',
+              unit: initial.unit || 'шт',
+              quantity: initial.quantity || 1,
+              unitPrice: initial.unitPrice || 0,
+            }];
+        setForm({
+          ...emptyForm(),
+          ...initial,
+          items,
+        });
+      } else {
+        setForm(emptyForm());
+      }
+    }
   }, [open, initial]);
 
-  const pickComponent = (c) => {
+  const updateLine = (idx, patch) => {
     setForm(f => ({
       ...f,
+      items: f.items.map((it, i) => (i === idx ? { ...it, ...patch } : it)),
+    }));
+  };
+
+  const pickLineComponent = (idx, c) => {
+    updateLine(idx, {
       componentId: c.id,
       componentName: c.name,
       category: c.category || '',
       unit: c.unit || 'шт',
-      unitPrice: f.unitPrice && f.unitPrice !== 0 ? f.unitPrice : (c.unitPrice || 0),
-      supplier: f.supplier || c.supplier || '',
-      title: f.title || c.name,
+      // Only override price if it's still default zero — don't clobber a
+      // manual edit.
+      unitPrice: form.items[idx]?.unitPrice ? form.items[idx].unitPrice : (c.unitPrice || 0),
+    });
+    // Auto-fill request-level supplier from first picked component.
+    if (idx === 0 && !form.supplier && c.supplier) {
+      setForm(f => ({ ...f, supplier: c.supplier }));
+    }
+    // Auto-derive title from first picked component when title is empty.
+    if (idx === 0 && !form.title) {
+      setForm(f => ({ ...f, title: c.name }));
+    }
+  };
+
+  const addLine = () => setForm(f => ({ ...f, items: [...f.items, emptyLine()] }));
+  const removeLine = (idx) => {
+    setForm(f => ({
+      ...f,
+      items: f.items.length > 1 ? f.items.filter((_, i) => i !== idx) : f.items,
     }));
   };
 
   const save = async () => {
-    if (!form.title.trim() && !form.componentName) {
-      toast.error('Введите название или выберите комплектующее');
+    if (!form.title.trim()) {
+      toast.error('Введите название заявки');
       return;
     }
+    // Strip empty line rows (no name and no componentId).
+    const cleanItems = form.items.filter(it => it.componentId || (it.componentName || '').trim());
+    if (cleanItems.length === 0) {
+      toast.error('Добавьте хотя бы одну позицию');
+      return;
+    }
+    const payload = { ...form, items: cleanItems };
     setSaving(true);
     try {
       if (initial?.id) {
-        await axios.put(`${API}/api/procurement/requests/${initial.id}`, form, { headers: getAuthHeaders() });
+        await axios.put(`${API}/api/procurement/requests/${initial.id}`, payload, { headers: getAuthHeaders() });
         toast.success('Заявка обновлена');
       } else {
-        await axios.post(`${API}/api/procurement/requests`, form, { headers: getAuthHeaders() });
+        await axios.post(`${API}/api/procurement/requests`, payload, { headers: getAuthHeaders() });
         toast.success('Заявка создана');
       }
       onSaved?.();
@@ -257,12 +316,15 @@ const RequestDialog = ({ open, onClose, initial, onSaved, components, users, ref
     } finally { setSaving(false); }
   };
 
-  const total = useMemo(() => Number(form.quantity || 0) * Number(form.unitPrice || 0), [form.quantity, form.unitPrice]);
+  const totalSum = useMemo(() => form.items.reduce(
+    (acc, it) => acc + (Number(it.quantity || 0) * Number(it.unitPrice || 0)),
+    0
+  ), [form.items]);
 
   return (
     <>
       <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-auto" data-testid="procurement-dialog">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto" data-testid="procurement-dialog">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ShoppingCart className="h-5 w-5 text-indigo-600" />
@@ -271,54 +333,99 @@ const RequestDialog = ({ open, onClose, initial, onSaved, components, users, ref
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div>
-              <Label className="text-sm">Комплектующее</Label>
-              <ComponentPicker
-                value={form.componentId}
-                components={components}
-                onPick={pickComponent}
-                onQuickCreate={(name) => { setQuickInitial(name); setQuickOpen(true); }}
-              />
-              <p className="text-[11px] text-muted-foreground mt-1">
-                При выборе цена и поставщик подставятся автоматически —
-                их можно переопределить ниже.
-              </p>
-            </div>
-            <div>
               <Label className="text-sm">Название заявки *</Label>
               <Input
                 value={form.title}
                 onChange={e => setForm({ ...form, title: e.target.value })}
-                placeholder="Например: Доски сосна 25×100, партия №3"
+                placeholder="Напр.: Партия Drewno24 — март, или Закупка крепежа"
                 data-testid="procurement-title"
               />
             </div>
-            <div className="grid grid-cols-3 gap-2">
-              <div>
-                <Label className="text-sm">Кол-во *</Label>
-                <Input
-                  type="number" min="0" step="0.01"
-                  value={form.quantity}
-                  onChange={e => setForm({ ...form, quantity: parseFloat(e.target.value) || 0 })}
-                  data-testid="procurement-quantity"
-                />
+
+            {/* Multi-line items table */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <Label className="text-sm">Позиции *</Label>
+                <Button
+                  type="button" size="sm" variant="outline"
+                  onClick={addLine}
+                  data-testid="procurement-add-line"
+                >
+                  <Plus className="h-3.5 w-3.5 mr-1" />
+                  Добавить позицию
+                </Button>
               </div>
-              <div>
-                <Label className="text-sm">Ед.</Label>
-                <Input value={form.unit} onChange={e => setForm({ ...form, unit: e.target.value })} />
+              <div className="border rounded-md divide-y bg-muted/20">
+                {form.items.map((it, idx) => {
+                  const lineTotal = Number(it.quantity || 0) * Number(it.unitPrice || 0);
+                  return (
+                    <div key={idx} className="p-2 grid grid-cols-12 gap-2 items-start" data-testid={`proc-line-${idx}`}>
+                      <div className="col-span-5">
+                        <ComponentPicker
+                          value={it.componentId}
+                          components={components}
+                          onPick={(c) => pickLineComponent(idx, c)}
+                          onQuickCreate={(name) => { setQuickInitial(name); setQuickLineIdx(idx); setQuickOpen(true); }}
+                        />
+                        {!it.componentId && (
+                          <Input
+                            placeholder="или введите название вручную"
+                            value={it.componentName}
+                            onChange={e => updateLine(idx, { componentName: e.target.value })}
+                            className="mt-1 h-8 text-xs"
+                          />
+                        )}
+                      </div>
+                      <div className="col-span-2">
+                        <Input
+                          type="number" min="0" step="0.01"
+                          value={it.quantity}
+                          onChange={e => updateLine(idx, { quantity: parseFloat(e.target.value) || 0 })}
+                          placeholder="Кол-во"
+                          className="h-9"
+                        />
+                      </div>
+                      <div className="col-span-1">
+                        <Input
+                          value={it.unit}
+                          onChange={e => updateLine(idx, { unit: e.target.value })}
+                          placeholder="ед"
+                          className="h-9"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <Input
+                          type="number" min="0" step="0.01"
+                          value={it.unitPrice}
+                          onChange={e => updateLine(idx, { unitPrice: parseFloat(e.target.value) || 0 })}
+                          placeholder="Цена/ед"
+                          className="h-9"
+                        />
+                      </div>
+                      <div className="col-span-1 text-right text-xs font-semibold pt-2">
+                        {fmtMoney(lineTotal)}
+                      </div>
+                      <div className="col-span-1 text-right pt-1">
+                        <button
+                          type="button"
+                          onClick={() => removeLine(idx)}
+                          disabled={form.items.length <= 1}
+                          className="p-1 hover:bg-red-50 rounded disabled:opacity-30"
+                          title="Удалить позицию"
+                          data-testid={`proc-line-del-${idx}`}
+                        >
+                          <Trash2 className="h-4 w-4 text-red-600" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-              <div>
-                <Label className="text-sm">Цена за ед.</Label>
-                <Input
-                  type="number" min="0" step="0.01"
-                  value={form.unitPrice}
-                  onChange={e => setForm({ ...form, unitPrice: parseFloat(e.target.value) || 0 })}
-                  data-testid="procurement-unitprice"
-                />
+              <div className="text-right text-base font-bold text-indigo-700 mt-2">
+                Итого: {fmtMoney(totalSum)}
               </div>
             </div>
-            <div className="text-right font-semibold text-indigo-700">
-              Сумма: {fmtMoney(total)}
-            </div>
+
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <Label className="text-sm">Срок поставки *</Label>
@@ -365,7 +472,11 @@ const RequestDialog = ({ open, onClose, initial, onSaved, components, users, ref
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <Label className="text-sm">Поставщик</Label>
-                <Input value={form.supplier} onChange={e => setForm({ ...form, supplier: e.target.value })} />
+                <Input
+                  value={form.supplier}
+                  onChange={e => setForm({ ...form, supplier: e.target.value })}
+                  placeholder="Один поставщик на всю заявку"
+                />
               </div>
               <div>
                 <Label className="text-sm">Ответственный</Label>
@@ -420,9 +531,12 @@ const RequestDialog = ({ open, onClose, initial, onSaved, components, users, ref
       </Dialog>
       <QuickCreateDialog
         open={quickOpen}
-        onClose={() => setQuickOpen(false)}
+        onClose={() => { setQuickOpen(false); setQuickLineIdx(null); }}
         initialName={quickInitial}
-        onCreated={(c) => { refreshComponents(); pickComponent(c); }}
+        onCreated={(c) => {
+          refreshComponents();
+          if (quickLineIdx != null) pickLineComponent(quickLineIdx, c);
+        }}
       />
     </>
   );
@@ -563,7 +677,13 @@ export default function ProcurementTab({ users = [] }) {
                 >
                   <td className="px-3 py-2">
                     <div className="font-medium">{it.title}</div>
-                    {it.componentName && (
+                    {(it.items && it.items.length > 0) ? (
+                      <div className="text-[11px] text-muted-foreground flex items-center gap-1">
+                        <Package className="h-3 w-3" />
+                        {it.items.length} поз.: {it.items.slice(0, 2).map(x => x.componentName).filter(Boolean).join(', ')}
+                        {it.items.length > 2 && ` +${it.items.length - 2}`}
+                      </div>
+                    ) : it.componentName && (
                       <div className="text-[11px] text-muted-foreground flex items-center gap-1">
                         <Package className="h-3 w-3" />
                         {it.componentName}{it.category ? ' · ' + it.category : ''}
@@ -581,8 +701,14 @@ export default function ProcurementTab({ users = [] }) {
                         : <BellOff className="h-3 w-3 text-muted-foreground" />}
                     </div>
                   </td>
-                  <td className="text-center px-2 py-2">{it.quantity} <span className="text-[10px] text-muted-foreground">{it.unit}</span></td>
-                  <td className="text-right px-2 py-2 font-mono text-xs">{fmtMoney(it.unitPrice)}</td>
+                  <td className="text-center px-2 py-2">
+                    {(it.items && it.items.length > 0)
+                      ? <Badge variant="outline" className="text-[10px]">{it.items.length} поз.</Badge>
+                      : <>{it.quantity} <span className="text-[10px] text-muted-foreground">{it.unit}</span></>}
+                  </td>
+                  <td className="text-right px-2 py-2 font-mono text-xs">
+                    {(it.items && it.items.length > 0) ? '—' : fmtMoney(it.unitPrice)}
+                  </td>
                   <td className="text-right px-2 py-2 font-semibold">{fmtMoney(it.totalPrice)}</td>
                   <td className="text-center px-2 py-2">
                     {it.dueDate ? (

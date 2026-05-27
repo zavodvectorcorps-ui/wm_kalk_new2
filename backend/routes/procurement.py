@@ -40,14 +40,30 @@ DEFAULT_REMINDER_DAYS = 3
 
 # ─────────────────────────── Models ───────────────────────────
 
-class ProcurementCreate(BaseModel):
-    title: str
+class ProcurementLine(BaseModel):
+    """One line item inside a multi-line procurement request."""
     componentId: Optional[str] = None
     componentName: Optional[str] = ""
     category: Optional[str] = ""
     unit: Optional[str] = "шт"
     quantity: float = 1.0
     unitPrice: float = 0.0
+    note: Optional[str] = ""
+
+
+class ProcurementCreate(BaseModel):
+    title: str
+    # Multi-line mode: when ``items`` is non-empty, single-line fields are
+    # ignored (we treat them as legacy / quick-shortcut input).
+    items: List[ProcurementLine] = Field(default_factory=list)
+    # ── Legacy single-line fields (kept for backwards compat & quick-add) ──
+    componentId: Optional[str] = None
+    componentName: Optional[str] = ""
+    category: Optional[str] = ""
+    unit: Optional[str] = "шт"
+    quantity: float = 1.0
+    unitPrice: float = 0.0
+    # ── Common request-level fields ──
     supplier: Optional[str] = ""
     note: Optional[str] = ""
     status: str = "draft"
@@ -62,6 +78,7 @@ class ProcurementCreate(BaseModel):
 
 class ProcurementUpdate(BaseModel):
     title: Optional[str] = None
+    items: Optional[List[ProcurementLine]] = None  # full replacement when present
     componentId: Optional[str] = None
     componentName: Optional[str] = None
     category: Optional[str] = None
@@ -110,6 +127,44 @@ def _compute_total(quantity: float, unit_price: float) -> float:
     return round(float(quantity or 0) * float(unit_price or 0), 2)
 
 
+def _normalize_items(items: List[dict], components_by_id: dict) -> tuple[list[dict], float]:
+    """Normalize raw line items and compute their total sum.
+
+    - Auto-fills missing fields from the component catalog (name, category,
+      unit, unitPrice) when ``componentId`` resolves to a known component.
+    - Computes per-line ``totalPrice``.
+    """
+    normalized: list[dict] = []
+    grand = 0.0
+    for raw in items or []:
+        line = dict(raw) if not isinstance(raw, dict) else raw
+        cid = line.get("componentId")
+        comp = components_by_id.get(cid) if cid else None
+        if comp:
+            line["componentName"] = line.get("componentName") or comp.get("name", "")
+            line["category"] = line.get("category") or comp.get("category", "")
+            line["unit"] = line.get("unit") or comp.get("unit", "шт")
+            if not float(line.get("unitPrice") or 0):
+                line["unitPrice"] = float(comp.get("unitPrice", 0) or 0)
+        qty = float(line.get("quantity") or 0)
+        price = float(line.get("unitPrice") or 0)
+        line["quantity"] = qty
+        line["unitPrice"] = price
+        line["totalPrice"] = _compute_total(qty, price)
+        grand += line["totalPrice"]
+        normalized.append(line)
+    return normalized, round(grand, 2)
+
+
+async def _resolve_components_by_id(ids: list[str]) -> dict:
+    """Fetch sauna_components by ids, return dict keyed by id."""
+    ids = [i for i in ids if i]
+    if not ids:
+        return {}
+    cursor = db[COMPONENTS_COL].find({"id": {"$in": ids}}, {"_id": 0})
+    return {c["id"]: c async for c in cursor}
+
+
 def _is_finished(status: str) -> bool:
     return status in ("delivered", "cancelled")
 
@@ -125,14 +180,46 @@ async def _send_telegram(message: str) -> bool:
 
 
 def _format_request_message(prefix: str, doc: dict) -> str:
-    """HTML-formatted Telegram message for a procurement request."""
+    """HTML-formatted Telegram message for a procurement request.
+
+    Supports both single-line (legacy fields on the doc itself) and
+    multi-line (``items`` array) requests. Multi-line variants get a
+    bulleted positions block.
+    """
     title = doc.get("title", "—")
-    qty = doc.get("quantity", 0)
-    unit = doc.get("unit", "шт")
     total = doc.get("totalPrice", 0)
     due = doc.get("dueDate") or "—"
     supplier = doc.get("supplier") or "—"
     assignee = doc.get("assigneeUsername") or "не назначен"
+    items = doc.get("items") or []
+
+    if items:
+        # Multi-line: render a compact positions list (up to 10 lines).
+        positions_lines = []
+        for it in items[:10]:
+            name = it.get("componentName") or "—"
+            qty = it.get("quantity", 0)
+            unit = it.get("unit") or ""
+            price = it.get("totalPrice", 0)
+            positions_lines.append(f"• {name} — <b>{qty} {unit}</b> · {price:.2f}")
+        if len(items) > 10:
+            positions_lines.append(f"… и ещё {len(items) - 10} поз.")
+        positions = "\n".join(positions_lines)
+        return (
+            f"{prefix}\n"
+            f"📦 <b>{title}</b>\n"
+            f"Позиций: <b>{len(items)}</b>\n"
+            f"{positions}\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"Итого: <b>{total:.2f}</b>\n"
+            f"Срок: <b>{due}</b>\n"
+            f"Поставщик: {supplier}\n"
+            f"Ответственный: <b>{assignee}</b>"
+        )
+
+    # Legacy single-line variant
+    qty = doc.get("quantity", 0)
+    unit = doc.get("unit", "шт")
     return (
         f"{prefix}\n"
         f"📦 <b>{title}</b>\n"
@@ -214,12 +301,14 @@ async def list_requests(
         today = date.today().isoformat()
         query["dueDate"] = {"$lt": today, "$ne": None}
         query["status"] = {"$nin": ["delivered", "cancelled"]}
-    docs = await db[COL].find(query, {"_id": 0}).sort([
-        # Overdue first (oldest deadline first), then by priority weight.
-        ("dueDate", 1), ("createdAt", -1),
-    ]).to_list(length=2000)
-    # Decorate with `isOverdue` so the FE doesn't reimplement the rule.
+    docs = await db[COL].find(query, {"_id": 0}).to_list(length=2000)
     today = date.today().isoformat()
+    # Sort in Python so null dueDates sort to the end (Mongo treats them as min).
+    docs.sort(key=lambda d: (
+        d.get("dueDate") or "9999-12-31",  # nulls last
+        -1 * int(d.get("createdAt", "")[:19].replace("-", "").replace("T", "").replace(":", "") or 0),
+    ))
+    # Decorate with `isOverdue` so the FE doesn't reimplement the rule.
     for d in docs:
         dd = d.get("dueDate")
         d["isOverdue"] = bool(
@@ -240,6 +329,61 @@ async def get_request(request_id: str, _: dict = Depends(get_current_user)):
 async def create_request(body: ProcurementCreate, user: dict = Depends(get_current_user)):
     _validate(body.status, body.priority)
 
+    # ── Multi-line mode ───────────────────────────────────────────
+    if body.items:
+        comp_ids = [it.componentId for it in body.items if it.componentId]
+        comps_by_id = await _resolve_components_by_id(comp_ids)
+        raw_items = [it.model_dump() for it in body.items]
+        norm_items, grand_total = _normalize_items(raw_items, comps_by_id)
+
+        # Auto-fill supplier from the first item's component if absent.
+        supplier = body.supplier
+        if not supplier and comp_ids:
+            first_comp = comps_by_id.get(comp_ids[0])
+            if first_comp:
+                supplier = first_comp.get("supplier", "")
+
+        doc = {
+            "id": str(uuid.uuid4()),
+            "title": body.title.strip() or "Заявка на закупку",
+            "items": norm_items,
+            "totalPrice": grand_total,
+            # Single-line fields cleared for clarity (UI reads ``items``).
+            "componentId": None,
+            "componentName": "",
+            "category": "",
+            "unit": "",
+            "quantity": 0,
+            "unitPrice": 0,
+            "supplier": supplier or "",
+            "note": body.note or "",
+            "status": body.status,
+            "priority": body.priority,
+            "dueDate": body.dueDate or None,
+            "assigneeUserId": body.assigneeUserId or None,
+            "assigneeUsername": body.assigneeUsername or "",
+            "reminderDaysBefore": int(body.reminderDaysBefore or DEFAULT_REMINDER_DAYS),
+            "notifyTelegram": bool(body.notifyTelegram),
+            "tags": list(body.tags or []),
+            "createdAt": _now(),
+            "updatedAt": _now(),
+            "createdByUserId": user.get("id") or user.get("user_id"),
+            "createdByUsername": user.get("username", ""),
+            "notifications": {"created": False, "reminder": False, "overdue": False},
+        }
+        await db[COL].insert_one(doc)
+        if doc["notifyTelegram"]:
+            try:
+                sent = await _send_telegram(
+                    _format_request_message("🆕 <b>Новая заявка на закупку</b>", doc)
+                )
+                await db[COL].update_one({"id": doc["id"]},
+                    {"$set": {"notifications.created": bool(sent)}})
+            except Exception as e:
+                logger.warning(f"procurement create-notify (multi) failed: {e}")
+        return _strip(doc)
+
+    # ── Legacy single-line mode ───────────────────────────────────
     # If linked to an existing component, pull current price / name / unit
     # as defaults — the body values still win if the user overrides them.
     comp_name = body.componentName or ""
@@ -261,6 +405,7 @@ async def create_request(body: ProcurementCreate, user: dict = Depends(get_curre
     doc = {
         "id": str(uuid.uuid4()),
         "title": body.title.strip() or comp_name or "Заявка",
+        "items": [],
         "componentId": body.componentId or None,
         "componentName": comp_name,
         "category": comp_category,
@@ -320,10 +465,27 @@ async def update_request(
     update = {k: v for k, v in body.model_dump(exclude_unset=True).items() if v is not None}
     update["updatedAt"] = _now()
 
-    # Recompute totalPrice if either qty or price changed.
-    new_qty = update.get("quantity", existing.get("quantity"))
-    new_price = update.get("unitPrice", existing.get("unitPrice"))
-    update["totalPrice"] = _compute_total(new_qty, new_price)
+    # ── Items replacement (multi-line) ──────────────────────────
+    # When ``items`` is included, we fully replace and recompute totalPrice.
+    if "items" in update:
+        raw_items = update.get("items") or []
+        comp_ids = [it.get("componentId") for it in raw_items if it.get("componentId")]
+        comps_by_id = await _resolve_components_by_id(comp_ids)
+        norm_items, grand_total = _normalize_items(raw_items, comps_by_id)
+        update["items"] = norm_items
+        update["totalPrice"] = grand_total
+        # Clear single-line scalars when switching to multi-line.
+        if norm_items:
+            update.setdefault("componentId", None)
+            update["quantity"] = 0
+            update["unitPrice"] = 0
+    else:
+        # Single-line: recompute totalPrice if qty/price changed.
+        new_qty = update.get("quantity", existing.get("quantity"))
+        new_price = update.get("unitPrice", existing.get("unitPrice"))
+        # Only recompute if the doc is single-line (no items).
+        if not (existing.get("items") or []):
+            update["totalPrice"] = _compute_total(new_qty, new_price)
 
     # If the deadline moved forward to a non-overdue date, reset overdue
     # notification so a future overdue fires again.
@@ -405,19 +567,20 @@ async def run_procurement_notifications() -> dict:
         notifs = d.get("notifications") or {}
         reminder_window = int(d.get("reminderDaysBefore") or DEFAULT_REMINDER_DAYS)
 
-        # Reminder N days before deadline (fires once)
+        # Reminder N days before deadline (fires once — set flag regardless
+        # of TG success so missing creds don't cause daily re-attempts).
         if 0 <= days_left <= reminder_window and not notifs.get("reminder"):
             ok = await _send_telegram(_format_request_message(
                 f"⏰ <b>Напоминание: до закупки осталось {days_left} дн.</b>",
                 d,
             ))
             await db[COL].update_one(
-                {"id": d["id"]}, {"$set": {"notifications.reminder": bool(ok)}}
+                {"id": d["id"]}, {"$set": {"notifications.reminder": True}}
             )
             if ok:
                 sent_reminder += 1
 
-        # Overdue (fires once)
+        # Overdue (fires once — same idempotency policy as reminder)
         if days_left < 0 and not notifs.get("overdue"):
             ok = await _send_telegram(_format_request_message(
                 f"🚨 <b>ПРОСРОЧЕНА закупка</b> (срок был {d['dueDate']}, "
@@ -425,7 +588,7 @@ async def run_procurement_notifications() -> dict:
                 d,
             ))
             await db[COL].update_one(
-                {"id": d["id"]}, {"$set": {"notifications.overdue": bool(ok)}}
+                {"id": d["id"]}, {"$set": {"notifications.overdue": True}}
             )
             if ok:
                 sent_overdue += 1
