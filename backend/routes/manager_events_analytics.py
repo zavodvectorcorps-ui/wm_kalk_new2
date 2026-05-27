@@ -627,7 +627,7 @@ async def get_event_manager_stats(date_from: str = None, date_to: str = None):
         return {"managers": [], "sync_id": None}
 
     sync_id = last_sync.get("sync_id")
-    managers = await db.event_manager_stats.find(
+    raw_managers = await db.event_manager_stats.find(
         {"sync_id": sync_id}, {"_id": 0}
     ).sort("rank", 1).to_list(length=200)
 
@@ -640,20 +640,30 @@ async def get_event_manager_stats(date_from: str = None, date_to: str = None):
     manager_ids = {str(x) for x in (la_settings.get("managerUserIds") or [])}
     # Always hide synthetic "ID:0" / unknown bucket — that's amoCRM bot events
     # without a real user.
-    bot_ids.update({"0", "", "None"})
-
-    def _keep(m: dict) -> bool:
+    synthetic_ids = {"0", "", "None"}
+    excluded_bots = []
+    excluded_other = []
+    managers = []
+    for m in raw_managers:
         uid = str(m.get("userId", ""))
-        if uid in bot_ids:
-            return False
+        if uid in synthetic_ids or uid in bot_ids:
+            excluded_bots.append({"userId": uid, "userName": m.get("userName", "")})
+            continue
         if manager_ids and uid not in manager_ids:
-            return False
-        return True
-
-    managers = [m for m in managers if _keep(m)]
+            excluded_other.append({"userId": uid, "userName": m.get("userName", "")})
+            continue
+        managers.append(m)
     # Re-rank after filtering so the UI numbering matches what's visible.
     for i, m in enumerate(managers):
         m["rank"] = i + 1
+    filter_info = {
+        "totalBeforeFilter": len(raw_managers),
+        "botsExcluded": len(excluded_bots),
+        "outsideWhitelistExcluded": len(excluded_other),
+        "whitelistActive": bool(manager_ids),
+        "configuredBotIds": sorted(bot_ids),
+        "configuredManagerIds": sorted(manager_ids),
+    }
 
     # Use the sync's own date range so call counts match the analyzed period.
     df = date_from or last_sync.get("date_from")
@@ -708,7 +718,9 @@ async def get_event_manager_stats(date_from: str = None, date_to: str = None):
         except Exception as e:
             logger.warning(f"Binotel overlay failed (non-fatal): {e}")
 
-    return {"managers": managers, "sync_id": sync_id, "binotelUsed": binotel_used}
+    return {"managers": managers, "sync_id": sync_id, "binotelUsed": binotel_used,
+            "filterInfo": filter_info, "syncDateFrom": last_sync.get("date_from"),
+            "syncDateTo": last_sync.get("date_to")}
 
 
 @router.get("/manager-detail/{user_id}")

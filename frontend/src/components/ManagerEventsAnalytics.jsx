@@ -761,6 +761,8 @@ const EventSettings = ({ settings, setSettings, onSave, saving }) => (
 const ManagerEventsAnalytics = () => {
   const [activeTab, setActiveTab] = useState('managers');
   const [managers, setManagers] = useState([]);
+  const [filterInfo, setFilterInfo] = useState(null);
+  const [syncDateRange, setSyncDateRange] = useState({ from: null, to: null });
   const [selectedManager, setSelectedManager] = useState(null);
   const [settings, setSettings] = useState({});
   const [loading, setLoading] = useState(false);
@@ -785,6 +787,8 @@ const ManagerEventsAnalytics = () => {
         axios.get(`${API_URL}/api/lead-analytics/binotel/config`).catch(() => ({ data: { configured: false } })),
       ]);
       setManagers(mgrRes.data.managers || []);
+      setFilterInfo(mgrRes.data.filterInfo || null);
+      setSyncDateRange({ from: mgrRes.data.syncDateFrom, to: mgrRes.data.syncDateTo });
       setSyncStatus(statusRes.data);
       setSettings(settingsRes.data);
       setBinotelConfigured(!!binotelCfg.data?.configured);
@@ -921,6 +925,16 @@ const ManagerEventsAnalytics = () => {
           <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="w-36 h-9" />
           <span className="text-muted-foreground">—</span>
           <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="w-36 h-9" />
+          <Button
+            onClick={fetchData}
+            size="sm"
+            variant="outline"
+            disabled={loading}
+            data-testid="refresh-stats-btn"
+            title="Перечитать данные без пересинхронизации (применит новый фильтр ботов / менеджеров)"
+          >
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+          </Button>
           {binotelConfigured && (
             <Button
               onClick={() => setShowBinotelMapping(true)}
@@ -946,6 +960,43 @@ const ManagerEventsAnalytics = () => {
         dateFrom={dateFrom}
         dateTo={dateTo}
       />
+
+      {/* Info banner — shows what's filtered and the sync's date range */}
+      {activeTab === 'managers' && filterInfo && (
+        <div className="rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1" data-testid="filter-info-banner">
+          <span>
+            Период данных:{' '}
+            <span className="text-foreground font-medium">
+              {syncDateRange.from || '—'} → {syncDateRange.to || 'сейчас'}
+            </span>
+          </span>
+          <span>
+            Менеджеров в таблице: <span className="text-foreground font-medium">{managers.length}</span>
+            {' '}/ всего: {filterInfo.totalBeforeFilter}
+          </span>
+          {filterInfo.botsExcluded > 0 && (
+            <span className="text-rose-600">
+              ⛔ Скрыто ботов: {filterInfo.botsExcluded}
+            </span>
+          )}
+          {filterInfo.whitelistActive && filterInfo.outsideWhitelistExcluded > 0 && (
+            <span className="text-amber-600">
+              🔒 Вне whitelist: {filterInfo.outsideWhitelistExcluded}
+            </span>
+          )}
+          <a
+            href="/admin/lead-analytics?tab=settings"
+            className="text-indigo-600 hover:underline ml-auto"
+            onClick={(e) => {
+              // If we're already inside the analytics shell, prefer in-app nav
+              const evt = new CustomEvent('open-lead-analytics-settings');
+              window.dispatchEvent(evt);
+            }}
+          >
+            Настройки ботов/менеджеров →
+          </a>
+        </div>
+      )}
 
       <div className="flex gap-1 border-b">
         {tabs.map(tab => {
