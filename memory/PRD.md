@@ -1298,3 +1298,21 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
     запуска UTC`, с подсказкой про CEST/CET (6 UTC ≈ 8 утра Варшавы летом).
   - Отображение `Последняя авто-синхронизация: YYYY-MM-DD`.
 
+
+### Next-Run Hint for Schedulers (DONE - Feb 27, 2026)
+- **UX gap:** настройки `autoDailySyncHour` / `dailyReportHour` хранятся в UTC
+  и пользователь не сразу понимал, в какой момент по локальному времени
+  следующий запуск произойдёт (особенно с учётом CET/CEST переходов).
+- **Frontend (`ManagerEventsAnalytics.jsx`):**
+  - Чистая JS-функция `formatNextRun(utcHour)` использующая
+    `Intl.DateTimeFormat({timeZone: 'Europe/Warsaw'})` — DST-aware
+    автоматически, без libs.
+  - Подсказка под полем час запуска:
+    `⏰ Следующий запуск: завтра чт, 28.05, 08:00 по Варшаве · через 12 ч 24 мин`.
+  - Виден только когда соответствующий toggle (`autoDailySyncEnabled` или
+    `dailyReportEnabled`) включён — иначе бессмысленно.
+  - Применён для обоих расписаний: индиго-баннер для auto-sync,
+    синий для Telegram-digest.
+- **Verified:** Node REPL подтвердил корректность для разных часов
+  (6 UTC → 08:00 Варшава CEST = UTC+2, 22 UTC → 00:00 след. день).
+

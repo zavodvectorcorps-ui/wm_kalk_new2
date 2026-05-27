@@ -607,6 +607,42 @@ const LeadList = ({ leads }) => {
 };
 
 // ==================== EVENT SETTINGS ====================
+
+/**
+ * Returns a human-readable Warsaw-local description of the next scheduled run
+ * for a UTC-hour-of-day cron job. Handles CET/CEST automatically by relying
+ * on Intl with the Europe/Warsaw timezone.
+ *
+ * Example output: "завтра в 08:00 по Варшаве (через 14 ч 32 мин)"
+ */
+const formatNextRun = (utcHour) => {
+  const h = Number(utcHour);
+  if (!Number.isFinite(h) || h < 0 || h > 23) return null;
+  const now = new Date();
+  // Build target as today's UTC date at the requested UTC hour.
+  const target = new Date(Date.UTC(
+    now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(),
+    h, 0, 0, 0
+  ));
+  if (target <= now) target.setUTCDate(target.getUTCDate() + 1);
+  const fmtWarsaw = new Intl.DateTimeFormat('ru-RU', {
+    timeZone: 'Europe/Warsaw',
+    weekday: 'short', day: '2-digit', month: '2-digit',
+    hour: '2-digit', minute: '2-digit',
+  });
+  const localStr = fmtWarsaw.format(target);
+  const sameDayWarsaw = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Warsaw', year: 'numeric', month: '2-digit', day: '2-digit',
+  });
+  const dayLabel = sameDayWarsaw.format(target) === sameDayWarsaw.format(now)
+    ? 'сегодня' : 'завтра';
+  const diffMin = Math.max(0, Math.round((target - now) / 60000));
+  const hh = Math.floor(diffMin / 60);
+  const mm = diffMin % 60;
+  const inWhen = hh > 0 ? `через ${hh} ч ${mm} мин` : `через ${mm} мин`;
+  return `Следующий запуск: ${dayLabel} ${localStr} по Варшаве · ${inWhen}`;
+};
+
 const EventSettings = ({ settings, setSettings, onSave, saving }) => (
   <div className="space-y-6 max-w-3xl" data-testid="event-settings">
     {/* Auto-sync daily — fresh data every morning without clicking */}
@@ -647,6 +683,11 @@ const EventSettings = ({ settings, setSettings, onSave, saving }) => (
             6 UTC ≈ 8 утра летом, 7 утра зимой. Поставьте на час раньше
             рабочего дня, чтобы успело пробежать к открытию офиса.
           </p>
+          {settings.autoDailySyncEnabled && formatNextRun(settings.autoDailySyncHour ?? 6) && (
+            <p className="text-[11px] font-medium text-indigo-700 mt-1.5 bg-indigo-100/60 px-2 py-1 rounded inline-block" data-testid="auto-sync-next-run">
+              ⏰ {formatNextRun(settings.autoDailySyncHour ?? 6)}
+            </p>
+          )}
         </div>
         {settings.lastDailySyncDate && (
           <div className="text-xs text-muted-foreground">
@@ -705,6 +746,11 @@ const EventSettings = ({ settings, setSettings, onSave, saving }) => (
             <p className="text-[11px] text-muted-foreground mt-1">
               По МСК прибавьте +3ч (например 5:00 UTC = 8:00 МСК).
             </p>
+            {settings.dailyReportEnabled && formatNextRun(settings.dailyReportHour ?? 8) && (
+              <p className="text-[11px] font-medium text-blue-700 mt-1.5 bg-blue-100/60 px-2 py-1 rounded inline-block" data-testid="daily-report-next-run">
+                ⏰ {formatNextRun(settings.dailyReportHour ?? 8)}
+              </p>
+            )}
           </div>
           <div>
             <Label className="text-sm">Telegram chat_id (необязательно)</Label>
