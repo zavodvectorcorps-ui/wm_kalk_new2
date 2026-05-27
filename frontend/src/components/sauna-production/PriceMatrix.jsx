@@ -627,8 +627,17 @@ export default function PriceMatrix() {
                         {r.flags.noRetail ? '—' : fmtEur(toEur(r.retailNetto))}
                       </TableCell>
                     )}
-                    <TableCell className={`text-right text-sm ${r.flags.noCard ? 'text-amber-700 font-semibold' : ''}`}>
-                      {r.flags.noCard ? '—' : fmtMoney(r.cost)}
+                    <TableCell
+                      className={`text-right text-sm ${r.flags.noCard ? 'text-amber-700 font-semibold' : ''}`}
+                      title={r.flags.noCard ? 'Тех.карта не создана — себестоимость не определена. Откройте «Тех.карты» и привяжите BOM к этой позиции.' : ''}
+                      data-testid={r.flags.noCard ? `pm-cost-missing-${idx}` : undefined}
+                    >
+                      {r.flags.noCard ? (
+                        <span className="inline-flex items-center gap-1">
+                          <span>⚠</span>
+                          <span>—</span>
+                        </span>
+                      ) : fmtMoney(r.cost)}
                     </TableCell>
                     <TableCell className="text-right text-sm text-muted-foreground">
                       {r.retailExtra ? fmtMoney(r.retailExtra) : '—'}

@@ -452,6 +452,9 @@ def _recompute_one(order: dict, prices: dict, opt_index: dict) -> dict | None:
     # augments — the model values. Same for ``retailExtraCost``.
     model_cost = float(model.get("costPrice") or 0)
     retail_extra = float(model.get("retailExtraCost") or 0)
+    # Track diagnostics for the UI so users see WHY a margin looks off.
+    variant_cost_missing = False
+    options_cost_missing: list[str] = []
     if variant_id:
         v = next((v for v in (model.get("variants") or []) if v.get("id") == variant_id), None)
         if v is not None:
@@ -461,6 +464,8 @@ def _recompute_one(order: dict, prices: dict, opt_index: dict) -> dict | None:
             v_extra = float(v.get("retailExtraCost") or 0)
             if v_cost > 0:
                 model_cost = v_cost
+            else:
+                variant_cost_missing = True
             if v_extra > 0:
                 retail_extra = v_extra
 
@@ -479,9 +484,13 @@ def _recompute_one(order: dict, prices: dict, opt_index: dict) -> dict | None:
         if chosen_var:
             cost = float(chosen_var.get("costPrice") or 0)
             extra = float(chosen_var.get("retailExtraCost") or 0)
+            if cost <= 0:
+                options_cost_missing.append(o.get("name") or opt_id)
         else:
             cost = float(o.get("costPrice") or 0)
             extra = float(o.get("retailExtraCost") or 0)
+            if cost <= 0:
+                options_cost_missing.append(o.get("name") or opt_id)
         q = max(1, qty)
         opts_cost += cost * q
         retail_extra += extra * q
@@ -496,6 +505,10 @@ def _recompute_one(order: dict, prices: dict, opt_index: dict) -> dict | None:
         "retailExtraCost": retail_extra_int,
         "margin": margin,
         "marginRecomputedAt": datetime.now(timezone.utc).isoformat(),
+        # Diagnostic flags — surface in the UI when the cost numbers may be
+        # incomplete. Empty list / False ⇒ everything was configured.
+        "marginCostFromModelFallback": variant_cost_missing,
+        "marginOptionsCostMissing": options_cost_missing,
     }
 
 
@@ -560,10 +573,18 @@ async def recompute_all_margins(_: dict = Depends(get_admin_user)):
             await db.sauna_orders.update_one({"id": o["id"]}, {"$set": patch})
             skipped += 1
             continue
+        prev_fallback = bool(o.get("marginCostFromModelFallback"))
+        prev_missing = o.get("marginOptionsCostMissing") or []
+        new_missing = patch.get("marginOptionsCostMissing") or []
+        diagnostics_changed = (
+            prev_fallback != bool(patch.get("marginCostFromModelFallback"))
+            or list(prev_missing) != list(new_missing)
+        )
         if (
             int(o.get("totalCost") or 0) == patch["totalCost"]
             and int(o.get("margin") or 0) == patch["margin"]
             and int(o.get("retailExtraCost") or 0) == patch["retailExtraCost"]
+            and not diagnostics_changed
         ):
             unchanged += 1
             continue

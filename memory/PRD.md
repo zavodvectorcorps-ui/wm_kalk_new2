@@ -1473,3 +1473,29 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
   costPrice=0, no-variant, VAT-aware маржа, recompute endpoint shape.
   Pre-existing PYTHONPATH issues в 3 тестах iter 106-107 не связаны.
 
+
+### Cennik + Orders — индикатор «Себестоимость не настроена» (DONE - Feb 27, 2026)
+- **Driver:** После фикса double-cost (iter 108) variant без costPrice
+  наследует значение модели — это норм, но не очевидно. Хотим явный
+  визуальный сигнал, что себестоимость недонастроена, чтобы случайно
+  не пускать в работу варианты с фейковой маржой.
+- **Backend (`routes/sauna_orders.py`):**
+  - `_recompute_one` теперь возвращает два диагностических поля:
+    - `marginCostFromModelFallback: bool` — True, если variant.costPrice=0
+      и используется model.costPrice как fallback.
+    - `marginOptionsCostMissing: list[str]` — имена опций, у которых
+      (variant.)costPrice=0.
+  - `recompute-margins` персистит эти поля даже когда монетарные значения
+    не изменились (через diagnostics_changed).
+- **Frontend:**
+  - `OrdersPage.jsx`: в строке таблицы рядом с маржой появляется ⚠
+    (амбер), всплывает hint при наведении. В Popover расчёта маржи
+    добавлены 2 жёлтые строки с конкретным сообщением и подсказкой
+    куда зайти исправить.
+  - `PriceMatrix.jsx`: при `flags.noCard` ячейка себестоимости теперь
+    показывает ⚠ + tooltip «Тех.карта не создана — себестоимость
+    не определена. Откройте «Тех.карты» и привяжите BOM».
+- **На текущих данных:** Из 31 заказа найдено 4 с опциями без
+  настроенной себестоимости (например, `Piec Elektryczne 9 kW`,
+  `Belki podłużne`).
+

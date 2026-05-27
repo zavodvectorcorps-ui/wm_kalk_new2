@@ -645,6 +645,8 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
                             const marginNetto = totalNetto - order.totalCost - extras;
                             const marginPct = totalNetto > 0 ? (marginNetto / totalNetto) * 100 : 0;
                             const isLoss = marginNetto < 0;
+                            const hasCostWarning = !!order.marginCostFromModelFallback
+                              || (Array.isArray(order.marginOptionsCostMissing) && order.marginOptionsCostMissing.length > 0);
                             const fmtPL = (n) => Math.round(Number(n) || 0).toLocaleString('pl-PL').replace(/,/g, ' ');
                             return (
                               <Popover>
@@ -656,7 +658,14 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
                                     title="Подробности расчёта маржи"
                                   >
                                     <div className="text-right">
-                                      <div className={`font-semibold ${isLoss ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                                      <div className={`font-semibold flex items-center justify-end gap-1 ${isLoss ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                                        {hasCostWarning && (
+                                          <span
+                                            className="text-amber-600 dark:text-amber-400 text-xs"
+                                            title="Себестоимость не настроена для варианта или опций — маржа может быть завышена"
+                                            data-testid={`margin-warn-${order.id}`}
+                                          >⚠</span>
+                                        )}
                                         {isSauna ? `${fmtPL(marginNetto)} PLN` : `${marginNetto.toFixed(0)}€`}
                                       </div>
                                       <div className={`text-[11px] ${isLoss ? 'text-red-500' : 'text-muted-foreground'}`}>
@@ -708,6 +717,20 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
                                             <span className="text-muted-foreground">− Себестоимость</span>
                                             <span className="font-mono text-blue-600 dark:text-blue-400">−{fmtPL(order.totalCost)} PLN</span>
                                           </div>
+                                          {/* Cost configuration warnings — surface when variant or option costs
+                                              were missing so users know the cost number may be incomplete. */}
+                                          {order.marginCostFromModelFallback && (
+                                            <div className="text-[10px] text-amber-700 dark:text-amber-400 pl-1 italic flex items-start gap-1" data-testid="warn-variant-cost-missing">
+                                              <span>⚠</span>
+                                              <span>Себестоимость варианта не задана — использована себест. модели. Откройте Cennik и заполните себестоимость варианта.</span>
+                                            </div>
+                                          )}
+                                          {Array.isArray(order.marginOptionsCostMissing) && order.marginOptionsCostMissing.length > 0 && (
+                                            <div className="text-[10px] text-amber-700 dark:text-amber-400 pl-1 italic flex items-start gap-1" data-testid="warn-options-cost-missing">
+                                              <span>⚠</span>
+                                              <span>Себестоимость не задана у опций: <b>{order.marginOptionsCostMissing.join(', ')}</b>. Маржа может быть завышена.</span>
+                                            </div>
+                                          )}
                                           {/* Always show retail extras row so it's clear whether they were applied. */}
                                           <div className="flex justify-between gap-3">
                                             <span className="text-muted-foreground">− Розничные расходы</span>
