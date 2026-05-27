@@ -1405,3 +1405,46 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
   unknown componentId skipped, DELETE revert, legacy single-line,
   revert→re-deliver, idempotency на повторный PUT delivered.
 
+
+### Production — авто-списание комплектующих при запуске (DONE - Feb 27, 2026)
+- **Driver:** Вторая половина складского цикла. Procurement (iter 106)
+  добавляет stock при `delivered`; теперь production снимает stock при
+  переходе лида в производство. Полный учёт без ручных правок.
+- **Backend (`routes/sauna_tech_cards.py`):**
+  - Новая функция `deduct_production_stock(lead, direction, actor)`:
+    - Использует существующие `_extract_targets_from_lead` +
+      `_aggregate_targets` для сборки BOM.
+    - Атомарный `find_one_and_update` с `$inc` для каждого компонента
+      с реальным `componentId`. Free-form BOM rows skip-аются.
+    - Пишет audit-запись в `sauna_stock_movements` (type=`out` для
+      списания, `in` для отката) с `before`/`after`, `qty`, `leadId`,
+      `actorUsername` и осмысленной заметкой.
+    - Возвращает summary `{applied, skipped, items[], totalQty,
+      totalValue, unmatchedTargets, at}` — сохраняется на лиде для аудита.
+  - Новые admin-эндпоинты:
+    - `POST /production-stock/preview/{lead_id}` — dry-run, показывает
+      какие компоненты будут списаны и сколько (+ флаг `alreadyDeducted`).
+    - `POST /production-stock/deduct/{lead_id}` — ручной запуск списания
+      (или retry если auto не сработал при push). Race-safe claim,
+      409 если уже списано.
+    - `POST /production-stock/revert/{lead_id}` — откат прошлого списания
+      (например, если лид ошибочно отправили в производство).
+- **Integration (`routes/sauna_crm.py · push_to_production`):**
+  - После стандартной разметки лида (`inProduction=True`) делается
+    атомарный claim флага `productionStockDeducted` и вызывается
+    `deduct_production_stock(..., direction=-1)`.
+  - Списание — best-effort: если упало (нет BOM, нет tech-card),
+    лид всё равно идёт в производство, но claim откатывается, чтобы
+    admin мог запустить списание вручную через `/production-stock/deduct`.
+  - Идемпотентность через `productionStockDeducted: True` — повторный
+    push возвращает 400, повторный manual deduct → 409.
+  - Ответ to-production теперь содержит `stockSummary` для UI.
+- **Тесты:** ✅ 13/13 новых backend pytest (iteration 107) + 16/16
+  procurement regression. Покрыто: preview/deduct/revert (200/404/409),
+  to-production happy path, no-BOM no-op claim, race-protection
+  на double-push, multi-card BOM aggregation, audit-записи в
+  sauna_stock_movements.
+- **Известное ограничение:** между set-флага и Mongo $inc есть
+  micro-окно без транзакции — для одного админа норм, для multi-admin
+  workflow стоит держать в уме.
+
