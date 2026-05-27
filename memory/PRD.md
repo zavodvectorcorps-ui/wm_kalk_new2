@@ -1246,3 +1246,33 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
   - При status=error — красное сообщение с текстом ошибки.
 - **Тесты:** ✅ 10/10 новых + 20/20 регрессионных (iteration 102).
 
+
+### Полная синхронизация (Unified Sync) (DONE - Feb 27, 2026)
+- **Cause:** В UI были две раздельные кнопки `Синхронизировать` — на странице
+  `Контроль лидов` и на вкладке `По событиям`. Пользователи путались,
+  что и в каком порядке запускать; забывали запустить вторую.
+- **New backend module `routes/unified_sync.py`:**
+  - Коллекция `unified_sync` с документами `{unified_id, status, phase,
+    progress, leadsSyncId, eventsSyncId, leadsProcessed, eventsProcessed}`.
+  - `POST /api/lead-analytics/unified-sync` — старт. Auto-cancel
+    предыдущего running unified.
+  - `GET /api/lead-analytics/unified-sync/status` — статус с авто-recovery
+    зависших >30 мин.
+  - `POST /api/lead-analytics/unified-sync/cancel` — каскадная отмена
+    unified + lead_analytics_sync + event_analytics_sync.
+  - `_run_unified` background task: фаза 1 = lead_analytics sync, фаза 2 =
+    manager-events sync. Если фаза 1 падает, фаза 2 не запускается.
+- **Frontend (`UnifiedSyncButton.jsx`, новый):**
+  - Кнопка-градиент `Полная синхронизация` с встроенным polling и
+    мини-баннером (`1/2 · загрузка лидов…` → `2/2 · события…` →
+    `✓ N лидов + M событий`).
+  - При работе превращается в `Отменить полную синхр.` (caskaded cancel).
+  - Авто-возобновление при перезагрузке страницы (читает `/status` при mount).
+- **Integration:**
+  - `LeadAnalyticsPage.jsx` — заменил основную кнопку синка на UnifiedSyncButton,
+    оставил `Только лиды` (variant=outline) и `Полная (лиды)` как fallback.
+  - `ManagerEventsAnalytics.jsx` — добавлен UnifiedSyncButton рядом с
+    локальной кнопкой `Только события`.
+- **Тесты:** ✅ 10/10 (iteration 103, тестинг-агент). Регрессия iter100-102
+  не сломана.
+
