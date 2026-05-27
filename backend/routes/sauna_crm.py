@@ -1598,7 +1598,13 @@ async def sync_lead_to_amocrm(lead_id: str):
 
 @router.post("/leads/{lead_id}/to-production")
 async def push_to_production(lead_id: str):
-    """Push a CRM lead to the production board."""
+    """Push a CRM lead to the production board.
+
+    Side effect: aggregates the lead's BOM from `sauna_tech_cards` and
+    atomically deducts component quantities from
+    `sauna_components.stockCurrent`. Race-safe via the
+    ``productionStockDeducted`` flag (a future re-push won't double-deduct).
+    """
     lead = await db.sauna_crm_leads.find_one({"id": lead_id}, {"_id": 0})
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")
@@ -1623,8 +1629,41 @@ async def push_to_production(lead_id: str):
             "updatedAt": now,
         }}
     )
+
+    # Atomic stock deduction — separate try block so a missing tech-card
+    # never blocks the push itself. If deduction fails, the lead still goes
+    # to production but the flag stays False, allowing manual retry via
+    # /production-stock/deduct/{lead_id}.
+    stock_summary = None
+    try:
+        claim = await db.sauna_crm_leads.update_one(
+            {"id": lead_id, "productionStockDeducted": {"$ne": True}},
+            {"$set": {"productionStockDeducted": True}},
+        )
+        if claim.matched_count == 1:
+            from routes.sauna_tech_cards import deduct_production_stock
+            fresh = await db.sauna_crm_leads.find_one({"id": lead_id}, {"_id": 0})
+            stock_summary = await deduct_production_stock(fresh, direction=-1)
+            await db.sauna_crm_leads.update_one(
+                {"id": lead_id},
+                {"$set": {"productionStockSummary": stock_summary,
+                           "productionStockDeductedAt": now}},
+            )
+    except Exception as e:
+        # Best-effort: release the claim so admin can retry manually.
+        await db.sauna_crm_leads.update_one(
+            {"id": lead_id},
+            {"$set": {"productionStockDeducted": False}},
+        )
+        # Log only — don't fail the push, the production board state is the
+        # primary contract here.
+        import logging as _log
+        _log.getLogger(__name__).warning(
+            f"push_to_production: stock deduction failed for {lead_id}: {e}"
+        )
+
     updated = await db.sauna_crm_leads.find_one({"id": lead_id}, {"_id": 0})
-    return {"status": "ok", "lead": updated}
+    return {"status": "ok", "lead": updated, "stockSummary": stock_summary}
 
 
 # ============== CALCULATOR INTEGRATION ==============

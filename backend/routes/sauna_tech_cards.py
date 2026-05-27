@@ -744,6 +744,173 @@ async def procurement_forecast(body: dict, _: dict = Depends(get_admin_user)):
 
 
 # ============================================================
+# PRODUCTION STOCK DEDUCTION
+# ============================================================
+# When a lead is pushed to production, deduct the aggregated BOM from
+# ``sauna_components.stockCurrent``. Idempotent via the ``productionStockDeducted``
+# flag on the lead document so re-pushes don't double-deduct.
+
+
+async def deduct_production_stock(lead: dict, direction: int = -1,
+                                    actor: dict | None = None) -> dict:
+    """Apply (direction=-1) or revert (+1) BOM deduction for one lead.
+
+    Returns a summary dict {applied, skipped, items: [...], totalQty,
+    totalValue} so callers can persist it on the lead for audit / revert.
+    Skips items without a real ``componentId`` (e.g. free-form BOM rows).
+    Writes a ``sauna_stock_movements`` audit entry per affected component.
+    """
+    targets = _extract_targets_from_lead(lead)
+    agg = await _aggregate_targets(targets)
+    items = agg.get("items") or []
+    applied = 0
+    skipped = 0
+    updates: list[dict] = []
+    total_qty = 0.0
+    total_value = 0.0
+    movement_type = "out" if direction < 0 else "in"
+    note_prefix = ("Списание производство" if direction < 0
+                   else "Возврат списания производства")
+    actor = actor or {}
+    for it in items:
+        cid = it.get("componentId")
+        qty = float(it.get("totalQty") or 0)
+        if not cid or qty <= 0:
+            skipped += 1
+            continue
+        delta = qty * direction  # negative when deducting
+        # Atomic update + read of the new stockCurrent.
+        res = await db.sauna_components.find_one_and_update(
+            {"id": cid},
+            {"$inc": {"stockCurrent": delta},
+             "$set": {"updatedAt": _now()}},
+            return_document=True,
+            projection={"_id": 0, "stockCurrent": 1, "name": 1},
+        )
+        if not res:
+            skipped += 1
+            continue
+        after = float(res.get("stockCurrent") or 0)
+        before = after - delta
+        applied += 1
+        total_qty += qty
+        total_value += float(it.get("lineTotal") or 0)
+        updates.append({
+            "componentId": cid,
+            "name": it.get("name", ""),
+            "qty": qty,
+            "delta": delta,
+            "before": round(before, 3),
+            "after": round(after, 3),
+        })
+        # Audit trail (same collection adjust_stock uses).
+        await db.sauna_stock_movements.insert_one({
+            "id": str(uuid.uuid4()),
+            "componentId": cid,
+            "componentName": it.get("name", ""),
+            "type": movement_type,
+            "qty": qty,
+            "before": round(before, 3),
+            "after": round(after, 3),
+            "note": f"{note_prefix}: лид {lead.get('id', '?')}",
+            "leadId": lead.get("id"),
+            "actorUserId": actor.get("sub") or actor.get("id") or "",
+            "actorUsername": actor.get("username") or "system",
+            "at": _now(),
+        })
+    return {
+        "applied": applied,
+        "skipped": skipped,
+        "items": updates,
+        "totalQty": round(total_qty, 3),
+        "totalValue": round(total_value, 2),
+        "unmatchedTargets": len(agg.get("unmatched") or []),
+        "at": _now(),
+    }
+
+
+@router.post("/production-stock/preview/{lead_id}")
+async def preview_production_stock(lead_id: str, _: dict = Depends(get_admin_user)):
+    """Dry-run BOM aggregation for a lead — no stock changes."""
+    lead = await db.sauna_crm_leads.find_one({"id": lead_id}, {"_id": 0})
+    if not lead:
+        raise HTTPException(404, "Lead not found")
+    targets = _extract_targets_from_lead(lead)
+    agg = await _aggregate_targets(targets)
+    return {
+        "leadId": lead_id,
+        "alreadyDeducted": bool(lead.get("productionStockDeducted")),
+        **agg,
+    }
+
+
+@router.post("/production-stock/deduct/{lead_id}")
+async def manual_deduct_production_stock(lead_id: str, user: dict = Depends(get_admin_user)):
+    """Manual stock deduction trigger for a lead (admin override / retry).
+
+    Race-safe claim via conditional update; if a previous deduction succeeded,
+    returns 409 with the stored summary.
+    """
+    lead = await db.sauna_crm_leads.find_one({"id": lead_id}, {"_id": 0})
+    if not lead:
+        raise HTTPException(404, "Lead not found")
+    # Try to claim the flag.
+    claim = await db.sauna_crm_leads.update_one(
+        {"id": lead_id, "productionStockDeducted": {"$ne": True}},
+        {"$set": {"productionStockDeducted": True}},
+    )
+    if claim.matched_count == 0:
+        raise HTTPException(
+            409,
+            f"Списание уже выполнено: {lead.get('productionStockSummary', {}).get('at', '?')}"
+        )
+    try:
+        summary = await deduct_production_stock(lead, direction=-1, actor=user)
+        await db.sauna_crm_leads.update_one(
+            {"id": lead_id},
+            {"$set": {"productionStockSummary": summary,
+                       "productionStockDeductedAt": _now()}},
+        )
+        return {"ok": True, "summary": summary}
+    except Exception as e:
+        # Release the claim so a retry is possible.
+        await db.sauna_crm_leads.update_one(
+            {"id": lead_id},
+            {"$set": {"productionStockDeducted": False}},
+        )
+        raise HTTPException(500, f"Списание не выполнено: {e}")
+
+
+@router.post("/production-stock/revert/{lead_id}")
+async def revert_production_stock(lead_id: str, user: dict = Depends(get_admin_user)):
+    """Undo a prior production stock deduction."""
+    lead = await db.sauna_crm_leads.find_one({"id": lead_id}, {"_id": 0})
+    if not lead:
+        raise HTTPException(404, "Lead not found")
+    release = await db.sauna_crm_leads.update_one(
+        {"id": lead_id, "productionStockDeducted": True},
+        {"$set": {"productionStockDeducted": False}},
+    )
+    if release.matched_count == 0:
+        raise HTTPException(409, "Нет ранее проведённого списания для отката")
+    try:
+        summary = await deduct_production_stock(lead, direction=+1, actor=user)
+        summary["reverted"] = True
+        await db.sauna_crm_leads.update_one(
+            {"id": lead_id},
+            {"$set": {"productionStockSummary": summary,
+                       "productionStockRevertedAt": _now()}},
+        )
+        return {"ok": True, "summary": summary}
+    except Exception as e:
+        await db.sauna_crm_leads.update_one(
+            {"id": lead_id},
+            {"$set": {"productionStockDeducted": True}},
+        )
+        raise HTTPException(500, f"Откат не выполнен: {e}")
+
+
+# ============================================================
 # STOCK MOVEMENTS — manual inventory adjustments
 # ============================================================
 

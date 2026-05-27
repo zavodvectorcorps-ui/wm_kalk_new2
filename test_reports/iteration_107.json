@@ -1,0 +1,38 @@
+{
+  "summary": "Iteration 107 — production stock deduction cycle. Created 13 new pytest cases for /api/sauna-production/cost/production-stock/{preview,deduct,revert}/{lead_id} and /api/sauna-crm/leads/{lead_id}/to-production auto-deduct path. All 13/13 pass. Regression: previous procurement delivery suite (iter 106) re-run = 16/16 pass. No backend bugs found.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_production_stock_deduction.py",
+    "/app/test_reports/pytest/pytest_iter107.xml",
+    "/app/backend/tests/test_procurement_stock_delivery.py"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "sauna_crm.py grows past 1791 lines — consider splitting (leads CRUD vs production/amocrm push helpers vs settings).",
+    "sauna_tech_cards.py 1156 lines — also nearing the 700-line guideline; the new production-stock block (~250 lines) is a good candidate to extract into routes/sauna_production_stock.py for isolation.",
+    "deduct_production_stock claims idempotency via `productionStockDeducted` flag but there is a non-atomic window between the flag set and stock updates (no transaction). Under heavy concurrency two simultaneous to-production calls could both pass the flag check before either commits. Acceptable for single-admin-user workflow, but document the limitation.",
+    "to-production sets productionStockDeducted=True even when no BOM was matched (applied=0). Behaviour is documented (no-op claim to prevent retry storms) — confirmed by test test_to_production_without_bom_returns_applied_zero. Good.",
+    "All endpoints correctly exclude Mongo `_id` (verified) and use Pydantic / dict input validation."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_production_stock_deduction.py (new)"
+  ],
+  "success_rate": {
+    "backend": "100% (13/13 new + 16/16 regression = 29/29)",
+    "frontend": "n/a (backend-only per request)"
+  },
+  "test_credentials": "admin / admin123",
+  "seed_data_creation": "Per-test TEST_PSD_* components, TEST_M_/TEST_V_/TEST_O_ synthetic model/variant/option ids, TEST_LEAD_* CRM leads, TEST_AMO_* amocrm_ids (to dodge unique index on null amocrm_id). All cleaned up in module-scoped autouse fixture (DELETE via API for leads & tech-cards, direct Mongo purge for sauna_components + sauna_stock_movements).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Two non-bug test-script gotchas worth knowing for this codebase: (1) GET /api/sauna-production/cost/components returns {items: [...], count: n}, not a bare list. (2) sauna_crm_leads has a UNIQUE index on amocrm_id — second test lead with null amocrm_id triggers 500 E11000. Always set a unique TEST_AMO_* string when creating multiple test leads. The test file test_production_stock_deduction.py uses both workarounds and is reusable as regression for iter 107+.",
+  "rca of the issue": "No production bugs found. All assertions on stock deltas, audit movements (type=out/in, before/after, qty, componentId, leadId, actorUsername='admin', note='Списание производство...' / 'Возврат списания производства...'), 409 Conflict idempotency, 400 race-protection on to-production, no-op claim for leads without BOM, and multi-card BOM aggregation (variant + option scope) all behave as specified."
+}
