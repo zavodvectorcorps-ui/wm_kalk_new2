@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import ManagerEventsAnalytics from './ManagerEventsAnalytics';
 import AdvancedManagerDashboard from './AdvancedManagerDashboard';
+import UnifiedSyncButton from './UnifiedSyncButton';
 
 import { getApiUrl } from '../utils/api';
 const API_URL = getApiUrl();
@@ -992,13 +993,18 @@ const LeadAnalyticsPage = () => {
             <Trash2 className="h-4 w-4 mr-1" />
             Очистить всё
           </Button>
-          <Button onClick={() => handleSync(false)} disabled={syncing} size="sm" data-testid="sync-btn">
+          <UnifiedSyncButton
+            dateFrom={dateFrom}
+            dateTo={dateTo}
+            onComplete={fetchSummary}
+          />
+          <Button onClick={() => handleSync(false)} disabled={syncing} size="sm" variant="outline" data-testid="sync-btn" title="Синхронизировать ТОЛЬКО лидов (без событий). Для полной картины используйте «Полная синхронизация».">
             {syncing ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <RefreshCw className="h-4 w-4 mr-1" />}
-            Синхронизировать
+            Только лиды
           </Button>
-          <Button onClick={() => handleSync(true)} disabled={syncing} size="sm" variant="outline" data-testid="full-sync-btn">
+          <Button onClick={() => handleSync(true)} disabled={syncing} size="sm" variant="outline" data-testid="full-sync-btn" title="Полная пересинхронизация лидов с нуля">
             <RefreshCw className="h-4 w-4 mr-1" />
-            Полная
+            Полная (лиды)
           </Button>
         </div>
       </div>

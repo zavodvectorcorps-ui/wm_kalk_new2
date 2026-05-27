@@ -17,6 +17,7 @@ import {
 
 import { getApiUrl } from '../utils/api';
 import BinotelMappingDialog from './BinotelMappingDialog';
+import UnifiedSyncButton from './UnifiedSyncButton';
 const API_URL = getApiUrl();
 
 const formatHours = (h) => {
@@ -947,9 +948,10 @@ const ManagerEventsAnalytics = () => {
               Binotel ↔ amoCRM
             </Button>
           )}
-          <Button onClick={handleSync} disabled={syncing} size="sm">
+          <UnifiedSyncButton dateFrom={dateFrom} dateTo={dateTo} onComplete={fetchData} />
+          <Button onClick={handleSync} disabled={syncing} size="sm" variant="outline" title="Синхронизировать ТОЛЬКО события (без лидов). Для полной картины используйте «Полная синхронизация».">
             {syncing ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <RefreshCw className="h-4 w-4 mr-1" />}
-            Синхронизировать
+            Только события
           </Button>
         </div>
       </div>
