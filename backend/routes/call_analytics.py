@@ -766,14 +766,17 @@ async def _transcribe_single_impl(call_id: str):
         amo = get_amocrm_settings()
         await db[CALLS_COL].update_one({"id": call_id}, {"$set": {"status": "transcribing", "updatedAt": datetime.now(timezone.utc).isoformat()}})
 
-        # Get audio bytes — from uploaded data, Binotel API, or direct URL
+        # Get audio bytes — from uploaded data, Cloudinary archive, Binotel API, or direct URL
         audio_bytes = None
         if call.get("audio_data"):
             import base64
             audio_bytes = base64.b64decode(call["audio_data"])
             logger.info(f"Call {call_id}: using uploaded audio ({len(audio_bytes)} bytes)")
         else:
-            # Try Binotel API first (get fresh temporary URL)
+            # 1) Cloudinary archive — permanent, fastest. Prefer it when present.
+            cloud_url = call.get("audio_url") if call.get("audio_cloudinary_id") else ""
+
+            # 2) Binotel API — get fresh 15-min URL.
             binotel_url = ""
             gcid = call.get("binotel_call_id", "")
             if not gcid and call.get("phone") and call.get("datetime"):
@@ -783,27 +786,63 @@ async def _transcribe_single_impl(call_id: str):
                     await db[CALLS_COL].update_one({"id": call_id}, {"$set": {"binotel_call_id": gcid}})
                     logger.info(f"Call {call_id}: found Binotel generalCallID={gcid}")
 
-            if gcid:
+            if gcid and not cloud_url:
                 binotel_url = await _binotel_get_audio_url(gcid)
                 if binotel_url:
                     logger.info(f"Call {call_id}: got Binotel audio URL")
 
-            download_url = binotel_url or audio_url
-            if download_url:
-                dl_headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-                if not binotel_url and amo.get("amocrm_token") and amo.get("amocrm_domain") and amo["amocrm_domain"] in download_url:
-                    dl_headers["Authorization"] = f"Bearer {amo['amocrm_token']}"
-                async with httpx.AsyncClient(timeout=120, follow_redirects=True) as cl:
-                    audio_resp = await cl.get(download_url, headers=dl_headers)
-                if audio_resp.status_code != 200:
-                    await db[CALLS_COL].update_one({"id": call_id}, {"$set": {"status": "error", "error": f"Download failed: HTTP {audio_resp.status_code}"}})
-                    return
-                audio_bytes = audio_resp.content
-                if b"<html" in audio_bytes[:500].lower():
-                    await db[CALLS_COL].update_one({"id": call_id}, {"$set": {"status": "error", "error": "Получена HTML-страница вместо аудио"}})
-                    return
-            else:
+            # Build a prioritised list of candidate URLs — first that returns
+            # real bytes wins. We retry only the cases where we got HTML
+            # (expired amoCRM link) or a non-200.
+            candidates = []
+            if cloud_url:
+                candidates.append(("cloudinary", cloud_url))
+            if binotel_url:
+                candidates.append(("binotel", binotel_url))
+            if audio_url and audio_url != cloud_url and audio_url != binotel_url:
+                candidates.append(("amocrm", audio_url))
+
+            if not candidates:
                 await db[CALLS_COL].update_one({"id": call_id}, {"$set": {"status": "error", "error": "Нет аудио URL и не удалось найти в Binotel"}})
+                return
+
+            last_err = ""
+            for source, dl_url in candidates:
+                dl_headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+                if source == "amocrm" and amo.get("amocrm_token") and amo.get("amocrm_domain") and amo["amocrm_domain"] in dl_url:
+                    dl_headers["Authorization"] = f"Bearer {amo['amocrm_token']}"
+                try:
+                    async with httpx.AsyncClient(timeout=120, follow_redirects=True) as cl:
+                        audio_resp = await cl.get(dl_url, headers=dl_headers)
+                except Exception as e:
+                    last_err = f"{source}: {e}"
+                    logger.warning(f"Call {call_id}: download from {source} crashed: {e}")
+                    continue
+                if audio_resp.status_code != 200:
+                    last_err = f"{source}: HTTP {audio_resp.status_code}"
+                    logger.warning(f"Call {call_id}: download from {source} → {audio_resp.status_code}")
+                    continue
+                body = audio_resp.content
+                if b"<html" in body[:500].lower() or b"<!doctype" in body[:500].lower():
+                    last_err = f"{source}: получили HTML вместо аудио (ссылка протухла или нужна авторизация)"
+                    logger.warning(f"Call {call_id}: {source} returned HTML — trying next source")
+                    # If amoCRM URL expired and we still have a Binotel ID we
+                    # didn't try yet, try fetching a fresh Binotel URL right now.
+                    if source == "amocrm" and gcid and "binotel" not in [s for s, _ in candidates]:
+                        fresh = await _binotel_get_audio_url(gcid)
+                        if fresh:
+                            candidates.append(("binotel-fresh", fresh))
+                    continue
+                # Got real audio bytes.
+                audio_bytes = body
+                logger.info(f"Call {call_id}: downloaded {len(audio_bytes)} bytes from {source}")
+                break
+
+            if audio_bytes is None:
+                await db[CALLS_COL].update_one(
+                    {"id": call_id},
+                    {"$set": {"status": "error", "error": last_err or "Не удалось скачать аудио ни из одного источника"}}
+                )
                 return
 
         if len(audio_bytes) > 25 * 1024 * 1024:
