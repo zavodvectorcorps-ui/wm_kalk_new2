@@ -1143,3 +1143,28 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
 - Not touched: the big SaunaCalculator (~2000 lines) is intentionally left
   in PLN — too invasive. Dealers see EUR figures at the confirmation step
   and in the matrices/CSV exports as the user agreed.
+
+
+### Manager Analytics — Live Call Counts (DONE - Feb 27, 2026)
+- **Bug:** Manager Events Analytics card was showing `0` calls for a manager
+  even though calls existed in `call_analytics_calls`.
+- **Root cause:** `event_manager_stats` is a snapshot frozen at events-sync
+  time; the call-analytics sync runs on a separate schedule, so the snapshot
+  is stale until the next events-sync. Result: managers with real calls
+  displayed `outgoingCalls = 0 / callsPerLead = 0`.
+- **Fix (backend, `routes/manager_events_analytics.py`):**
+  - New helper `_live_calls_by_manager(date_from, date_to)` aggregates
+    `call_analytics_calls` grouped by `manager_id` + `direction` at READ time.
+  - `GET /manager-stats` now overlays live `outgoingCalls`, `incomingCalls`
+    and recomputes `callsPerLead` per manager — accepts `date_from`/`date_to`.
+  - `GET /manager-detail/{user_id}`:
+    - dropped the over-strict `audio_url: {$ne: ""}` filter → all calls show;
+    - fixed projection (`phone` instead of non-existent `client_phone`,
+      `summary_ru` mapped to `summary` for the UI);
+    - `callKpi.total` now uses `count_documents` for the true total,
+      not just the 30-row preview;
+    - header stats (`outgoingCalls`/`incomingCalls`/`callsPerLead`) also
+      enriched with live counts.
+- **Fix (frontend, `ManagerEventsAnalytics.jsx`):** `fetchData` now forwards
+  `dateFrom`/`dateTo` to `manager-stats` so live counts respect the filter.
+- ✅ Verified: 7/7 pytest checks via testing agent (iteration 100).
