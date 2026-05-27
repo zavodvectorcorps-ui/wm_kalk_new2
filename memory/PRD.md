@@ -1377,3 +1377,31 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
 - **Тесты:** ✅ 16/16 multi-line + 16/17 базовые = 32 теста, 100%
   (iteration 105). Включая Telegram HTML формат для multi-line.
 
+
+### Procurement — авто-приход на склад при delivered (DONE - Feb 27, 2026)
+- **Driver:** Замкнуть цикл «купили → пришло → склад знает что есть».
+  Раньше при переводе заявки в `delivered` нужно было вручную править
+  `stockCurrent` в каталоге компонентов.
+- **Backend (`routes/procurement.py`):**
+  - Новая функция `_apply_stock_delivery(doc, direction=±1)` — атомарно
+    обновляет `sauna_components.stockCurrent` через Mongo `$inc` для
+    каждой позиции с реальным `componentId`. Поддерживает multi-line и
+    legacy single-line.
+  - Возвращает summary `{applied, skipped, updates: [...]}`.
+  - Поле `stockApplied: bool` на документе как маркер идемпотентности.
+  - Хуки:
+    - POST с `status='delivered'` сразу применяет приход.
+    - PUT с переходом `not-delivered → delivered`: race-safe claim через
+      условный update `{stockApplied: {$ne: True}}`, потом `_apply_stock`.
+      При ошибке — флаг откатывается и эндпоинт возвращает 500 (чтобы
+      статус НЕ остался `delivered` с не-кредитованным стоком).
+    - PUT с переходом `delivered → ordered/cancelled/...`: race-safe
+      release + `_apply_stock` с `direction=-1`.
+    - DELETE delivered: revert stock перед удалением.
+  - Race protection: двойной PUT delivered → только первый кредитует
+    (условный update_one), второй no-op. Проверено e2e.
+- **Тесты:** ✅ 16/16 (iteration 106) + 32/32 регрессия. Покрыто:
+  POST delivered, PUT transitions, multi-line с partial componentId,
+  unknown componentId skipped, DELETE revert, legacy single-line,
+  revert→re-deliver, idempotency на повторный PUT delivered.
+

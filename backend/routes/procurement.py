@@ -560,31 +560,62 @@ async def update_request(
     # ── Stock delivery transition ──────────────────────────────
     # Detect status transitions in/out of `delivered` and update the
     # components catalog atomically. ``stockApplied`` is the idempotency
-    # marker: we only apply once and revert once.
+    # marker: we only apply once and revert once. The flag is flipped via
+    # a conditional update_one with ``stockApplied: {$ne: True}`` so two
+    # concurrent PUT delivered requests can't both pass the "not already
+    # applied" check and double-credit stock.
     prev_status = existing.get("status")
     new_status = update.get("status", prev_status)
     already_applied = bool(existing.get("stockApplied"))
     stock_event = None
     if new_status == "delivered" and not already_applied:
-        # Build the effective post-update doc so item changes in this PUT
-        # are taken into account when crediting stock.
-        effective = {**existing, **update}
-        if "items" in update:
-            effective["items"] = update["items"]
-        try:
-            stock_event = await _apply_stock_delivery(effective, direction=+1)
-            update["stockApplied"] = True
-            update["stockSummary"] = stock_event
-        except Exception as e:
-            logger.warning(f"procurement stock-apply (PUT) failed: {e}")
+        # Race-safe claim: only the first concurrent PUT wins.
+        claim = await db[COL].update_one(
+            {"id": request_id, "stockApplied": {"$ne": True}},
+            {"$set": {"stockApplied": True}},
+        )
+        if claim.matched_count == 1:
+            effective = {**existing, **update}
+            if "items" in update:
+                effective["items"] = update["items"]
+            try:
+                stock_event = await _apply_stock_delivery(effective, direction=+1)
+                update["stockApplied"] = True
+                update["stockSummary"] = stock_event
+            except Exception as e:
+                logger.warning(f"procurement stock-apply (PUT) failed: {e}")
+                # Roll back the optimistic flag so a future retry can apply.
+                await db[COL].update_one(
+                    {"id": request_id},
+                    {"$set": {"stockApplied": False}},
+                )
+                # And surface the error to the caller — better than silently
+                # leaving status=delivered with no stock credited.
+                raise HTTPException(
+                    500, f"Не удалось применить приход на склад: {e}"
+                )
     elif prev_status == "delivered" and new_status != "delivered" and already_applied:
-        # Roll back the previously-credited delivery.
-        try:
-            stock_event = await _apply_stock_delivery(existing, direction=-1)
-            update["stockApplied"] = False
-            update["stockSummary"] = {**(stock_event or {}), "reverted": True}
-        except Exception as e:
-            logger.warning(f"procurement stock-revert (PUT) failed: {e}")
+        # Race-safe release of the claim.
+        release = await db[COL].update_one(
+            {"id": request_id, "stockApplied": True},
+            {"$set": {"stockApplied": False}},
+        )
+        if release.matched_count == 1:
+            try:
+                stock_event = await _apply_stock_delivery(existing, direction=-1)
+                update["stockApplied"] = False
+                update["stockSummary"] = {**(stock_event or {}), "reverted": True}
+            except Exception as e:
+                logger.warning(f"procurement stock-revert (PUT) failed: {e}")
+                # Restore the claim so the doc still reflects credited stock
+                # and a retry stays consistent.
+                await db[COL].update_one(
+                    {"id": request_id},
+                    {"$set": {"stockApplied": True}},
+                )
+                raise HTTPException(
+                    500, f"Не удалось списать приход со склада: {e}"
+                )
 
     await db[COL].update_one({"id": request_id}, {"$set": update})
     return await db[COL].find_one({"id": request_id}, {"_id": 0})
