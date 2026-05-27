@@ -609,6 +609,53 @@ const LeadList = ({ leads }) => {
 // ==================== EVENT SETTINGS ====================
 const EventSettings = ({ settings, setSettings, onSave, saving }) => (
   <div className="space-y-6 max-w-3xl" data-testid="event-settings">
+    {/* Auto-sync daily — fresh data every morning without clicking */}
+    <Card className="border-2 border-indigo-400 bg-indigo-50/40 shadow-sm">
+      <CardHeader>
+        <CardTitle className="text-base flex items-center gap-2">
+          ⚡ Автоматическая ежедневная синхронизация <span className="text-[10px] uppercase tracking-wider bg-indigo-600 text-white px-2 py-0.5 rounded">новое</span>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex items-center gap-3">
+          <Checkbox
+            id="auto-daily-sync-enabled"
+            checked={!!settings.autoDailySyncEnabled}
+            onCheckedChange={(v) => setSettings(prev => ({ ...prev, autoDailySyncEnabled: !!v }))}
+            data-testid="auto-daily-sync-enabled"
+          />
+          <Label htmlFor="auto-daily-sync-enabled" className="cursor-pointer text-sm">
+            Включить авто-синхронизацию
+            <span className="block text-[11px] text-muted-foreground">
+              Раз в день автоматически запускается «Полная синхронизация»
+              (лиды + события). Когда команда открывает дашборд утром —
+              данные уже свежие, без ручного клика.
+            </span>
+          </Label>
+        </div>
+        <div>
+          <Label className="text-sm">Час запуска (UTC, 0–23)</Label>
+          <Input
+            type="number" min="0" max="23"
+            value={settings.autoDailySyncHour ?? 6}
+            onChange={e => setSettings(prev => ({ ...prev, autoDailySyncHour: parseInt(e.target.value) || 0 }))}
+            className="w-32 mt-1"
+            data-testid="auto-daily-sync-hour"
+          />
+          <p className="text-[11px] text-muted-foreground mt-1">
+            По Варшаве (CEST лето = UTC+2 / CET зима = UTC+1):
+            6 UTC ≈ 8 утра летом, 7 утра зимой. Поставьте на час раньше
+            рабочего дня, чтобы успело пробежать к открытию офиса.
+          </p>
+        </div>
+        {settings.lastDailySyncDate && (
+          <div className="text-xs text-muted-foreground">
+            Последняя авто-синхронизация: <b>{settings.lastDailySyncDate}</b>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+
     {/* Daily Telegram report — moved to TOP so it's the first thing users see */}
     <Card className="border-2 border-blue-400 bg-blue-50/40 shadow-sm">
       <CardHeader>

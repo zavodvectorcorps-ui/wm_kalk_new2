@@ -1276,3 +1276,25 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
 - **Тесты:** ✅ 10/10 (iteration 103, тестинг-агент). Регрессия iter100-102
   не сломана.
 
+
+### Daily Auto Unified-Sync (DONE - Feb 27, 2026)
+- **Cause:** После добавления `Полной синхронизации` нужна автоматизация — чтобы
+  утром данные уже были свежие, без ручного клика.
+- **New settings (in `event_analytics_settings`):**
+  - `autoDailySyncEnabled: bool` (default false) — мастер-выключатель.
+  - `autoDailySyncHour: int` (default 6 UTC ≈ 8 утра Варшавы летом).
+  - Дедуп-маркер `lastDailySyncDate` гарантирует ≤1 запуск в сутки.
+- **Scheduler (`server.py · manager_analytics_daily_scheduler`):**
+  - Разделён на 2 независимых job в одном цикле:
+    1. Auto unified-sync (lead + events) — если `autoDailySyncEnabled` и
+       `now.hour >= autoDailySyncHour` и `lastDailySyncDate != today`.
+    2. Telegram digest (старый поведением) — если `dailyReportEnabled`.
+  - Каждая job маркирует свою дату — могут работать независимо.
+  - Sync использует `routes.unified_sync._run_unified` — тот же движок,
+    что и UI-кнопка `Полная синхронизация`.
+- **Frontend (`ManagerEventsAnalytics.jsx`):**
+  - Новая первая карточка в `Настройки + Telegram`:
+    `⚡ Автоматическая ежедневная синхронизация` с чекбоксом и полем `час
+    запуска UTC`, с подсказкой про CEST/CET (6 UTC ≈ 8 утра Варшавы летом).
+  - Отображение `Последняя авто-синхронизация: YYYY-MM-DD`.
+

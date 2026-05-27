@@ -41,6 +41,10 @@ class EventAnalyticsSettings(BaseModel):
     dailyReportHour: int = 8  # UTC hour, 0..23
     dailyReportChatId: str = ""  # leave empty → use TELEGRAM_CHAT_ID env
     dailyReportAiAdvice: bool = True  # append GPT-5.2 insights at the bottom
+    # Daily unified sync (leads + events) — runs independently of the digest
+    # so the dashboard is always fresh when the team arrives in the morning.
+    autoDailySyncEnabled: bool = False
+    autoDailySyncHour: int = 6  # UTC hour, 0..23 — defaults to ~7-8 Warsaw
 
 
 @router.get("/settings")

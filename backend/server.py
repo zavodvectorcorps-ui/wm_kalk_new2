@@ -224,15 +224,17 @@ async def crm_auto_sync_scheduler():
 
 
 async def manager_analytics_daily_scheduler():
-    """Run lead-analytics sync once per day and send a Telegram digest.
+    """Daily auto-sync + optional Telegram digest.
 
-    Settings (in ``event_analytics_settings``):
-      • ``dailyReportEnabled``: master toggle.
-      • ``dailyReportHour``: UTC hour 0..23 — fires when we cross this hour.
+    Two independent toggles in ``event_analytics_settings``:
+      • ``autoDailySyncEnabled`` / ``autoDailySyncHour`` — run a unified
+        leads+events sync once per day so the dashboard is always fresh
+        when the team arrives in the morning.
+      • ``dailyReportEnabled`` / ``dailyReportHour`` — send the Telegram
+        digest (existing behavior).
 
-    The job tracks the last successful run date in
-    ``event_analytics_settings.lastDailyReportDate`` (YYYY-MM-DD UTC) to
-    guarantee at most one digest per day, even across container restarts.
+    Independent dedupe markers (``lastDailySyncDate`` / ``lastDailyReportDate``)
+    keep each at most once per UTC day, even across container restarts.
     """
     logger.info("Manager-analytics daily scheduler started")
     await asyncio.sleep(60)  # let everything else boot
@@ -241,41 +243,54 @@ async def manager_analytics_daily_scheduler():
             settings = await db.event_analytics_settings.find_one(
                 {"type": "event_analytics"}, {"_id": 0}
             ) or {}
-            enabled = bool(settings.get("dailyReportEnabled"))
-            target_hour = int(settings.get("dailyReportHour") or 8)
-            if not enabled:
-                await asyncio.sleep(600)  # re-check every 10 min in case toggle flipped
+            sync_enabled = bool(settings.get("autoDailySyncEnabled"))
+            sync_hour = int(settings.get("autoDailySyncHour") or 6)
+            digest_enabled = bool(settings.get("dailyReportEnabled"))
+            digest_hour = int(settings.get("dailyReportHour") or 8)
+
+            # Nothing to do — sleep longer to spare DB hits.
+            if not sync_enabled and not digest_enabled:
+                await asyncio.sleep(600)
                 continue
 
             now = datetime.now(timezone.utc)
             today_str = now.strftime("%Y-%m-%d")
-            last_run = settings.get("lastDailyReportDate") or ""
+            last_sync_date = settings.get("lastDailySyncDate") or ""
+            last_digest_date = settings.get("lastDailyReportDate") or ""
 
-            if now.hour >= target_hour and last_run != today_str:
-                logger.info(f"Manager-analytics daily job firing at {now.isoformat()} (target hour={target_hour})")
-                # 1) Kick off a fresh sync (full sync from yesterday onward).
+            # ── Job 1: auto unified sync ───────────────────────────────
+            if sync_enabled and now.hour >= sync_hour and last_sync_date != today_str:
+                logger.info(f"Daily auto-sync firing at {now.isoformat()} (hour={sync_hour})")
                 try:
                     yesterday = (now - timedelta(days=1)).strftime("%Y-%m-%d")
-                    from routes.lead_analytics import _run_sync
-                    import uuid as _uuid
-                    sync_id = str(_uuid.uuid4())
-                    sync_settings = await db.lead_analytics_settings.find_one(
-                        {"type": "lead_analytics"}, {"_id": 0}
-                    ) or {}
-                    await db.lead_analytics_sync.insert_one({
-                        "sync_id": sync_id,
+                    from routes.unified_sync import _run_unified, UNIFIED_COL
+                    unified_id = now.strftime("UNI_%Y%m%d_%H%M%S_daily")
+                    await db[UNIFIED_COL].insert_one({
+                        "unified_id": unified_id,
                         "status": "running",
-                        "startedAt": now.isoformat(),
+                        "phase": "starting",
+                        "progress": "Daily scheduler · подготовка…",
+                        "date_from": yesterday,
+                        "date_to": None,
+                        "force": False,
                         "trigger": "daily_scheduler",
+                        "startedAt": now.isoformat(),
                     })
-                    # Run synchronously so the digest reflects the latest data.
-                    await _run_sync(sync_id, sync_settings,
-                                    date_from_str=yesterday, date_to_str=None,
-                                    force=False)
+                    await _run_unified(unified_id, date_from=yesterday,
+                                          date_to=None, force=False)
                 except Exception as e:
-                    logger.error(f"Daily sync failed (will still try to send last data): {e}")
+                    logger.error(f"Daily unified sync failed: {e}")
+                # Mark done even on failure — daily retries would just hammer
+                # the broken API; the user re-runs manually if needed.
+                await db.event_analytics_settings.update_one(
+                    {"type": "event_analytics"},
+                    {"$set": {"lastDailySyncDate": today_str}},
+                    upsert=True,
+                )
 
-                # 2) Compose & send the Telegram digest.
+            # ── Job 2: Telegram digest (independent) ───────────────────
+            if digest_enabled and now.hour >= digest_hour and last_digest_date != today_str:
+                logger.info(f"Daily Telegram digest firing at {now.isoformat()} (hour={digest_hour})")
                 try:
                     from services.manager_analytics_report import send_manager_digest
                     yesterday_disp = (now - timedelta(days=1)).strftime("%d.%m.%Y")
@@ -288,9 +303,6 @@ async def manager_analytics_daily_scheduler():
                     logger.info(f"Manager-analytics daily digest sent: {result}")
                 except Exception as e:
                     logger.error(f"Failed to send daily digest: {e}")
-
-                # 3) Record completion regardless of digest success — we
-                #    don't want a stuck failure to spam Telegram on retry.
                 await db.event_analytics_settings.update_one(
                     {"type": "event_analytics"},
                     {"$set": {"lastDailyReportDate": today_str}},
