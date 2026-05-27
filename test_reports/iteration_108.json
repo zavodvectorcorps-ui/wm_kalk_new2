@@ -1,0 +1,37 @@
+{
+  "summary": "Iteration 108 - Backend regression test for sauna order margin double-counting fix in _recompute_one (routes/sauna_orders.py). Created 5 pytest cases covering: recompute-margins endpoint shape, variant.costPrice replaces (not adds to) model.costPrice when >0, variant.costPrice=0 falls back to model.costPrice, no-variant uses model.costPrice, and VAT-aware margin formula (netto = total/1.23 - totalCost - retailExtraCost). All 5/5 pass. Regression: iter 104-107 procurement+production suites = 26/29 pass; 3 failures are pre-existing PYTHONPATH issues unrelated to this fix.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_sauna_orders_margin_variant_fix.py",
+    "/app/test_reports/pytest/iteration_108_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "_recompute_one in routes/sauna_orders.py is well-documented now (clear comment about why variant replaces, not augments). Logic mirrors the convention enforced by _sync_cost_price_to_sauna_prices (scope='variant' writes full cost).",
+    "Inconsistency with options block: at lines 467-487 for options with variants, the code already uses 'variant if present, else option' pattern (no addition). The model-level fix at 455-465 now matches that convention - good consistency.",
+    "Minor: retailExtra fallback uses `if v_extra > 0` semantics - so a variant deliberately setting retailExtra=0 cannot override a non-zero model retailExtra. Acceptable for current data but worth noting (same caveat applies to costPrice fallback).",
+    "routes/sauna_orders.py is 601 lines - still under the 700 guideline but creeping; consider isolating the margin/recompute block (~200 lines) into routes/sauna_orders_margin.py for future maintainability.",
+    "All assertions verified: variant_full_cost=7946 reproduces exactly (would have been 1000+7946=8946 with the old bug). Real-world parity with the user's screenshot (Wiking Lux z tarasem: 7946 zl now vs 18328 zl before)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_sauna_orders_margin_variant_fix.py (new)"
+  ],
+  "success_rate": {
+    "backend": "100% (5/5 new fix coverage; 26/26 relevant regression - 3 collection failures are pre-existing PYTHONPATH bugs in iter 106-107 test files)",
+    "frontend": "n/a (backend-only per request)"
+  },
+  "test_credentials": "admin / admin123 (preview)",
+  "seed_data_creation": "Injected TEST_MODEL_ITER108 with TEST_VARIANT_FULL_ITER108 (costPrice=7946, retailExtraCost=500) and TEST_VARIANT_ZERO_ITER108 (costPrice=0) into sauna_prices.default via Mongo $push. Created 4 test orders (id prefix WMS-TEST-*) via /api/sauna/orders. Module-scoped autouse fixture purges TEST_ model from sauna_prices and TEST_ orders from sauna_orders on teardown.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Two reusable patterns from this iteration: (1) Use MongoClient + $push/$pull on sauna_prices.default to inject test models/variants without disturbing POST /api/sauna/prices replace-all semantics. (2) `_load_env_file` helper at top of test file - older test files (test_procurement_stock_delivery.py, test_production_stock_deduction.py) hard-fail on `assert BASE_URL` if pytest is launched without env loaded; main agent should consider migrating them to the same _load_env_file pattern. The 3 unrelated regression failures (test_telegram_format_multiline_unchanged, test_deduct_lowers_stock_and_writes_audit, test_revert_restores_stock_and_writes_in_audit) are ALL `ModuleNotFoundError: routes/database` from `from routes... import` / `from database import db` inside tests that need PYTHONPATH=/app/backend - they would pass if launched as `cd /app/backend && pytest tests/...`.",
+  "rca of the issue": "Bug: _recompute_one previously did `total_cost = model_cost + variant_cost + opts_cost`, but _sync_cost_price_to_sauna_prices(scope='variant') in routes/sauna_tech_cards.py writes the FULL build cost into variant.costPrice (not a delta). So orders showed model+variant double-cost (e.g. Wiking Lux: 1000+7946=18328 instead of 7946). Fix verified: line 455-465 now does `if v_cost > 0: model_cost = v_cost` (replace, not add). retailExtraCost has identical treatment. Tests reproduce the exact scenario from the user's screenshot and confirm marginCost = variant.costPrice (NOT model + variant). Fallback path (variant.costPrice=0) and no-variant path preserved."
+}

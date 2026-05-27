@@ -445,13 +445,24 @@ def _recompute_one(order: dict, prices: dict, opt_index: dict) -> dict | None:
     if not model:
         return None
 
+    # When a variant is selected its ``costPrice`` is the FULL cost for that
+    # variant (tech-cards write it that way via ``_sync_cost_price_to_sauna_prices``
+    # → see scope=='variant' branch). Adding the model's base ``costPrice`` on
+    # top would double-count the build cost, so the variant replaces — not
+    # augments — the model values. Same for ``retailExtraCost``.
     model_cost = float(model.get("costPrice") or 0)
     retail_extra = float(model.get("retailExtraCost") or 0)
     if variant_id:
         v = next((v for v in (model.get("variants") or []) if v.get("id") == variant_id), None)
-        if v:
-            model_cost += float(v.get("costPrice") or 0)
-            retail_extra += float(v.get("retailExtraCost") or 0)
+        if v is not None:
+            # Use variant cost only if it's actually populated; otherwise the
+            # variant inherits the model's base values.
+            v_cost = float(v.get("costPrice") or 0)
+            v_extra = float(v.get("retailExtraCost") or 0)
+            if v_cost > 0:
+                model_cost = v_cost
+            if v_extra > 0:
+                retail_extra = v_extra
 
     opts_cost = 0.0
     for sel in selected:
