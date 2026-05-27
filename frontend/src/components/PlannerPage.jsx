@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
-import { ArrowLeft, LayoutGrid, Table as TableIcon, Loader2, ClipboardList, AlertTriangle, Archive, Lightbulb, User as UserIcon, LayoutDashboard, Settings2 } from 'lucide-react';
+import { ArrowLeft, LayoutGrid, Table as TableIcon, Loader2, ClipboardList, AlertTriangle, Archive, Lightbulb, User as UserIcon, LayoutDashboard, Settings2, ShoppingCart } from 'lucide-react';
 import { Button } from './ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs';
 import { toast } from 'sonner';
@@ -15,6 +15,7 @@ import TaskDrawer from './planner/TaskDrawer';
 import QuickCreate from './planner/QuickCreate';
 import AITaskParser from './planner/AITaskParser';
 import DirectionsManager from './planner/DirectionsManager';
+import ProcurementTab from './planner/ProcurementTab';
 import { getAuthHeaders, isOverdue } from './planner/constants';
 
 const API = getApiUrl();
@@ -25,12 +26,13 @@ const VIEWS = {
 };
 
 const TABS = [
-  { key: 'dashboard', label: 'Дашборд',     icon: LayoutDashboard },
-  { key: 'all',       label: 'Все задачи',  icon: ClipboardList },
-  { key: 'mine',      label: 'Мои задачи',  icon: UserIcon },
-  { key: 'overdue',   label: 'Просрочено',  icon: AlertTriangle },
-  { key: 'ideas',     label: 'Идеи',        icon: Lightbulb },
-  { key: 'archive',   label: 'Архив',       icon: Archive },
+  { key: 'dashboard',   label: 'Дашборд',     icon: LayoutDashboard },
+  { key: 'all',         label: 'Все задачи',  icon: ClipboardList },
+  { key: 'mine',        label: 'Мои задачи',  icon: UserIcon },
+  { key: 'overdue',     label: 'Просрочено',  icon: AlertTriangle },
+  { key: 'procurement', label: 'Закупки',     icon: ShoppingCart },
+  { key: 'ideas',       label: 'Идеи',        icon: Lightbulb },
+  { key: 'archive',     label: 'Архив',       icon: Archive },
 ];
 
 export default function PlannerPage({ onBack }) {
@@ -218,7 +220,7 @@ export default function PlannerPage({ onBack }) {
         </TabsContent>
 
         {/* All other tabs share the same body */}
-        {TABS.filter((t) => t.key !== 'dashboard').map((t) => (
+        {TABS.filter((t) => t.key !== 'dashboard' && t.key !== 'procurement').map((t) => (
           <TabsContent key={t.key} value={t.key} className="space-y-3">
             <div className="flex flex-wrap items-end gap-2">
               <div className="flex-1 min-w-[280px]">
@@ -236,6 +238,11 @@ export default function PlannerPage({ onBack }) {
             )}
           </TabsContent>
         ))}
+
+        {/* Procurement (Закупки) tab — separate component with its own dialog */}
+        <TabsContent value="procurement" className="space-y-3">
+          <ProcurementTab users={users} />
+        </TabsContent>
       </Tabs>
 
       {openTask && (

@@ -47,6 +47,7 @@ from routes.binotel_analytics import router as binotel_analytics_router
 from routes.unified_sync import router as unified_sync_router
 from routes.dealer import router as dealer_router
 from routes.planner import router as planner_router
+from routes.procurement import router as procurement_router, run_procurement_notifications
 from routes.sauna_tech_cards import router as sauna_tech_cards_router
 
 # Configure logging
@@ -117,6 +118,7 @@ app.include_router(unified_sync_router, prefix="/api")
 # Dealer router has its own /api/... prefixes baked in
 app.include_router(dealer_router)
 app.include_router(planner_router, prefix="/api")
+app.include_router(procurement_router, prefix="/api")
 app.include_router(sauna_tech_cards_router, prefix="/api")
 
 # Initialize backup database reference
@@ -248,10 +250,12 @@ async def manager_analytics_daily_scheduler():
             digest_enabled = bool(settings.get("dailyReportEnabled"))
             digest_hour = int(settings.get("dailyReportHour") or 8)
 
-            # Nothing to do — sleep longer to spare DB hits.
+            # Skip the early-exit when ONLY procurement notifications are
+            # required — they need to fire even if no analytics jobs are on.
             if not sync_enabled and not digest_enabled:
-                await asyncio.sleep(600)
-                continue
+                # fall through to the procurement check below; sleep is at the
+                # bottom of the loop body.
+                pass
 
             now = datetime.now(timezone.utc)
             today_str = now.strftime("%Y-%m-%d")
@@ -306,6 +310,24 @@ async def manager_analytics_daily_scheduler():
                 await db.event_analytics_settings.update_one(
                     {"type": "event_analytics"},
                     {"$set": {"lastDailyReportDate": today_str}},
+                    upsert=True,
+                )
+
+            # ── Job 3: procurement notifications (reminders + overdue) ──
+            # Lives on the same daily heartbeat as the other jobs but uses
+            # its own dedupe key so it can fire even when sync/digest are off.
+            proc_last = settings.get("lastProcurementNotifDate") or ""
+            proc_hour = int(settings.get("procurementNotifHour") or sync_hour or 6)
+            if now.hour >= proc_hour and proc_last != today_str:
+                logger.info("Procurement notification job firing")
+                try:
+                    res = await run_procurement_notifications()
+                    logger.info(f"Procurement notifications: {res}")
+                except Exception as e:
+                    logger.error(f"Procurement notifications failed: {e}")
+                await db.event_analytics_settings.update_one(
+                    {"type": "event_analytics"},
+                    {"$set": {"lastProcurementNotifDate": today_str}},
                     upsert=True,
                 )
 
