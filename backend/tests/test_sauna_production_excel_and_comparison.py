@@ -5,7 +5,7 @@ import pytest
 import requests
 from openpyxl import load_workbook
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://modular-pricing-1.preview.emergentagent.com").rstrip("/")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://logistics-crm-13.preview.emergentagent.com").rstrip("/")
 
 EXPECTED_COMP_HEADERS = [
     "id", "name", "category", "unit", "unitPrice", "supplier", "note",

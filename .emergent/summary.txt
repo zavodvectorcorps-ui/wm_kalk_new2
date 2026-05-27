@@ -1,96 +1,88 @@
 <analysis>**original_problem_statement:** Build a Modular Sauna Configurator with comprehensive CRM, production management, logistics, and amoCRM integration. Add a separate multi-tenant Dealer Portal. PRODUCT REQUIREMENTS include Excel Export/Import for base sauna prices and components, an internal team Planner (Task Manager), Tech Cards (BOM), Inventory tracking, and a VAT-aware Price Simulator.
 
-**User's preferred language**: Russian (You MUST automatically detect the user's primary language from their messages inside the <trajectory> tag and INSTRUCT next agent to respond in **Russian** only)
+**User's preferred language**: Russian (You MUST automatically detect the user's primary language from their messages inside the <trajectory> tag and INSTRUCT next agent to respond in **Russian** only).
 
 **what currently exists?** 
-A mature React/FastAPI/MongoDB application. Recently heavily expanded with a robust Price Matrix and Dealer Matrix for bulk pricing management, comprehensive Excel template generation for Tech Cards, AI task parsing in the Planner, complex PDF Generation with 3rd-party branding (Comfino), and synced amoCRM pipelines.
+A mature React/FastAPI/MongoDB application with a robust Price Matrix and Dealer Matrix, PDF generation, amoCRM synced pipelines, Planner, and Call Analytics. Recently expanded with per-dealer EUR currency conversion, Balia calculator quantity/gratis options, multi-assignee tasks in Planner, and an overhauled Manager Events Analytics module with daily AI Telegram reports.
 
 **Last working item**:
-    - Last item agent was working: Adding the b2b netto column to the Price Matrix ().
-    - Status: TESTING PENDING
-    - Agent Testing Done: N (Code was injected via , but no linter or screenshot was run).
-    - Which testing method agent to use? screenshot tool
+    - Last item agent was working: Debugging an issue where the Manager Analytics UI shows 0 calls for a manager, even though calls exist in the system and are shown in the calls list. The agent was inspecting  right before the session ended.
+    - Status: IN PROGRESS
+    - Agent Testing Done: N
+    - Which testing method agent to use? backend testing agent / manual testing by python -c
     - User Testing Done: N
 
 **All Pending/In progress Issue list**:
-  Issue 1: (P0) Verify the newly added B2B netto column in Price Matrix
-     - Attempted fixes: Agent updated  headers and body cells to include  right after B2B brutto. 
-     - Next debug checklist: Run JS linter on , then take a screenshot of the Price Matrix to ensure the table layout hasn't broken and the calculation is correct ().
-     - Why fix this issue and what will be achieved with the fix?: Fulfills the user's latest request to see the net dealer price directly in the matrix.
-     - Status: TESTING PENDING
+  Issue 1: (P0) Manager Analytics shows 0 calls despite calls existing in the list
+     - Attempted fixes: The agent previously patched  in  to count calls using the  collection instead of lead notes. 
+     - Next debug checklist: Check if there is a type mismatch for  (e.g., string vs integer) between  and . Check  inside  around line 286. You may need to trigger a fresh sync () after fixing to see the numbers update.
+     - Why fix this issue and what will be achieved with the fix?: The manager performance dashboard is incomplete and inaccurate without call data.
+     - Status: IN PROGRESS
      - Is recurring issue? N
-     - Should Test frontend/backend/both after fix?: Frontend
+     - Should Test frontend/backend/both after fix?: backend
 
 **In progress Task List**:
-  *(None. All major tasks requested by the user were completed except final testing of the B2B netto column.)*
+  *(None. Last task morphed into the bug listed above)*
 
 **Upcoming and Future Tasks**
-    - P1: Weekly AI digest via email/Telegram for managers.
     - P1: SLA real-time alerts (notify if lead is untouched for X hours).
     - P2: Automatic inventory deduction based on production stages.
     - P2: Export to Excel/CSV for calls and leads tables.
     - P3: Replace deprecated Google Maps Autocomplete component.
-    *Agent's Suggested Backlog (User has not confirmed yet)*:
     - P3: Bulk edit mode in Price Matrix (select rows -> add +10% / round up).
     - P3: Add Average check of confirmed and Conversion % to Sales page KPI cards.
     - P3: Income forecast in Dealer Matrix based on expected monthly sales volume.
     - P3: Comfino QR code leading to the installment calculator in PDF.
 
 **Completed work in this session**
-- Warehouse (Dovoz) multi-stage amoCRM mapping & search auto-refresh bug fix (DONE)
-- Planner Voice Input via Web Speech API (DONE)
-- Replaced  dependency with native  to fix Prod deployment crash (DONE)
-- Price Simulator - Discount module added with color-coded margins (DONE)
-- Sales Page - Confirmed only toggle, slim columns, CSV export (DONE)
-- Price Matrix tab added for mass pricing view, inline edits, and missing-data highlights (DONE)
-- TechCardEditor - Removed auto-save, added dirty-state confirmation on close (DONE)
-- TechCardsAdmin - UI folded for models/options with variants so base items don't falsely require tech cards (DONE)
-- Tech Cards - Empty template Excel export added for mass-filling (DONE)
-- Dealer Matrix tab added for dealer price control, dumping alerts, and bulk markup (DONE)
-- PDF Generation - Comfino installment banner with logo, fixed layout breaking on 3 cards, fixed  bug overriding model variants (DONE)
-- Planner Directions - Full CRUD UI with Drag-and-Drop ordering (DONE)
+- Verified and fixed B2B netto column in Price Matrix (DONE)
+- Added EUR currency override per-dealer in Price Matrix, Dealer Matrix, and Dealer Portal (DONE)
+- Added multi-assignee support in Planner tasks (DONE)
+- Added Default and Gratis (В подарок) checkboxes for Balia options in admin and calculator (DONE)
+- Added quantity (+/-) steppers for Balia calculator options (DONE)
+- Created a dedicated Dealer Detail Dialog (opens by clicking dealer name in Admin) (DONE)
+- Overhauled Manager Analytics to track follow-up rates, single-touch leads, and manual vs. auto actions (DONE)
+- Built a daily Telegram report for manager analytics with an AI-generated advice summary (DONE)
+- Fixed Call Analytics transcription hanging / HTML instead of audio issues by adding a fallback download chain (Cloudinary -> Binotel -> amoCRM) and an explicit unblock button (DONE)
 
 **Earlier issues found/mentioned but not fixed**
    Issue 1: Monolithic architecture.
-   - Debug checklist:  (2500+ lines), , .
-   - Why to solve this issue and what will be achieved with this?: Maintainability is degrading. Hard to navigate PDF generation and complex hooks.
+   - Debug checklist:  (2500+ lines),  (1400+), .
+   - Why to solve this issue and what will be achieved with this?: Maintainability is degrading. 
    - Should Test frontend/backend/both after fix: Both
    - Is recurring issue? N
 
 **Known issue recurrence from previous fork**
   - Issue recurrence in previous fork: Asymmetrical Deployments (Prod vs Preview)
-  - Recurrence count: 3 (Occurred repeatedly in this session regarding missing pip packages and PDF rendering).
-  - Status: RESOLVED (User has a live prod environment . DO NOT test against prod URLs. **Always remind user to deploy changes to prod** if they say a bug is still happening).
+  - Recurrence count: 4 (User continuously reports bugs from their PROD environment  while the agent is fixing them in PREVIEW).
+  - Status: IN PROGRESS 
+  - Note: **Always remind user to deploy changes to prod** if they say a bug is still happening.
 
 **Code Architecture**
 React frontend + FastAPI backend + MongoDB.
 
 **Key Technical Concepts**
-React, Tailwind, Shadcn UI, FastAPI, Async Motor (MongoDB), ReportLab (for PDFs), OpenPyXL (for Excel).
-**VAT RULE**: Base prices are **Brutto** (incl. 23% VAT).  and  are **Netto**. 
-Calculation: . (Do NOT multiply by 0.77).
+React, Tailwind, Shadcn UI, FastAPI, Async Motor (MongoDB), ReportLab (for PDFs), Whisper (AI Audio Transcription), amoCRM API, Binotel API.
 
 **key DB schema**
-  - , 
   - : 
-  - : tracks orders and bonuses
+  - : 
+  - : 
   - : 
 
 **changes in tech stack**
-- Removed  and  from . Switched to native  using  for AI endpoints to bypass deployment dependency issues.
+- None in this session.
 
 **All files of reference** 
   -  (CURRENT FOCUS)
-  -  (Created)
-  -  (Created)
-  -  (PDF generation logic - heavily modified)
-  -  (Modified for template generation)
+  - 
+  - 
+  -  (Added Telegram scheduler)
 
 **Areas that need refactoring**
-, , and .
+ is getting complex with nested data fetching.  and  remain huge.
 
 **key api endpoints**
-  - 
   - 
   - 
   - 
@@ -98,48 +90,49 @@ Calculation: . (Do NOT multiply by 0.77).
 **Critical Info for New Agent**
 - **LANGUAGE:** Reply strictly in Russian.
 - **PROD vs PREVIEW:** The user constantly tests on PROD () while you develop in PREVIEW. Always remind them to press Deploy to see the latest fixes, otherwise, they will think your code didn't work.
-- **PDF GENERATION:** When editing PDF layout (), be careful with . ReportLab will wrap text poorly if column widths exceed  total.
+- **SYNC REQUIREMENT:** Analytics endpoints compute stats asynchronously and store them. If you change calculation logic in  or , you **must** trigger a sync () to see the results.
 
 **documents and test reports created in this job**
-  - 
+  -  (Updated)
 
 **Last 10 User Messages and any pending HUMAN messages** 
-1. *User*: PDF option price should use model-specific price, add Comfino installment banner, add stove image.
-2. *Agent*: Updated PDF logic () and modified PDF layout.
-3. *User*: Text wrapped badly in PDF.
-4. *Agent*: Fixed width calculation for 3 cards in ReportLab.
-5. *User*: Thermo-wood price is still wrong in PDF.
-6. *Agent*: Found bug where  was matching base model instead of variant. Fixed it.
-7. *User*: Replace emoji with Comfino logo in PDF.
-8. *Agent*: Resized logo and embedded it into PDF generation.
-9. *User*: Comfino term to 30 months + add disclaimer. -> *Agent*: Done.
-10. *User*: Allow managing Planner directions (create/edit). -> *Agent*: Added DirectionsManager with Drag-and-Drop sorting.
-11. *(Pending)* *User*: в прайс матрицу добавь колонку b2b netto. -> *Agent*: Applied code changes but didn't run linter or screenshot to verify.
+1. *User*: для некоторых дилеров мне нужна цена в евро, давай добавим конвертер -> *Agent*: Implemented EUR settings for dealers.
+2. *User*: в планнер добавь возможность ставить несколько ответственных на задачу -> *Agent*: Implemented  array.
+3. *User*: В калькуляторе купелей добавь возможность выбирать опцию выбранную по умолчанию, а так же что бы можно было сделать опцию Gratis. -> *Agent*: Added isDefault and isGratis logic.
+4. *User*: В калькуляторе купелей нужна возможность выбирать кол-во опций... В разделе дилеров сделать страницу с его данными. -> *Agent*: Added steppers and Dealer detail dialog.
+5. *User*: мы добавили аналитику менеджеров, посмотри и посоветуй, как лучше анализировать... мне кажется что они просто отправляют письмо и больше ничего не делают -> *Agent*: Refactored analytics to track manual vs auto and follow-up rates.
+6. *User*: сделай все предложения, мне нужна хорошая аналитика менеджеров. Можно так же связать с разделом контроля звонков -> *Agent*: Linked Call Analytics to Manager Analytics.
+7. *User*: настрой что бы в телеграм ежедневно приходил отчет вместе с советом от ии -> *Agent*: Built automated scheduled report.
+8. *User*: [Screenshot] выдало ошибки и висит анализ (Call processing stuck). -> *Agent*: Added fallback chain for audio URLs and unblock button.
+9. *User*: Получена HTML-страница вместо аудио -> *Agent*: Deployed Cloudinary -> Binotel -> amoCRM fallback logic.
+10. *(Pending)* *User*: [Screenshot] смотри, в списке есть звонок, а в окне пишет 0 -> *Agent*: Started looking into the manager events sync logic to find why calls aren't mapping properly.
 
 **Project Health Check:**
-Healthy, but some frontend components and  are getting extremely large. 
+Broken: Call mapping inside  (displays 0 calls for a manager).
 
 **3rd Party Integrations**
   - amoCRM — requires User API credentials.
   - Binotel API — requires User API credentials.
-  - OpenAI GPT-5.2 / GPT-4o-mini (via  directly) — uses Emergent LLM Key.
+  - OpenAI GPT-5.2 / GPT-4o-mini / Whisper (via  directly) — uses Emergent LLM Key.
   - Telegram — uses User Bot Token.
+  - Cloudinary — requires User API credentials.
 
 **Testing status**
-  - Testing agent used after significant changes: YES (iteration 99).
+  - Testing agent used after significant changes: NO.
   - Troubleshoot agent used after agent stuck in loop: NO.
   - Test files created: None.
-  - Known regressions: None.
+  - Known regressions: Call mapping in analytics failed after switching source of truth.
 
 **Credentials to test flow:**
   - Admin:  / 
-  - Test Dealer:  / 
+  - Test Dealer:  /  (access via  path)
 
 **What agent forgot to execute**
-The agent modified  via  to add the B2B netto column but finished their thinking process before running  or taking a screenshot to verify the UI layout remains intact.
+The agent forgot to verify the data types (e.g. integer vs string ) when linking  to the  during the analytics sync, which resulted in the UI showing 0 calls for managers. The agent also didn't use the testing agent after overhauling the manager analytics.
 
 **Debugging checklist for current issue**
-    Issue: Verify B2B netto column in Price Matrix.
-    Frontend files to check: 
-    -  (Check TableHead and TableCell alignments, verify  math calculation).
-    Method: Lint the file, capture a screenshot of the page  in the , fix if any overlap.</analysis>
+    Issue: Manager Analytics UI shows 0 calls for a manager despite calls existing.
+    Backend files to check: 
+    -  (Check  where it queries . Specifically look at lines ~286. Make sure  type matches what is in the DB.  user IDs are sometimes integers, while  IDs or frontend IDs might be strings).
+    -  (Check how  is saved).
+    </analysis>

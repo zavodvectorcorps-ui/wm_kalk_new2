@@ -8,7 +8,7 @@ import os
 import io
 from PIL import Image
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://modular-pricing-1.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://logistics-crm-13.preview.emergentagent.com')
 
 
 class TestUploadEndpoint:

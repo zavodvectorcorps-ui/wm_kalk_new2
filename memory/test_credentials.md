@@ -11,7 +11,7 @@
 - Marketer: `marketer` / `marketer123`
 
 ## Dealer Portal access
-- Preview: https://modular-pricing-1.preview.emergentagent.com/dealer
+- Preview: https://logistics-crm-13.preview.emergentagent.com/dealer
 - Production after deploy: https://wm-kalkulator.pl/dealer
   (or on separate domain when DNS configured: dealer.wm-kalkulator.pl, wm-dealers.pl, etc.)
 

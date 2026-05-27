@@ -702,8 +702,11 @@ const ManagerEventsAnalytics = () => {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
+      const params = {};
+      if (dateFrom) params.date_from = dateFrom;
+      if (dateTo) params.date_to = dateTo;
       const [mgrRes, statusRes, settingsRes] = await Promise.all([
-        axios.get(`${API_URL}/api/lead-analytics/events/manager-stats`),
+        axios.get(`${API_URL}/api/lead-analytics/events/manager-stats`, { params }),
         axios.get(`${API_URL}/api/lead-analytics/events/sync-status`),
         axios.get(`${API_URL}/api/lead-analytics/events/settings`),
       ]);
@@ -713,7 +716,7 @@ const ManagerEventsAnalytics = () => {
     } catch (e) {
       console.error('Error fetching event analytics:', e);
     } finally { setLoading(false); }
-  }, []);
+  }, [dateFrom, dateTo]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 

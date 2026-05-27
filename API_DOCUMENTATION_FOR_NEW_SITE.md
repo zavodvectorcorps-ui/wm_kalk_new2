@@ -3,7 +3,7 @@
 ## Базовый URL
 ```
 Production: https://wm-kalkulator.pl
-Preview: https://modular-pricing-1.preview.emergentagent.com
+Preview: https://logistics-crm-13.preview.emergentagent.com
 ```
 
 ---

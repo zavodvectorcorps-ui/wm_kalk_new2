@@ -1,0 +1,33 @@
+{
+  "summary": "Verified the manager-events analytics bug fix: outgoingCalls/incomingCalls/callsPerLead/recentCalls are now computed live from call_analytics_calls. Seeded MongoDB with a completed sync + 2 stale snapshots (0 calls) + 6 live calls across 2 managers, ran 7 targeted pytest tests, all passed (7/7). Cleanup verified — zero leftover test docs.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_manager_events_calls_live_iteration100.py",
+    "/app/test_reports/pytest/pytest_results_iteration100.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "manager_events_analytics.py is 823 lines — borderline; consider extracting _compute_event_manager_stats and AI prompt block into separate modules.",
+    "In get_event_manager_stats (line ~562) and get_manager_detail (line ~675) the logic `m['outgoingCalls'] = slot['out'] or m.get('outgoingCalls', 0)` falls back to snapshot value when live count is 0. This is intentional to keep note-based fallbacks but masks the case where the live source truly has 0 — minor edge case but worth noting.",
+    "_live_calls_by_manager date_to handling: when value contains 'T' it's used as-is, otherwise '<date>T23:59:59' is appended. No timezone validation — fine for ISO inputs but ambiguous if caller mixes naive/aware strings.",
+    "Pre-existing test_manager_events_analytics_iteration81.py uses os.environ.get('REACT_APP_BACKEND_URL', '') with empty default — fails when env not loaded by shell. Not related to this fix but should be hardened with dotenv load."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_manager_events_calls_live_iteration100.py (new)"
+  ],
+  "success_rate": {"backend": "100%", "frontend": "n/a (skipped per request)"},
+  "test_credentials": "admin/admin123 (not needed — endpoints are unauthenticated)",
+  "seed_data_creation": "Temporary docs (all cleaned up post-test): event_analytics_sync sync_id='TEST_iter100_sync' status=completed; event_manager_stats for userId='999100' (totalLeads=4) and '999101' (totalLeads=2) with stale 0 call counts; 6 call_analytics_calls docs (5 for mgr 999100 — 3 outbound incl. 1 from yesterday and 1 with empty audio_url and 1 without audio_url field, 2 inbound; 1 outgoing for mgr 999101). Additionally a transient call with manager_id='' and manager_id=None to test edge case.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Test file /app/backend/tests/test_manager_events_calls_live_iteration100.py is reusable. It self-seeds and self-cleans via pytest fixtures (module-scoped). Uses MONGO_URL+DB_NAME from /app/backend/.env via python-dotenv, REACT_APP_BACKEND_URL from env or hardcoded preview URL. To rerun: `pytest /app/backend/tests/test_manager_events_calls_live_iteration100.py -v`.",
+  "rca of the issue": "Root cause was that manager_events_analytics endpoints returned outgoingCalls/incomingCalls strictly from the event_manager_stats snapshot (frozen at events-sync time). Calls arrived via a separate call_analytics sync that runs on a different schedule, so the snapshot was stale — managers with actual calls displayed 0. Fix verified: (1) _live_calls_by_manager aggregates call_analytics_calls grouped by manager_id+direction at read time; (2) get_event_manager_stats overlays the live counts onto each manager and recomputes callsPerLead; (3) get_manager_detail does the same on stats and pulls recent_calls without the audio_url='' filter, also maps summary_ru→summary and exposes phone (renamed from client_phone in schema). Test seeded snapshot with 0 calls and confirmed response returned 3 out + 2 in for manager 999100 with callsPerLead=0.75."
+}

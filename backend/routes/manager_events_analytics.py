@@ -486,9 +486,58 @@ async def _compute_event_manager_stats(sync_id: str, ts_from: int = None, ts_to:
 
 # --- Data Endpoints ---
 
+async def _live_calls_by_manager(date_from: str = None, date_to: str = None) -> dict:
+    """Aggregate live call counts from call_analytics_calls collection.
+
+    Manager stats are stored as a snapshot at sync time, but calls often arrive
+    via a separate (call_analytics) sync that runs on a different schedule.
+    To avoid the UI displaying stale `0` call counts, we recompute fresh totals
+    at read time from the authoritative `call_analytics_calls` collection.
+
+    Returns: { manager_id_str: {"out": int, "in": int, "total": int} }
+    """
+    match: dict = {}
+    if date_from:
+        match["datetime"] = {"$gte": date_from}
+    if date_to:
+        # Accept either plain date ("YYYY-MM-DD") or ISO datetime — only
+        # append the time suffix when it's a bare date.
+        upper = date_to if "T" in date_to else f"{date_to}T23:59:59"
+        match.setdefault("datetime", {})["$lte"] = upper
+    pipeline = [
+        {"$match": match} if match else {"$match": {}},
+        {"$group": {
+            "_id": {"manager": "$manager_id", "direction": "$direction"},
+            "count": {"$sum": 1},
+        }},
+    ]
+    out: dict[str, dict] = {}
+    try:
+        async for row in db.call_analytics_calls.aggregate(pipeline):
+            mid_raw = row["_id"].get("manager")
+            if mid_raw is None or mid_raw == "":
+                continue
+            mid = str(mid_raw)
+            direction = (row["_id"].get("direction") or "").lower()
+            slot = out.setdefault(mid, {"out": 0, "in": 0, "total": 0})
+            slot["total"] += row["count"]
+            if direction in ("outbound", "out", "outgoing"):
+                slot["out"] += row["count"]
+            elif direction in ("inbound", "in", "incoming"):
+                slot["in"] += row["count"]
+    except Exception as e:
+        logger.warning(f"_live_calls_by_manager aggregation failed: {e}")
+    return out
+
+
 @router.get("/manager-stats")
-async def get_event_manager_stats():
-    """Get latest event-based manager statistics."""
+async def get_event_manager_stats(date_from: str = None, date_to: str = None):
+    """Get latest event-based manager statistics.
+
+    Call counts (outgoingCalls / incomingCalls / callsPerLead) are recomputed
+    at read time from `call_analytics_calls` so the UI always reflects the
+    latest call-sync data, even if the events sync ran earlier.
+    """
     last_sync = await db.event_analytics_sync.find_one(
         {"status": "completed"}, {"_id": 0}, sort=[("completedAt", -1)]
     )
@@ -499,6 +548,22 @@ async def get_event_manager_stats():
     managers = await db.event_manager_stats.find(
         {"sync_id": sync_id}, {"_id": 0}
     ).sort("rank", 1).to_list(length=100)
+
+    # Use the sync's own date range so call counts match the analyzed period.
+    df = date_from or last_sync.get("date_from")
+    dt = date_to or last_sync.get("date_to")
+    live_calls = await _live_calls_by_manager(df, dt)
+    if live_calls:
+        for m in managers:
+            uid = str(m.get("userId", ""))
+            slot = live_calls.get(uid)
+            if not slot:
+                continue
+            m["outgoingCalls"] = slot["out"] or m.get("outgoingCalls", 0)
+            m["incomingCalls"] = slot["in"] or m.get("incomingCalls", 0)
+            total_leads = m.get("totalLeads") or 0
+            if total_leads > 0:
+                m["callsPerLead"] = round(m["outgoingCalls"] / total_leads, 2)
 
     return {"managers": managers, "sync_id": sync_id}
 
@@ -551,32 +616,47 @@ async def get_manager_detail(user_id: str, date_from: str = None, date_to: str =
             {"userId": user_id, "sync_id": last_sync["sync_id"]}, {"_id": 0}
         )
 
-    # Cross-link to call analytics: pull last 30 calls scored by this manager.
+    # Cross-link to call analytics: pull last 30 calls for this manager.
+    # Note: we do NOT filter by audio_url here — even calls without recordings
+    # should appear in the manager's call list so the UI matches the call sync
+    # totals. Audio availability is shown per-row via the `status` field.
     recent_calls = []
     try:
         recent_calls = await db.call_analytics_calls.find(
-            {"manager_id": user_id, "audio_url": {"$ne": ""}},
+            {"manager_id": str(user_id)},
             {
                 "_id": 0,
                 "id": 1,
                 "datetime": 1,
                 "duration_seconds": 1,
-                "client_phone": 1,
+                "phone": 1,
                 "client_name": 1,
                 "status": 1,
                 "score": 1,
                 "has_strong_negative": 1,
                 "direction": 1,
-                "summary": 1,
+                "summary_ru": 1,
+                "audio_url": 1,
             },
         ).sort("datetime", -1).to_list(length=30)
     except Exception:
         recent_calls = []
+    # Total call count for this manager (independent of the 30-row preview).
+    total_calls_for_mgr = 0
+    try:
+        total_calls_for_mgr = await db.call_analytics_calls.count_documents(
+            {"manager_id": str(user_id)}
+        )
+    except Exception:
+        total_calls_for_mgr = len(recent_calls)
+    # Normalize summary field for the frontend (it reads `summary`).
+    for c in recent_calls:
+        if "summary_ru" in c and "summary" not in c:
+            c["summary"] = c.get("summary_ru")
     # Quick call KPIs.
-    call_kpi = {"total": 0, "withAi": 0, "avgScore": None, "criticalCount": 0}
+    call_kpi = {"total": total_calls_for_mgr, "withAi": 0, "avgScore": None, "criticalCount": 0}
     if recent_calls:
         scored = [c for c in recent_calls if isinstance(c.get("score"), (int, float))]
-        call_kpi["total"] = len(recent_calls)
         call_kpi["withAi"] = len(scored)
         if scored:
             call_kpi["avgScore"] = round(sum(c["score"] for c in scored) / len(scored), 1)
@@ -585,6 +665,18 @@ async def get_manager_detail(user_id: str, date_from: str = None, date_to: str =
             if (isinstance(c.get("score"), (int, float)) and c["score"] < 5)
             or c.get("has_strong_negative") is True
         )
+
+    # Also refresh outgoing/incoming totals on the stats snapshot so the
+    # header KPIs aren't stale.
+    if stats:
+        live = await _live_calls_by_manager(date_from, date_to)
+        slot = live.get(str(user_id))
+        if slot:
+            stats["outgoingCalls"] = slot["out"] or stats.get("outgoingCalls", 0)
+            stats["incomingCalls"] = slot["in"] or stats.get("incomingCalls", 0)
+            total_leads = stats.get("totalLeads") or 0
+            if total_leads > 0:
+                stats["callsPerLead"] = round(stats["outgoingCalls"] / total_leads, 2)
 
     return {
         "stats": stats,
