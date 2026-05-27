@@ -1448,3 +1448,28 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
   micro-окно без транзакции — для одного админа норм, для multi-admin
   workflow стоит держать в уме.
 
+
+### Sauna Orders — fix маржи (двойной счёт) (DONE - Feb 27, 2026)
+- **Bug:** В `Zamówienia saun` себестоимость показывала 18 328 zł вместо
+  правильных 7 946 zł (по cennik) — пример Sauna Wiking Lux z tarasem.
+  Маржа уходила в минус (−15.1%) для прибыльных заказов.
+- **Root cause:** `_recompute_one` в `routes/sauna_orders.py` делал
+  `total_cost = model.costPrice + variant.costPrice + opts.costPrice`,
+  но `_sync_cost_price_to_sauna_prices(scope='variant')` записывает
+  ПОЛНУЮ себестоимость варианта в `variant.costPrice` (не дельту над
+  моделью). Эффект — двойной счёт стоимости постройки.
+- **Fix:** При наличии `variant_id` и `variant.costPrice > 0` —
+  `model_cost = variant.costPrice` (replace, не add). Идентично
+  для `retailExtraCost`. Если у варианта costPrice=0 — наследование
+  от модели. Опции уже использовали правильный if/else паттерн
+  (без изменений).
+- **Параллельно:** `POST /api/sauna/orders/recompute-margins` запущен
+  на всех существующих заказах — 3 пересчитаны, 15 unchanged.
+- **Известное ограничение:** `if v_extra > 0` не позволяет варианту
+  явно занулить retailExtra модели (наследование). Для текущих данных
+  ок, но если кто-то захочет переопределить вниз — добавим explicit
+  `null` vs `0` semantics.
+- **Тесты:** ✅ 5/5 (iteration 108) — variant replaces, fallback при
+  costPrice=0, no-variant, VAT-aware маржа, recompute endpoint shape.
+  Pre-existing PYTHONPATH issues в 3 тестах iter 106-107 не связаны.
+
