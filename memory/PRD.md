@@ -1343,3 +1343,37 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
   - Красная подсветка просроченных строк.
 - **PlannerPage:** новый таб `Закупки` (ShoppingCart icon).
 - **Тесты:** ✅ 16/17 backend pytest (iteration 104).
+
+### Procurement — многострочные заявки (DONE - Feb 27, 2026)
+- **Driver:** «Одна заявка = одна позиция» неудобно при оптовых
+  закупках у одного поставщика (например, Drewno24 раз в месяц). Теперь
+  одна заявка может содержать N позиций.
+- **Backend (`routes/procurement.py`):**
+  - Новая модель `ProcurementLine` (componentId, componentName, category,
+    unit, quantity, unitPrice, note).
+  - `ProcurementCreate.items: List[ProcurementLine]` — при непустом
+    списке режим multi-line.
+  - `ProcurementUpdate.items` — полная замена массива при PUT с
+    автоматическим пересчётом `totalPrice`.
+  - `_normalize_items()` — авто-fill из `sauna_components` по
+    `componentId`, расчёт per-line `totalPrice`, сумма grand_total.
+  - `_resolve_components_by_id()` — batch-load.
+  - `_format_request_message` обновлён: multi-line вариант показывает
+    список позиций (до 10) с per-line суммами и итоговую строку, single-line
+    оставлен без изменений.
+  - Полная backward compatibility: документы без `items` работают как
+    раньше; UI отображает их в legacy-формате.
+- **Frontend (`ProcurementTab.jsx`):**
+  - `RequestDialog` теперь использует **массив позиций** с кнопкой
+    `+ Добавить позицию` и иконкой корзины на каждой строке.
+  - Per-row `ComponentPicker` с автоподстановкой цены/ед.изм. из каталога.
+  - Возможность ввести `componentName` вручную (без выбора из каталога).
+  - Auto-fill `supplier` и `title` из первой выбранной компоненты.
+  - Live-расчёт `Итого` поверх таблицы позиций.
+  - Список заявок: для multi-line показывается `N поз. + первые 2 имени`,
+    бейдж `N поз.` в колонке Кол-во.
+  - При редактировании legacy single-line заявка автоматически
+    конвертируется в 1-строчный массив для единого UI.
+- **Тесты:** ✅ 16/16 multi-line + 16/17 базовые = 32 теста, 100%
+  (iteration 105). Включая Telegram HTML формат для multi-line.
+
