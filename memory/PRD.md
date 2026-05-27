@@ -1499,3 +1499,19 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
   настроенной себестоимости (например, `Piec Elektryczne 9 kW`,
   `Belki podłużne`).
 
+
+
+## Session Fork (Feb 27, 2026) — Bugfix
+
+### 🔴 P0: «Пересчитать маржи» возвращала 401 Unauthorized
+- **Root cause:** В `OrdersPage.jsx` (строка 57) токен читался из
+  `localStorage.getItem('token')`, тогда как `AuthContext.js` сохраняет
+  его под ключом `'authToken'`. Поэтому `token === null` → заголовки
+  пустые → backend `get_admin_user` возвращал 401.
+- **Fix:** заменено на `localStorage.getItem('authToken')` в
+  `OrdersPage.jsx`. Та же опечатка найдена и исправлена в
+  `SaunaProductionPage.jsx` (`syncToSheets`).
+- **Verified:** Preview, admin/admin123 — кнопка «Пересчитать маржи»
+  возвращает HTTP 200, `updated:0, unchanged:18, skipped:13`.
+- **Action для пользователя:** задеплоить на Production
+  (`wm-kalkulator.pl`), иначе ошибка не исчезнет.

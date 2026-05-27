@@ -54,7 +54,7 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
     if (!window.confirm('Пересчитать себестоимость и маржу для всех заказов? Будут взяты текущие значения costPrice из прайса.')) return;
     setRecomputing(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('authToken');
       const r = await axios.post(`${API_URL}/api/sauna/orders/recompute-margins`, {}, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });

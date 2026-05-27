@@ -124,7 +124,7 @@ const ProductionListTab = ({ orders, stages, authHeaders, onUpdated }) => {
   const syncToSheets = async () => {
     setSyncing(true);
     try {
-      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
       const res = await axios.post(`${API_URL}/api/sauna-production/sync-google-sheets`, {}, {
         headers: { Authorization: `Bearer ${token}` },
       });
