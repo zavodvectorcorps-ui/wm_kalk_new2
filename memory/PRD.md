@@ -1213,3 +1213,36 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
     когда `binotelConfigured=true`).
 - **Тесты:** 13/13 новых + 7/7 регрессионных pytest (iteration 101).
 
+
+### Manager Analytics — Bot Filter + Stale Sync Recovery (DONE - Feb 27, 2026)
+- **Bug 1:** Аккаунты из списка `Боты (исключить из анализа)` (Биржа Лидов,
+  Склад, Zofia, Владислав МОП, Максим/Ольга) показывались в таблице
+  аналитики наравне с реальными менеджерами; синтетический `ID:0` тоже
+  присутствовал. Whitelist `managerUserIds` тоже не учитывался.
+- **Bug 2:** Если процесс синхронизации крашился или backend перезапускался
+  посреди sync — документ `event_analytics_sync` навсегда оставался в
+  состоянии `status="running"`, UI показывал "в процессе" бесконечно.
+- **Fix 1 (filter):** в `routes/manager_events_analytics.py`:
+  - `GET /manager-stats` теперь читает `lead_analytics_settings.botUserIds`
+    и `managerUserIds`, отфильтровывает их из ответа на READ-time
+    (не требует пересинхронизации) и пересчитывает `rank` 1..N.
+  - Синтетический `ID:0` / `unknown` / `None` исключаются всегда.
+  - Тот же фильтр применён в `_compute_event_manager_stats` так что
+    новые синки не сохраняют статы по ботам.
+- **Fix 2 (sync recovery):**
+  - `GET /sync-status` теперь проверяет возраст running-документа: если
+    `startedAt > 15 мин` — атомарно помечает как `error` и возвращает
+    свежий статус.
+  - `POST /sync` отменяет любой существующий running-документ
+    (`error="Заменено новой синхронизацией"`) перед стартом нового.
+  - Новый эндпоинт `POST /sync/cancel` — ручная отмена всех running.
+  - В документ sync теперь пишется поле `progress` на каждом шаге
+    (Загрузка пользователей… / Загрузка событий… / Сохранено N/M / Расчёт…).
+- **Frontend (`ManagerEventsAnalytics.jsx`):**
+  - Отображение `progress` строкой со спиннером + кнопкой `отменить`
+    когда sync идёт.
+  - При повторном открытии страницы во время running sync — автоматически
+    возобновляется polling.
+  - При status=error — красное сообщение с текстом ошибки.
+- **Тесты:** ✅ 10/10 новых + 20/20 регрессионных (iteration 102).
+

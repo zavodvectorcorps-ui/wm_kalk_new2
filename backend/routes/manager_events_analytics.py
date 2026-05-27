@@ -193,16 +193,20 @@ async def get_events_sync_status():
         if started_dt:
             age_min = (datetime.now(timezone.utc) - started_dt).total_seconds() / 60
             if age_min > 15:  # 15 min is more than enough for a normal sync
+                stale_msg = (
+                    f"Синхронизация подвисла >{int(age_min)} мин — "
+                    "автоматически помечена как ошибка. Запустите заново."
+                )
                 await db.event_analytics_sync.update_one(
                     {"sync_id": status["sync_id"]},
                     {"$set": {
                         "status": "error",
-                        "error": f"Sync stuck >{int(age_min)} min — auto-marked as error. Перезапустите.",
+                        "error": stale_msg,
                         "completedAt": datetime.now(timezone.utc).isoformat(),
                     }}
                 )
                 status["status"] = "error"
-                status["error"] = "Sync stuck — auto-marked as error. Запустите синхронизацию заново."
+                status["error"] = stale_msg
     return status
 
 
