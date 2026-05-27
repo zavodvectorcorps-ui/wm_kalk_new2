@@ -1,0 +1,33 @@
+{
+  "summary": "Iteration 106 — Stock delivery cycle for procurement requests. 16/16 PASSED. All target scenarios verified: POST delivered increments stockCurrent + sets stockApplied=True + stockSummary; POST draft leaves stock and stockApplied=False; PUT to delivered increments stock; PUT delivered→delivered is idempotent (no double increment); PUT delivered→ordered/cancelled reverts stock and sets stockApplied=False+reverted=True; multi-line with 2 componentIds (5+10) + 1 free-form ⇒ applied=2 skipped=1; unknown componentId is skipped (Mongo $inc no-match); DELETE delivered reverts stock, DELETE draft is no-op; legacy single-line (componentId+quantity, no items[]) PUT delivered increments stock; revert→re-deliver applies stock the second time (stockApplied flag flips). Regression of iter104/105 (test_procurement + test_procurement_multiline) all green (32 passed, 1 skipped — same pre-existing non-admin skip).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "DELETE /api/procurement/requests/{id}", "issue": "When delete reverts stock and then somehow $inc is the only mutation, doc itself is hard-deleted right after — there is no audit trail of the revert. Not a bug, but if delete-and-revert ever needs reconciliation, only the timestamp on sauna_components.updatedAt remains."},
+      {"endpoint": "_apply_stock_delivery", "issue": "stockSummary.skipped counts both 'no componentId' lines and 'componentId did not match any catalog doc' lines without distinguishing them. UX could benefit from a reason field per skipped line (low priority)."}
+    ]
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_procurement_stock_delivery.py",
+    "/app/test_reports/pytest/pytest_iter106.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "_apply_stock_delivery uses $inc with float delta — atomic and correct for stockCurrent. Per-item update_one, not bulk: for very large multi-line requests this is N round trips. Acceptable for current 1–30 lines but consider bulk_write later.",
+    "PUT branch: stockApplied is set in update dict AFTER _apply_stock_delivery is called, but if _apply_stock_delivery itself throws, the except just logs and proceeds — meaning the doc would be saved without stockApplied. The current except is correct (logs, no flag set, status still updates), but a later PUT delivered→delivered would NOT re-apply stock because the new prev_status is now 'delivered'. Recommend: if stock-apply fails on PUT to delivered, also block the status change (raise HTTPException) OR keep status at previous value to allow retry.",
+    "DELETE: revert is best-effort (except-logged). If revert fails AND delete succeeds, stockCurrent stays inflated forever with no record of the request. Same recommendation as above — fail the DELETE if revert fails (or do delete first then revert via a saved snapshot, but transaction semantics need MongoDB sessions).",
+    "Effective doc in PUT: `effective = {**existing, **update}` then `effective['items'] = update['items']` only when 'items' in update. Good. But if user PUTs items=[] (empty list explicitly), _apply_stock_delivery on transition would see items=[] AND legacy componentId on existing doc — fallback to legacy single-line kicks in. Confirmed correct via test_legacy_singleline_put_delivered.",
+    "Idempotency works correctly via stockApplied flag — verified by test_put_delivered_to_delivered_is_idempotent. The flag flips back to False on revert, allowing a clean re-deliver (verified by test_revert_then_redeliver_applies_again).",
+    "/procurement/components projection now includes stockCurrent (good — FE can show 'на складе' next to picker).",
+    "No race protection: two simultaneous PUT delivered on same request could in theory both pass the `not already_applied` check before either sets stockApplied=True, causing a double-credit. Recommend conditional update: `update_one({id, stockApplied: {$ne: True}}, {$set: {stockApplied: True}})` and only credit if matched_count==1. Low likelihood in current UI but worth tightening."
+  ],
+  "updated_files": ["/app/backend/tests/test_procurement_stock_delivery.py"],
+  "success_rate": {"backend": "100% (16/16) iter106 + 100% (32/32) regression", "frontend": "not tested (backend-only request)"},
+  "test_credentials": "Admin: admin/admin123 (preview).",
+  "seed_data_creation": "Tests quick-create TEST_STK_-prefixed sauna_components (12 in this run) and TEST_-prefixed procurement_requests. Teardown deletes requests via DELETE endpoint; components are cleaned via direct Mongo (no public DELETE endpoint exists). Final post-run check: 0 TEST_ requests, 0 TEST_ components remain (manually purged residual 4 from regression suite). No production data touched.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Stock delivery cycle is fully covered by /app/backend/tests/test_procurement_stock_delivery.py (16 tests). For full procurement coverage, run together: `pytest tests/test_procurement*` (48 tests total, 1 skipped). Race-condition for simultaneous PUT delivered → delivered is NOT covered (would need concurrent requests). _apply_stock_delivery is per-item update_one, not bulk_write — slow for >50-line requests. Telegram service is NOT actually mocked in tests; the prod TG send is gated by notifyTelegram=False in all created requests, so no real TG calls happen.",
+  "rca of the issue": "N/A — no functional bugs found. Implementation matches the iteration 106 spec: $inc-based atomic stock updates, stockApplied idempotency flag, stockSummary{applied, skipped, updates} on the doc, revert on PUT-out-of-delivered and on DELETE-of-delivered, legacy single-line support, multi-line aggregation."
+}

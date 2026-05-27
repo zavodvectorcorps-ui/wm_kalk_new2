@@ -169,6 +169,45 @@ def _is_finished(status: str) -> bool:
     return status in ("delivered", "cancelled")
 
 
+async def _apply_stock_delivery(doc: dict, direction: int = 1) -> dict:
+    """Add (direction=+1) or subtract (direction=-1) request quantities to/from
+    ``sauna_components.stockCurrent``.
+
+    Returns a summary {"applied": int, "skipped": int, "updates": [...]} so the
+    caller can show feedback. Uses Mongo ``$inc`` per component to be atomic.
+    Items without a ``componentId`` are skipped — we can't auto-update stock
+    on a free-form line.
+    """
+    items: list = doc.get("items") or []
+    # Legacy single-line fallback.
+    if not items and doc.get("componentId"):
+        items = [{
+            "componentId": doc["componentId"],
+            "quantity": doc.get("quantity", 0),
+        }]
+    applied = 0
+    skipped = 0
+    updates: list[dict] = []
+    for it in items:
+        cid = it.get("componentId")
+        qty = float(it.get("quantity") or 0)
+        if not cid or qty <= 0:
+            skipped += 1
+            continue
+        delta = qty * direction
+        res = await db[COMPONENTS_COL].update_one(
+            {"id": cid},
+            {"$inc": {"stockCurrent": delta},
+             "$set": {"updatedAt": _now()}},
+        )
+        if res.matched_count:
+            applied += 1
+            updates.append({"componentId": cid, "delta": delta})
+        else:
+            skipped += 1
+    return {"applied": applied, "skipped": skipped, "updates": updates}
+
+
 async def _send_telegram(message: str) -> bool:
     """Send a Telegram message via the bot. Returns True if delivered."""
     try:
@@ -370,8 +409,19 @@ async def create_request(body: ProcurementCreate, user: dict = Depends(get_curre
             "createdByUserId": user.get("id") or user.get("user_id"),
             "createdByUsername": user.get("username", ""),
             "notifications": {"created": False, "reminder": False, "overdue": False},
+            "stockApplied": False,
         }
         await db[COL].insert_one(doc)
+        # If created already in delivered state, push stock to catalog.
+        if doc["status"] == "delivered":
+            try:
+                summary = await _apply_stock_delivery(doc, direction=+1)
+                await db[COL].update_one({"id": doc["id"]},
+                    {"$set": {"stockApplied": True, "stockSummary": summary}})
+                doc["stockApplied"] = True
+                doc["stockSummary"] = summary
+            except Exception as e:
+                logger.warning(f"procurement stock-apply (multi-create) failed: {e}")
         if doc["notifyTelegram"]:
             try:
                 sent = await _send_telegram(
@@ -432,8 +482,20 @@ async def create_request(body: ProcurementCreate, user: dict = Depends(get_curre
             "reminder": False,
             "overdue": False,
         },
+        "stockApplied": False,
     }
     await db[COL].insert_one(doc)
+
+    # If created already in delivered state, push stock to catalog.
+    if doc["status"] == "delivered":
+        try:
+            summary = await _apply_stock_delivery(doc, direction=+1)
+            await db[COL].update_one({"id": doc["id"]},
+                {"$set": {"stockApplied": True, "stockSummary": summary}})
+            doc["stockApplied"] = True
+            doc["stockSummary"] = summary
+        except Exception as e:
+            logger.warning(f"procurement stock-apply (legacy-create) failed: {e}")
 
     # Fire-and-forget Telegram notification on creation.
     if doc["notifyTelegram"]:
@@ -495,12 +557,49 @@ async def update_request(
             update["notifications.overdue"] = False
             update["notifications.reminder"] = False
 
+    # ── Stock delivery transition ──────────────────────────────
+    # Detect status transitions in/out of `delivered` and update the
+    # components catalog atomically. ``stockApplied`` is the idempotency
+    # marker: we only apply once and revert once.
+    prev_status = existing.get("status")
+    new_status = update.get("status", prev_status)
+    already_applied = bool(existing.get("stockApplied"))
+    stock_event = None
+    if new_status == "delivered" and not already_applied:
+        # Build the effective post-update doc so item changes in this PUT
+        # are taken into account when crediting stock.
+        effective = {**existing, **update}
+        if "items" in update:
+            effective["items"] = update["items"]
+        try:
+            stock_event = await _apply_stock_delivery(effective, direction=+1)
+            update["stockApplied"] = True
+            update["stockSummary"] = stock_event
+        except Exception as e:
+            logger.warning(f"procurement stock-apply (PUT) failed: {e}")
+    elif prev_status == "delivered" and new_status != "delivered" and already_applied:
+        # Roll back the previously-credited delivery.
+        try:
+            stock_event = await _apply_stock_delivery(existing, direction=-1)
+            update["stockApplied"] = False
+            update["stockSummary"] = {**(stock_event or {}), "reverted": True}
+        except Exception as e:
+            logger.warning(f"procurement stock-revert (PUT) failed: {e}")
+
     await db[COL].update_one({"id": request_id}, {"$set": update})
     return await db[COL].find_one({"id": request_id}, {"_id": 0})
 
 
 @router.delete("/requests/{request_id}")
 async def delete_request(request_id: str, _: dict = Depends(get_admin_user)):
+    # If the request had already credited stock, undo it on delete to keep
+    # the catalog honest.
+    existing = await db[COL].find_one({"id": request_id}, {"_id": 0})
+    if existing and existing.get("stockApplied"):
+        try:
+            await _apply_stock_delivery(existing, direction=-1)
+        except Exception as e:
+            logger.warning(f"procurement stock-revert (DELETE) failed: {e}")
     res = await db[COL].delete_one({"id": request_id})
     if res.deleted_count == 0:
         raise HTTPException(404, "Request not found")
