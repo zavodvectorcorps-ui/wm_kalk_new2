@@ -6,7 +6,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://logistics-crm-13.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://margin-simulator-1.preview.emergentagent.com')
 
 # Test data reference from iteration_58:
 # - CRM-TEST-001: Тестовый клиент - already pushed to production (inProduction=true, productionStageId='accepted')

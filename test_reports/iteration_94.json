@@ -27,7 +27,7 @@
     "/app/backend/tests/test_sauna_tech_card_vat.py (new — 6 tests, all passing)"
   ],
   "success_rate": {"backend": "100% (6/6 new VAT + 47/47 regression = 53/53)", "frontend": "Simulator end-to-end ✓; variant-prompt-dialog wiring verified in source but NOT triggered in this DB"},
-  "test_credentials": "admin / admin123 (preview env, REACT_APP_BACKEND_URL=https://logistics-crm-13.preview.emergentagent.com)",
+  "test_credentials": "admin / admin123 (preview env, REACT_APP_BACKEND_URL=https://margin-simulator-1.preview.emergentagent.com)",
   "seed_data_creation": "Module-scope fixture creates TEST_VAT_BomMaterial component + one tech-card for cleanup at module teardown (best-effort delete).",
   "retest_needed": false,
   "main_agent_can_self_test": true,

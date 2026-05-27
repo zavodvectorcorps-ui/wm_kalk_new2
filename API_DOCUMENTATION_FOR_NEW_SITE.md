@@ -3,7 +3,7 @@
 ## Базовый URL
 ```
 Production: https://wm-kalkulator.pl
-Preview: https://logistics-crm-13.preview.emergentagent.com
+Preview: https://margin-simulator-1.preview.emergentagent.com
 ```
 
 ---
