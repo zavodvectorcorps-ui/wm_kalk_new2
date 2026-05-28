@@ -1637,3 +1637,19 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
   не ломая страницу.
 - **Verified:** lint обоих файлов чистый, скриншот Preview ОК.
 - **Action:** деплой на Production.
+
+
+### 🟡 P1: 7 звонков-зомби в очереди после деплоя
+- **Симптом:** даже после улучшений всё ещё «В очереди: 7» и прогресс
+  застрял на 410/417.
+- **Root cause:** эти 7 звонков в редком зомби-состоянии:
+  у них есть `audio_data` (base64 в MongoDB — видно по индикатору
+  «В MongoDB: 7»), но `duration_seconds = 0` (amoCRM не передал
+  длительность). Они выпадали из всех очисток (process-all skip-short
+  требует `$gt:0`; purge-empty требует отсутствия audio_data; reset-stale
+  ловил только transcribing/analyzing).
+- **Fix:** в `/api/call-analytics/reset-stale` добавлена 3-я очистка:
+  `new`-звонки с `duration_seconds <= 0` переводятся в `skipped`
+  с причиной «Нет длительности (amoCRM не передал)».
+- **Action:** деплой → нажать «Разблокировать зависшие» → 7 уйдут
+  в Пропущено, прогресс 100%.

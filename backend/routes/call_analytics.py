@@ -679,20 +679,22 @@ async def _reset_stale_calls(stale_minutes: int = 5) -> int:
 
 @router.post("/reset-stale")
 async def reset_stale_calls_endpoint(stale_minutes: int = 10):
-    """Reset stuck calls AND auto-skip unprocessable `new` calls.
+    """Reset stuck calls AND skip ALL unprocessable `new` calls.
 
-    Two cleanup actions in one click:
+    Three cleanup actions in one click:
       1. Stale ``transcribing``/``analyzing`` calls (no progress for
          ``stale_minutes`` minutes) → status=error.
       2. ``new`` calls that will never move forward because they have no
-         ``audio_url`` AND no ``audio_data`` → status=skipped. These are
-         usually system notes imported from amoCRM that the previous
-         sync filter let through. Without this they stay forever in the
-         "В очереди" badge and confuse users.
+         ``audio_url`` AND no ``audio_data`` → status=skipped.
+      3. ``new`` calls with zero / missing duration → status=skipped.
+         These can't pass the ``duration_seconds >= min_dur`` filter
+         in process-all and would otherwise sit in the queue forever.
+         Usually amoCRM didn't record duration (no real conversation —
+         missed/instant-hangup calls).
     """
     n_stale = await _reset_stale_calls(stale_minutes)
-    # Skip "new" calls that have no audio at all — they can't be processed.
-    skip_res = await db[CALLS_COL].update_many(
+    # Skip "new" calls with no audio at all.
+    no_audio_res = await db[CALLS_COL].update_many(
         {
             "status": "new",
             "$and": [
@@ -702,7 +704,24 @@ async def reset_stale_calls_endpoint(stale_minutes: int = 10):
         },
         {"$set": {"status": "skipped", "error": "Нет аудио (импорт-«пустышка»)"}}
     )
-    return {"status": "ok", "reset": n_stale, "skipped": skip_res.modified_count}
+    # Skip "new" calls with zero / missing duration — they would loop
+    # forever past the >=min_dur filter even when audio is present.
+    no_dur_res = await db[CALLS_COL].update_many(
+        {
+            "status": "new",
+            "$or": [
+                {"duration_seconds": {"$lte": 0}},
+                {"duration_seconds": {"$exists": False}},
+                {"duration_seconds": None},
+            ],
+        },
+        {"$set": {"status": "skipped", "error": "Нет длительности (amoCRM не передал)"}}
+    )
+    return {
+        "status": "ok",
+        "reset": n_stale,
+        "skipped": no_audio_res.modified_count + no_dur_res.modified_count,
+    }
 
 
 @router.get("/stats")
