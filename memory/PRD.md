@@ -1562,3 +1562,28 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
   (импорт-«пустышка»)»). Возвращает `{reset, skipped}`. Кнопка
   на фронте обновлена — показывает обе цифры.
 - **Action:** деплой на Production.
+
+
+### 🟡 P1: «Сводка» и «По событиям» показывают разное число лидов
+- **Симптом:** в Сводке за 26.05–28.05 — 57 лидов, а в «По событиям»
+  по тем же датам — Viyaleta 308 + Andrzej 228 + Vlada 310 = 846.
+- **Root cause:** endpoint `/events/manager-stats` читал snapshot
+  `event_manager_stats`, сохранённый в момент синка — даты фильтра
+  из UI применялись только к пересчёту звонков, но **не к
+  `totalLeads`**. Поэтому цифры замораживались на дате последнего
+  полного синка.
+- **Fix:** в `manager_events_analytics.py:get_event_manager_stats`
+  добавлен on-the-fly пересчёт лид-метрик (`totalLeads`,
+  `processedLeads`, `notProcessedLeads`, `weakLeads`,
+  `stalledLeads`, `singleTouchLeads`, `autoOnlyLeads`,
+  `avgReactionHours`, `processedPct`, `singleTouchPct`,
+  `autoOnlyPct`, `followUpRate`, `closedLostLeads`) из
+  `lead_analytics_leads` по выбранным пользователем датам.
+  Срабатывает только когда `date_from`/`date_to` явно переданы —
+  без них работает старая логика (snapshot последнего синка).
+  Метрики событий (totalEvents, performanceScore) остаются из
+  snapshot, чтобы не пересчитывать дорогостоящее ранжирование.
+- **Verified:** на Preview endpoint отдаёт 200 OK, в ответе
+  появляется флаг `filterInfo.leadsRecomputedForDateRange = true`.
+- **Action:** деплой на Production. После деплоя «По событиям»
+  будет показывать те же цифры, что и «Сводка» для одного диапазона.

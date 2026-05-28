@@ -672,6 +672,68 @@ async def get_event_manager_stats(date_from: str = None, date_to: str = None):
     # Use the sync's own date range so call counts match the analyzed period.
     df = date_from or last_sync.get("date_from")
     dt = date_to or last_sync.get("date_to")
+
+    # ── Lead-count recompute by user-selected date range ──────────────
+    # `event_manager_stats` is a snapshot frozen at sync time, so its
+    # totalLeads/processedLeads/etc. reflect the sync's date range, not the
+    # range the user has chosen in the UI. When the user explicitly passes
+    # date_from / date_to (i.e. they differ from the sync), recompute the
+    # key lead metrics on-the-fly from `lead_analytics_leads` so the
+    # numbers match the «Сводка» tab. Event-derived metrics (totalEvents,
+    # performanceScore) stay from sync because they are expensive to
+    # recompute and the user mostly cares about lead counts here.
+    user_overrode_dates = (date_from is not None) or (date_to is not None)
+    if user_overrode_dates and managers:
+        lead_filter = {}
+        if date_from:
+            lead_filter["createdAt"] = {"$gte": date_from}
+        if date_to:
+            lead_filter.setdefault("createdAt", {})["$lte"] = date_to + "T23:59:59"
+        leads_in_range = await db.lead_analytics_leads.find(
+            lead_filter, {"_id": 0,
+                          "responsibleUserId": 1, "processingStatus": 1,
+                          "isStalled": 1, "timeToFirstActionHours": 1,
+                          "manualActionCount": 1, "singleTouchLead": 1,
+                          "autoOnlyLead": 1, "followUpWithin72h": 1,
+                          "hasProgress": 1, "totalActions": 1}
+        ).to_list(length=20000)
+        # Bucket by responsible
+        by_uid: dict = {}
+        for ld in leads_in_range:
+            uid = str(ld.get("responsibleUserId", ""))
+            by_uid.setdefault(uid, []).append(ld)
+        for m in managers:
+            uid = str(m.get("userId", ""))
+            mgr_leads = by_uid.get(uid, [])
+            active = [l for l in mgr_leads if l.get("processingStatus") != "closed_lost"]
+            closed_lost = len(mgr_leads) - len(active)
+            total = len(active)
+            processed = sum(1 for l in active if l.get("processingStatus") in ("processed_fast", "processed_late"))
+            not_proc = sum(1 for l in active if l.get("processingStatus") == "not_processed")
+            weak = sum(1 for l in active if l.get("processingStatus") == "weak_processing")
+            stalled = sum(1 for l in active if l.get("isStalled"))
+            single_touch = sum(1 for l in active if l.get("singleTouchLead"))
+            auto_only = sum(1 for l in active if l.get("autoOnlyLead"))
+            reaction_times = [l["timeToFirstActionHours"] for l in active
+                              if l.get("timeToFirstActionHours") is not None]
+            avg_reaction = round(sum(reaction_times) / len(reaction_times), 2) if reaction_times else None
+            leads_with_touch = [l for l in active if (l.get("manualActionCount", 0) or 0) > 0]
+            followups = sum(1 for l in leads_with_touch if l.get("followUpWithin72h"))
+            m["totalLeads"] = total
+            m["closedLostLeads"] = closed_lost
+            m["processedLeads"] = processed
+            m["notProcessedLeads"] = not_proc
+            m["weakLeads"] = weak
+            m["stalledLeads"] = stalled
+            m["singleTouchLeads"] = single_touch
+            m["autoOnlyLeads"] = auto_only
+            m["avgReactionHours"] = avg_reaction
+            m["processedPct"] = round(processed / total * 100, 1) if total > 0 else 0
+            m["singleTouchPct"] = round(single_touch / total * 100, 1) if total > 0 else 0
+            m["autoOnlyPct"] = round(auto_only / total * 100, 1) if total > 0 else 0
+            m["followUpRate"] = round(followups / len(leads_with_touch) * 100, 1) if leads_with_touch else 0
+        filter_info["leadsRecomputedForDateRange"] = True
+
     live_calls = await _live_calls_by_manager(df, dt)
     if live_calls:
         for m in managers:
