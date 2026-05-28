@@ -196,7 +196,7 @@ async def get_events_sync_status():
             started_dt = None
         if started_dt:
             age_min = (datetime.now(timezone.utc) - started_dt).total_seconds() / 60
-            if age_min > 15:  # 15 min is more than enough for a normal sync
+            if age_min > 60:  # 60 min budget — accommodates large amoCRM accounts
                 stale_msg = (
                     f"Синхронизация подвисла >{int(age_min)} мин — "
                     "автоматически помечена как ошибка. Запустите заново."

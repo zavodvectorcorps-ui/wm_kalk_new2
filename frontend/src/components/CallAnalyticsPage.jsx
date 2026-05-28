@@ -309,10 +309,13 @@ const SyncTab = () => {
               <Trash2 className="h-4 w-4 mr-1"/> Очистить пустые
             </Button>
             <Button size="sm" variant="ghost" className="text-amber-700 hover:text-amber-800 hover:bg-amber-50 dark:text-amber-300 dark:hover:bg-amber-950/40" onClick={async () => {
-              if (!window.confirm('Сбросить зависшие звонки (в статусе «transcribing» / «analyzing» >5 мин)? После сброса нажми «Обработать все», чтобы они снова попали в очередь.')) return;
+              if (!window.confirm('Сбросить зависшие звонки (в статусе «transcribing» / «analyzing» >5 мин) и пометить «пустышки» без аудио как пропущенные?')) return;
               try {
                 const r = await axios.post(`${API}/api/call-analytics/reset-stale`, null, { params: { stale_minutes: 5 } });
-                toast.success(`Разблокировано: ${r.data.reset} зависших звонков`);
+                const parts = [];
+                if (r.data.reset) parts.push(`зависших: ${r.data.reset}`);
+                if (r.data.skipped) parts.push(`пустышек → пропущено: ${r.data.skipped}`);
+                toast.success(parts.length ? `Готово · ${parts.join(', ')}` : 'Готово · нечего разблокировать');
                 setProcessRefresh(x => x + 1);
               } catch(e) { toast.error('Ошибка'); }
             }} data-testid="reset-stale-btn">

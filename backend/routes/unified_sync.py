@@ -18,7 +18,8 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/lead-analytics/unified-sync", tags=["Unified Sync"])
 
 UNIFIED_COL = "unified_sync"
-STALE_MINUTES = 30  # total budget for both phases
+STALE_MINUTES = 90  # total budget for both phases (leads + events).
+# 30 was too tight on accounts with >1k leads + >10k events — bumped to 90.
 
 
 async def _set_status(unified_id: str, **fields):
