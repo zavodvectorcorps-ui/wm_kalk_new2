@@ -852,7 +852,7 @@ const EventSettings = ({ settings, setSettings, onSave, saving }) => (
 );
 
 // ==================== MAIN COMPONENT ====================
-const ManagerEventsAnalytics = () => {
+const ManagerEventsAnalytics = ({ dateFrom: propDateFrom = null, dateTo: propDateTo = null, hideOwnFilters = false } = {}) => {
   const [activeTab, setActiveTab] = useState('managers');
   const [managers, setManagers] = useState([]);
   const [filterInfo, setFilterInfo] = useState(null);
@@ -863,8 +863,14 @@ const ManagerEventsAnalytics = () => {
   const [syncing, setSyncing] = useState(false);
   const [syncStatus, setSyncStatus] = useState(null);
   const [saving, setSaving] = useState(false);
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
+  const [localDateFrom, setLocalDateFrom] = useState('');
+  const [localDateTo, setLocalDateTo] = useState('');
+  // When the parent passes a unified filter, always use it. Otherwise fall
+  // back to the component's own local date pickers (legacy behaviour).
+  const dateFrom = propDateFrom != null ? propDateFrom : localDateFrom;
+  const dateTo = propDateTo != null ? propDateTo : localDateTo;
+  const setDateFrom = hideOwnFilters ? (() => {}) : setLocalDateFrom;
+  const setDateTo = hideOwnFilters ? (() => {}) : setLocalDateTo;
   const [showBinotelMapping, setShowBinotelMapping] = useState(false);
   const [binotelConfigured, setBinotelConfigured] = useState(false);
 
@@ -1016,9 +1022,13 @@ const ManagerEventsAnalytics = () => {
           )}
         </div>
         <div className="flex items-center gap-2">
-          <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="w-36 h-9" />
-          <span className="text-muted-foreground">—</span>
-          <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="w-36 h-9" />
+          {!hideOwnFilters && (
+            <>
+              <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="w-36 h-9" />
+              <span className="text-muted-foreground">—</span>
+              <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="w-36 h-9" />
+            </>
+          )}
           <Button
             onClick={fetchData}
             size="sm"

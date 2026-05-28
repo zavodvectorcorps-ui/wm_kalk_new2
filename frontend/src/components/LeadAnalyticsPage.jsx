@@ -1044,7 +1044,7 @@ const LeadAnalyticsPage = () => {
       {activeTab === 'advanced' && <AdvancedManagerDashboard />}
       {activeTab === 'problems' && <ProblemLeadsTab leads={problemLeads} loading={loading} />}
       {activeTab === 'closed' && <ClosedLostTab dateFrom={dateFrom} dateTo={dateTo} />}
-      {activeTab === 'events' && <ManagerEventsAnalytics />}
+      {activeTab === 'events' && <ManagerEventsAnalytics dateFrom={dateFrom} dateTo={dateTo} hideOwnFilters />}
       {activeTab === 'ai' && <AIRecommendationsTab dateFrom={dateFrom} dateTo={dateTo} problemLeads={problemLeads} />}
       {activeTab === 'settings' && <SettingsTab settings={settings} setSettings={setSettings} onSave={handleSaveSettings} savingSettings={savingSettings} />}
     </div>
