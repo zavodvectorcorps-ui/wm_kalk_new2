@@ -35,6 +35,92 @@ const formatHours = (h) => {
   return `${Math.floor(h / 24)} д ${Math.round(h % 24)} ч`;
 };
 
+// ==================== MANAGER KPI BAR ====================
+// Compact, scrollable row of manager mini-cards (rank, name, score, problems)
+// shown in the «Контроль лидов» header so the user can spot leaders/outsiders
+// without switching between tabs. Click navigates to "По событиям" with that
+// manager pre-selected.
+const ManagerKPIBar = ({ dateFrom, dateTo, onOpenManager }) => {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      setLoading(true);
+      try {
+        const params = {};
+        if (dateFrom) params.date_from = dateFrom;
+        if (dateTo) params.date_to = dateTo;
+        const r = await axios.get(`${API_URL}/api/lead-analytics/events/manager-stats`, { params });
+        if (cancelled) return;
+        const mgrs = (r.data.managers || []).map(m => ({
+          userId: String(m.userId),
+          name: m.userName || `ID:${m.userId}`,
+          score: m.performanceScore || 0,
+          totalLeads: m.totalLeads || 0,
+          processedPct: m.processedPct || 0,
+          problems: (m.notProcessedLeads || 0) + (m.stalledLeads || 0) + (m.weakLeads || 0),
+        }));
+        setItems(mgrs);
+      } catch (e) {
+        // Silent — bar is optional, don't toast.
+        setItems([]);
+      } finally { setLoading(false); }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [dateFrom, dateTo]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center gap-2 text-xs text-muted-foreground py-2" data-testid="manager-kpi-bar-loading">
+        <Loader2 className="h-3.5 w-3.5 animate-spin" /> Загрузка KPI менеджеров…
+      </div>
+    );
+  }
+  if (!items.length) return null;
+
+  const scoreBg = (s) => s >= 70 ? 'bg-emerald-50 border-emerald-200' :
+                          s >= 50 ? 'bg-amber-50 border-amber-200' :
+                                    'bg-red-50 border-red-200';
+  const scoreColor = (s) => s >= 70 ? 'text-emerald-700' :
+                             s >= 50 ? 'text-amber-700' :
+                                       'text-red-700';
+
+  return (
+    <div className="overflow-x-auto -mx-1 px-1" data-testid="manager-kpi-bar">
+      <div className="flex gap-2 pb-1 min-w-min">
+        {items.map((m, idx) => (
+          <button
+            type="button"
+            key={m.userId}
+            onClick={() => onOpenManager && onOpenManager(m.userId)}
+            className={`flex-shrink-0 ${scoreBg(m.score)} border rounded-lg px-3 py-2 hover:shadow-md transition-shadow text-left min-w-[180px] cursor-pointer`}
+            data-testid={`kpi-bar-manager-${m.userId}`}
+            title={`Открыть детальную аналитику менеджера ${m.name}`}
+          >
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="text-[10px] font-bold text-muted-foreground">#{idx + 1}</span>
+                <span className="text-xs font-semibold truncate">{m.name}</span>
+              </div>
+              <span className={`text-base font-bold ${scoreColor(m.score)}`}>{m.score}</span>
+            </div>
+            <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+              <span>{m.totalLeads} лид.</span>
+              <span className="text-emerald-700 font-medium">{m.processedPct}%</span>
+              {m.problems > 0 && (
+                <span className="text-red-700 font-medium">⚠ {m.problems}</span>
+              )}
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 // ==================== SUMMARY TAB ====================
 const SummaryTab = ({ summary, loading }) => {
   const kpis = [
@@ -1016,6 +1102,18 @@ const LeadAnalyticsPage = () => {
           <span>{syncStatus.progress}</span>
         </div>
       )}
+
+      {/* Compact KPI bar — top managers at a glance, click to deep-dive */}
+      <ManagerKPIBar
+        dateFrom={dateFrom}
+        dateTo={dateTo}
+        onOpenManager={(uid) => {
+          setActiveTab('events');
+          // Stash the selected manager id so the events tab can auto-open
+          // their detail card on mount (read by ManagerEventsAnalytics).
+          window.__preselectedManagerId = uid;
+        }}
+      />
 
       {/* Tabs */}
       <div className="flex gap-1 border-b">

@@ -50,8 +50,13 @@ const ProcessingStats = ({ refreshKey }) => {
   const done = (s.analyzed || 0);
   const errors = (s.error || 0);
   const skipped = (s.skipped || 0);
+  // Errors count as "handled" for the progress bar — the call has been processed,
+  // it just failed. They remain visible via the red Ошибки badge below.
+  // Without this, the bar gets stuck at e.g. 407/417 forever when 3 calls
+  // permanently fail, even though no real work is pending.
   const totalRelevant = inFlight + pending + done + errors;
-  const pct = totalRelevant > 0 ? Math.round((done / totalRelevant) * 100) : 0;
+  const handled = done + errors;
+  const pct = totalRelevant > 0 ? Math.round((handled / totalRelevant) * 100) : 0;
 
   return (
     <div className="space-y-2">
@@ -60,7 +65,8 @@ const ProcessingStats = ({ refreshKey }) => {
           <div className="flex items-center justify-between text-xs">
             <span className="flex items-center gap-1.5 text-blue-700 font-medium">
               <Loader2 className="h-3.5 w-3.5 animate-spin"/>
-              Обработка: {done}/{totalRelevant} готово
+              Обработка: {handled}/{totalRelevant} готово
+              {errors > 0 && <span className="text-red-600">· ошибок {errors}</span>}
               {inFlight > 0 && <span className="text-violet-600">· сейчас {inFlight}</span>}
             </span>
             <span className="text-muted-foreground">{pct}%</span>

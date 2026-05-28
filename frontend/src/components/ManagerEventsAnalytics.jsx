@@ -924,6 +924,18 @@ const ManagerEventsAnalytics = ({ dateFrom: propDateFrom = null, dateTo: propDat
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  // Auto-open a manager detail card when navigating from the KPI bar in the parent page.
+  useEffect(() => {
+    if (!managers.length) return;
+    const uid = typeof window !== 'undefined' ? window.__preselectedManagerId : null;
+    if (!uid) return;
+    const target = managers.find(m => String(m.userId) === String(uid));
+    if (target) {
+      setSelectedManager(target);
+      try { delete window.__preselectedManagerId; } catch { /* ignore */ }
+    }
+  }, [managers]);
+
   const handleSync = async () => {
     setSyncing(true);
     try {
