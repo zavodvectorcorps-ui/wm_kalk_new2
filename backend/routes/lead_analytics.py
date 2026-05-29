@@ -381,15 +381,42 @@ async def _run_sync(sync_id: str, settings: dict, date_from_str: str = None, dat
                 {"$set": {"sync_id": sync_id, "syncedAt": datetime.now(timezone.utc).isoformat()}}
             )
 
-        # 7. Remove leads deleted from amoCRM
-        all_amo_ids = [l.get("id") for l in leads if l.get("id")]
-        if all_amo_ids:
-            deleted = await db.lead_analytics_leads.delete_many({
-                "amocrm_lead_id": {"$nin": all_amo_ids},
-                "pipelineId": pipeline_id
-            })
-            if deleted.deleted_count:
-                logger.info(f"Sync {sync_id}: removed {deleted.deleted_count} deleted leads")
+        # 7. Remove leads deleted from amoCRM — SAFELY scoped to the sync's date window.
+        # Previously this deleted EVERY lead not in the current sync result, which
+        # caused massive data loss for incremental syncs (e.g. the daily scheduler
+        # syncs only yesterday's leads → 1100+ historical leads got wiped because
+        # they weren't in this batch). The fix: only consider leads CREATED within
+        # the same date window that this sync covered. For incremental syncs
+        # (force=False) we skip step 7 entirely — incremental can't reliably
+        # detect deletions outside the small refresh window anyway, and the risk
+        # of accidental wipe outweighs the benefit.
+        if force:
+            all_amo_ids = [l.get("id") for l in leads if l.get("id")]
+            if all_amo_ids:
+                delete_filter = {
+                    "amocrm_lead_id": {"$nin": all_amo_ids},
+                    "pipelineId": pipeline_id,
+                }
+                # Scope deletion strictly to the synced window.
+                if ts_from is not None or ts_to is not None:
+                    range_filter = {}
+                    if ts_from is not None:
+                        range_filter["$gte"] = ts_from
+                    if ts_to is not None:
+                        range_filter["$lte"] = ts_to
+                    delete_filter["createdAtTs"] = range_filter
+                deleted = await db.lead_analytics_leads.delete_many(delete_filter)
+                if deleted.deleted_count:
+                    logger.info(
+                        f"Sync {sync_id}: removed {deleted.deleted_count} leads "
+                        f"deleted from amoCRM in window "
+                        f"ts_from={ts_from}, ts_to={ts_to}"
+                    )
+        else:
+            logger.info(
+                f"Sync {sync_id}: skipping step 7 (deletion detection) — "
+                "incremental sync, would otherwise risk wiping historical data."
+            )
 
         # 8. Compute manager aggregates
         await _update_sync_progress(sync_id, "расчёт статистики менеджеров...")
