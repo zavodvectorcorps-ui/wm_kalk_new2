@@ -778,47 +778,100 @@ async def get_event_manager_stats(date_from: str = None, date_to: str = None,
     #      `firstManualActionBy`).
     need_recompute = user_overrode_dates or activity_mode
     if need_recompute and managers:
-        # Honour the same "По созданию / По обработке" toggle the Сводка uses:
-        # use createdAt for arrival-date filter, firstActionAt for activity-date
-        # filter. Without this the KPI bar always shows the wrong period when
-        # the user picked «По обработке» (e.g. leads created in March but
-        # worked on 29.05 disappear from the bar).
+        # Honour the same "По созданию / По обработке" toggle the Сводка uses.
         fld = "firstActionAt" if str(date_field).lower() == "processed" else "createdAt"
-        lead_filter = {}
-        if date_from:
-            lead_filter[fld] = {"$gte": date_from}
-        if date_to:
-            lead_filter.setdefault(fld, {})["$lte"] = date_to + "T23:59:59"
-        if fld == "firstActionAt":
-            # Exclude leads with no first action when filtering by processing date
-            lead_filter[fld] = {**lead_filter.get(fld, {}), "$ne": None}
-        leads_in_range = await db.lead_analytics_leads.find(
-            lead_filter, {"_id": 0,
-                          "responsibleUserId": 1, "processingStatus": 1,
-                          "isStalled": 1, "timeToFirstActionHours": 1,
-                          "manualActionCount": 1, "singleTouchLead": 1,
-                          "autoOnlyLead": 1, "followUpWithin72h": 1,
-                          "hasProgress": 1, "totalActions": 1,
-                          "firstManualActionBy": 1}
-        ).to_list(length=20000)
+
+        # ── In "processed" mode (date_field=processed) we want a different,
+        # more useful semantic for manager analytics: not "leads whose FIRST
+        # global action was in the period" but "leads where THIS manager
+        # touched anything in the period". Otherwise, a manager who took over
+        # a March-old lead on 29.05 and worked it hard would see 0 leads
+        # because firstActionAt < 29.05. Re-bucket leads via amocrm_events:
+        # group events by created_by → distinct entity_id (lead) → hydrate.
+        use_activity_query = (fld == "firstActionAt")
+        leads_in_range = []
+        activity_by_uid: dict = {}
+        if use_activity_query:
+            ts_from = None
+            ts_to = None
+            try:
+                if date_from:
+                    ts_from = int(datetime.fromisoformat(date_from).replace(tzinfo=timezone.utc).timestamp())
+                if date_to:
+                    ts_to = int(datetime.fromisoformat(date_to + "T23:59:59").replace(tzinfo=timezone.utc).timestamp())
+            except Exception:
+                pass
+            ev_query = {"entity_id": {"$exists": True, "$ne": None}}
+            if ts_from is not None:
+                ev_query["created_at_ts"] = {"$gte": ts_from}
+            if ts_to is not None:
+                ev_query.setdefault("created_at_ts", {})["$lte"] = ts_to
+            pipeline = [
+                {"$match": ev_query},
+                {"$group": {"_id": {"uid": "$created_by", "lead": "$entity_id"}}},
+                {"$group": {"_id": "$_id.uid", "leadIds": {"$addToSet": "$_id.lead"}}},
+            ]
+            async for doc in db.amocrm_events.aggregate(pipeline):
+                activity_by_uid[str(doc["_id"])] = doc["leadIds"]
+            all_lead_ids = {lid for lst in activity_by_uid.values() for lid in lst}
+            if all_lead_ids:
+                docs = await db.lead_analytics_leads.find(
+                    {"amocrm_lead_id": {"$in": list(all_lead_ids)}},
+                    {"_id": 0,
+                     "amocrm_lead_id": 1, "responsibleUserId": 1, "processingStatus": 1,
+                     "isStalled": 1, "timeToFirstActionHours": 1, "manualActionCount": 1,
+                     "singleTouchLead": 1, "autoOnlyLead": 1, "followUpWithin72h": 1,
+                     "hasProgress": 1, "totalActions": 1, "firstManualActionBy": 1}
+                ).to_list(length=20000)
+                leads_by_id = {d.get("amocrm_lead_id"): d for d in docs}
+                leads_in_range = list(leads_by_id.values())
+            else:
+                leads_by_id = {}
+            filter_info["activityQueryUsed"] = True
+        else:
+            lead_filter = {}
+            if date_from:
+                lead_filter[fld] = {"$gte": date_from}
+            if date_to:
+                lead_filter.setdefault(fld, {})["$lte"] = date_to + "T23:59:59"
+            leads_in_range = await db.lead_analytics_leads.find(
+                lead_filter, {"_id": 0,
+                              "amocrm_lead_id": 1, "responsibleUserId": 1, "processingStatus": 1,
+                              "isStalled": 1, "timeToFirstActionHours": 1,
+                              "manualActionCount": 1, "singleTouchLead": 1,
+                              "autoOnlyLead": 1, "followUpWithin72h": 1,
+                              "hasProgress": 1, "totalActions": 1,
+                              "firstManualActionBy": 1}
+            ).to_list(length=20000)
+            leads_by_id = {l.get("amocrm_lead_id"): l for l in leads_in_range}
         # Bucket by responsible OR by first action user (activity mode).
         # In activity mode: leads with a real responsibleUserId still go to that
         # manager (preserves explicit assignments); only orphans get re-routed
         # to whoever first worked the lead.
+        # In "по обработке" date_field mode: re-bucket using `activity_by_uid`
+        # from the events query — credit the lead to EVERY manager who acted
+        # on it in the period. (Same lead can count for multiple managers,
+        # which is the right semantic for activity attribution.)
         by_uid: dict = {}
         activity_reattributed = 0
-        for ld in leads_in_range:
-            resp_uid = str(ld.get("responsibleUserId", ""))
-            is_orphan = resp_uid in ("", "0", "None", "unknown")
-            if activity_mode and is_orphan:
-                first_by = str(ld.get("firstManualActionBy", "") or "")
-                if first_by and first_by not in ("0", "", "None"):
-                    by_uid.setdefault(first_by, []).append(ld)
-                    activity_reattributed += 1
+        if use_activity_query:
+            for uid, lead_ids in activity_by_uid.items():
+                bucket = [leads_by_id[lid] for lid in lead_ids if lid in leads_by_id]
+                if bucket:
+                    by_uid[str(uid)] = bucket
+        else:
+            for ld in leads_in_range:
+                resp_uid = str(ld.get("responsibleUserId", ""))
+                is_orphan = resp_uid in ("", "0", "None", "unknown")
+                if activity_mode and is_orphan:
+                    first_by = str(ld.get("firstManualActionBy", "") or "")
+                    if first_by and first_by not in ("0", "", "None"):
+                        by_uid.setdefault(first_by, []).append(ld)
+                        activity_reattributed += 1
+                    else:
+                        by_uid.setdefault(resp_uid, []).append(ld)
                 else:
                     by_uid.setdefault(resp_uid, []).append(ld)
-            else:
-                by_uid.setdefault(resp_uid, []).append(ld)
         if activity_mode:
             filter_info["attributionMode"] = "activity"
             filter_info["activityReattributedLeads"] = activity_reattributed
@@ -853,39 +906,39 @@ async def get_event_manager_stats(date_from: str = None, date_to: str = None,
             m["autoOnlyPct"] = round(auto_only / total * 100, 1) if total > 0 else 0
             m["followUpRate"] = round(followups / len(leads_with_touch) * 100, 1) if leads_with_touch else 0
 
-        # Recompute the synthetic "unassigned" card too — or add one if it
-        # was missing from the persisted snapshot but exists in the picked
-        # date range. Users need to see orphan counts for *their* period.
-        # In activity mode, orphans that were re-attributed to an actual
-        # manager (via firstManualActionBy) must NOT inflate this bucket —
-        # only "truly untouched" orphans remain.
-        def _is_orphan(ld):
-            resp = str(ld.get("responsibleUserId", ""))
-            if resp not in ("", "0", "None", "unknown"):
-                return False
-            if activity_mode:
-                first_by = str(ld.get("firstManualActionBy", "") or "")
-                if first_by and first_by not in ("0", "", "None"):
-                    return False  # got re-attributed
-            return True
-        orphan_in_range = [l for l in leads_in_range if _is_orphan(l)]
-        if orphan_in_range:
-            active = [l for l in orphan_in_range if l.get("processingStatus") != "closed_lost"]
-            existing = next((m for m in managers if m.get("userId") == "unassigned"), None)
-            stat = existing or {
-                "userId": "unassigned", "userName": "⚠️ Без ответственного",
-                "isUnassigned": True, "performanceScore": 0,
-                "totalEvents": 0, "outgoingCalls": 0, "incomingCalls": 0,
-            }
-            stat["totalLeads"] = len(active)
-            stat["closedLostLeads"] = len(orphan_in_range) - len(active)
-            stat["processedLeads"] = sum(1 for l in active if l.get("processingStatus") in ("processed_fast", "processed_late"))
-            stat["notProcessedLeads"] = sum(1 for l in active if l.get("processingStatus") == "not_processed")
-            stat["weakLeads"] = sum(1 for l in active if l.get("processingStatus") == "weak_processing")
-            stat["stalledLeads"] = sum(1 for l in active if l.get("isStalled"))
-            stat["processedPct"] = round(stat["processedLeads"] / stat["totalLeads"] * 100, 1) if stat["totalLeads"] > 0 else 0
-            if not existing:
-                managers.append(stat)
+        # Recompute the synthetic "unassigned" card too — only meaningful when
+        # we're filtering by createdAt. In "по обработке" (activity-query) mode
+        # the bucketing is already by activity, so a lead with no responsible
+        # is automatically credited to whoever acted on it — no need for a
+        # separate "Без ответственного" card.
+        if not use_activity_query:
+            def _is_orphan(ld):
+                resp = str(ld.get("responsibleUserId", ""))
+                if resp not in ("", "0", "None", "unknown"):
+                    return False
+                if activity_mode:
+                    first_by = str(ld.get("firstManualActionBy", "") or "")
+                    if first_by and first_by not in ("0", "", "None"):
+                        return False  # got re-attributed
+                return True
+            orphan_in_range = [l for l in leads_in_range if _is_orphan(l)]
+            if orphan_in_range:
+                active = [l for l in orphan_in_range if l.get("processingStatus") != "closed_lost"]
+                existing = next((m for m in managers if m.get("userId") == "unassigned"), None)
+                stat = existing or {
+                    "userId": "unassigned", "userName": "⚠️ Без ответственного",
+                    "isUnassigned": True, "performanceScore": 0,
+                    "totalEvents": 0, "outgoingCalls": 0, "incomingCalls": 0,
+                }
+                stat["totalLeads"] = len(active)
+                stat["closedLostLeads"] = len(orphan_in_range) - len(active)
+                stat["processedLeads"] = sum(1 for l in active if l.get("processingStatus") in ("processed_fast", "processed_late"))
+                stat["notProcessedLeads"] = sum(1 for l in active if l.get("processingStatus") == "not_processed")
+                stat["weakLeads"] = sum(1 for l in active if l.get("processingStatus") == "weak_processing")
+                stat["stalledLeads"] = sum(1 for l in active if l.get("isStalled"))
+                stat["processedPct"] = round(stat["processedLeads"] / stat["totalLeads"] * 100, 1) if stat["totalLeads"] > 0 else 0
+                if not existing:
+                    managers.append(stat)
 
         filter_info["leadsRecomputedForDateRange"] = True
 
