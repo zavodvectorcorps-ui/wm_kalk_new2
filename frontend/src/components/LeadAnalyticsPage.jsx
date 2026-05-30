@@ -82,41 +82,62 @@ const ManagerKPIBar = ({ dateFrom, dateTo, attributionMode = 'responsible', onOp
   }
   if (!items.length) return null;
 
-  const scoreBg = (s) => s >= 70 ? 'bg-emerald-50 border-emerald-200' :
+  const scoreBg = (s, unassigned) => unassigned ? 'bg-orange-50 border-orange-300 ring-1 ring-orange-200' :
+                          s >= 70 ? 'bg-emerald-50 border-emerald-200' :
                           s >= 50 ? 'bg-amber-50 border-amber-200' :
                                     'bg-red-50 border-red-200';
-  const scoreColor = (s) => s >= 70 ? 'text-emerald-700' :
+  const scoreColor = (s, unassigned) => unassigned ? 'text-orange-700' :
+                             s >= 70 ? 'text-emerald-700' :
                              s >= 50 ? 'text-amber-700' :
                                        'text-red-700';
 
   return (
     <div className="overflow-x-auto -mx-1 px-1" data-testid="manager-kpi-bar">
       <div className="flex gap-2 pb-1 min-w-min">
-        {items.map((m, idx) => (
+        {items.map((m, idx) => {
+          const orphanTooltip = attributionMode === 'activity'
+            ? `${m.totalLeads} лидов, которых вообще никто не тронул — нужно срочно распределить или сделать первое касание. В режиме «По активности» лиды с действиями уже засчитаны их исполнителям.`
+            : `${m.totalLeads} лидов без назначенного ответственного в amoCRM — нужно распределить. Переключите режим на «По активности», чтобы засчитать тех, у кого уже есть действия от менеджера.`;
+          return (
           <button
             type="button"
             key={m.userId}
             onClick={() => onOpenManager && onOpenManager(m.userId)}
-            className={`flex-shrink-0 ${scoreBg(m.score)} border rounded-lg px-3 py-2 hover:shadow-md transition-shadow text-left min-w-[180px] cursor-pointer`}
+            className={`flex-shrink-0 ${scoreBg(m.score, m.isUnassigned)} border rounded-lg px-3 py-2 hover:shadow-md transition-shadow text-left min-w-[180px] cursor-pointer`}
             data-testid={`kpi-bar-manager-${m.userId}`}
-            title={`Открыть детальную аналитику менеджера ${m.name}`}
+            title={m.isUnassigned ? orphanTooltip : `Открыть детальную аналитику менеджера ${m.name}`}
           >
             <div className="flex items-center justify-between gap-2 mb-1">
               <div className="flex items-center gap-1.5 min-w-0">
-                <span className="text-[10px] font-bold text-muted-foreground">#{idx + 1}</span>
+                {!m.isUnassigned && <span className="text-[10px] font-bold text-muted-foreground">#{idx + 1}</span>}
                 <span className="text-xs font-semibold truncate">{m.name}</span>
               </div>
-              <span className={`text-base font-bold ${scoreColor(m.score)}`}>{m.score}</span>
+              {!m.isUnassigned && (
+                <span className={`text-base font-bold ${scoreColor(m.score, m.isUnassigned)}`}>{m.score}</span>
+              )}
+              {m.isUnassigned && (
+                <span className="text-base font-bold text-orange-700" title="Нужно действие">!</span>
+              )}
             </div>
             <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
               <span>{m.totalLeads} лид.</span>
-              <span className="text-emerald-700 font-medium">{m.processedPct}%</span>
-              {m.problems > 0 && (
-                <span className="text-red-700 font-medium">⚠ {m.problems}</span>
+              {!m.isUnassigned && (
+                <>
+                  <span className="text-emerald-700 font-medium">{m.processedPct}%</span>
+                  {m.problems > 0 && (
+                    <span className="text-red-700 font-medium">⚠ {m.problems}</span>
+                  )}
+                </>
+              )}
+              {m.isUnassigned && (
+                <span className="text-orange-700 font-medium">
+                  {attributionMode === 'activity' ? 'никто не тронул' : 'нужно распределить'}
+                </span>
               )}
             </div>
           </button>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
