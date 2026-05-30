@@ -945,6 +945,14 @@ const LeadAnalyticsPage = () => {
   const [savingSettings, setSavingSettings] = useState(false);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  // "Applied" dates — these are what every panel on the page (Сводка, KPI-bar,
+  // events tab, problem leads) actually reads. The raw `dateFrom`/`dateTo` are
+  // the *draft* values bound to the input pickers. Without this split the
+  // KPI bar would auto-refresh on every keystroke while Сводка waits for the
+  // «Применить» click, producing inconsistent numbers (e.g. Сводка 1326,
+  // KPI 1+1+0).
+  const [appliedDateFrom, setAppliedDateFrom] = useState('');
+  const [appliedDateTo, setAppliedDateTo] = useState('');
   // 'responsible' (default) — group leads by amoCRM responsible owner.
   // 'activity' — re-attribute leads with no responsible to whoever first did
   // a manual action (call/note/stage-change/task). Surfaces real work even
@@ -956,8 +964,8 @@ const LeadAnalyticsPage = () => {
     setLoading(true);
     try {
       const params = { date_field: dateField };
-      if (dateFrom) params.date_from = dateFrom;
-      if (dateTo) params.date_to = dateTo;
+      if (appliedDateFrom) params.date_from = appliedDateFrom;
+      if (appliedDateTo) params.date_to = appliedDateTo;
       const [sumRes, mgrRes, probRes, statusRes] = await Promise.all([
         axios.get(`${API_URL}/api/lead-analytics/summary`, { params }),
         axios.get(`${API_URL}/api/lead-analytics/managers`, { params }),
@@ -973,7 +981,7 @@ const LeadAnalyticsPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [dateFrom, dateTo, dateField]);
+  }, [appliedDateFrom, appliedDateTo, dateField]);
 
   const fetchSettings = useCallback(async () => {
     try {
@@ -990,8 +998,8 @@ const LeadAnalyticsPage = () => {
     setSyncing(true);
     try {
       const params = {};
-      if (dateFrom) params.date_from = dateFrom;
-      if (dateTo) params.date_to = dateTo;
+      if (appliedDateFrom) params.date_from = appliedDateFrom;
+      if (appliedDateTo) params.date_to = appliedDateTo;
       if (force) params.force = true;
       await axios.post(`${API_URL}/api/lead-analytics/sync`, null, { params });
       toast.success(force ? 'Полная синхронизация запущена' : 'Инкрементальная синхронизация запущена');
@@ -1069,29 +1077,40 @@ const LeadAnalyticsPage = () => {
           <Button variant="outline" size="sm" className="h-9" onClick={() => {
             const t = new Date().toISOString().slice(0, 10);
             setDateFrom(t); setDateTo(t);
+            setAppliedDateFrom(t); setAppliedDateTo(t);
           }} data-testid="period-today-btn">Сегодня</Button>
           <Button variant="outline" size="sm" className="h-9" onClick={() => {
             const now = new Date();
             // Monday of current week
             const day = now.getDay() || 7;
             const monday = new Date(now); monday.setDate(now.getDate() - day + 1);
-            setDateFrom(monday.toISOString().slice(0, 10));
-            setDateTo(now.toISOString().slice(0, 10));
+            const f = monday.toISOString().slice(0, 10);
+            const t = now.toISOString().slice(0, 10);
+            setDateFrom(f); setDateTo(t);
+            setAppliedDateFrom(f); setAppliedDateTo(t);
           }} data-testid="period-week-btn">Эта неделя</Button>
           <Button variant="outline" size="sm" className="h-9" onClick={() => {
             const now = new Date();
             const first = new Date(now.getFullYear(), now.getMonth(), 1);
-            setDateFrom(first.toISOString().slice(0, 10));
-            setDateTo(now.toISOString().slice(0, 10));
+            const f = first.toISOString().slice(0, 10);
+            const t = now.toISOString().slice(0, 10);
+            setDateFrom(f); setDateTo(t);
+            setAppliedDateFrom(f); setAppliedDateTo(t);
           }} data-testid="period-month-btn">Этот месяц</Button>
           <Button variant="ghost" size="sm" className="h-9 text-muted-foreground" onClick={() => {
             setDateFrom(''); setDateTo('');
+            setAppliedDateFrom(''); setAppliedDateTo('');
           }} data-testid="period-clear-btn">Сбросить</Button>
           <span className="w-px h-6 bg-border mx-1"/>
           <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="w-36 h-9" placeholder="От" />
           <span className="text-muted-foreground">—</span>
           <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="w-36 h-9" placeholder="До" />
-          <Button variant="outline" size="sm" onClick={fetchSummary} disabled={loading}>
+          <Button variant="outline" size="sm" onClick={() => {
+            // Commit draft dates → applied dates so KPI bar, Сводка and all
+            // other panels refresh in lockstep.
+            setAppliedDateFrom(dateFrom);
+            setAppliedDateTo(dateTo);
+          }} disabled={loading} data-testid="period-apply-btn">
             <Filter className="h-4 w-4 mr-1" />
             Применить
           </Button>
@@ -1162,8 +1181,8 @@ const LeadAnalyticsPage = () => {
 
       {/* Compact KPI bar — top managers at a glance, click to deep-dive */}
       <ManagerKPIBar
-        dateFrom={dateFrom}
-        dateTo={dateTo}
+        dateFrom={appliedDateFrom}
+        dateTo={appliedDateTo}
         attributionMode={attributionMode}
         onOpenManager={(uid) => {
           setActiveTab('events');
@@ -1199,9 +1218,9 @@ const LeadAnalyticsPage = () => {
       {activeTab === 'managers' && <ManagersTab managers={managers} loading={loading} />}
       {activeTab === 'advanced' && <AdvancedManagerDashboard />}
       {activeTab === 'problems' && <ProblemLeadsTab leads={problemLeads} loading={loading} />}
-      {activeTab === 'closed' && <ClosedLostTab dateFrom={dateFrom} dateTo={dateTo} />}
-      {activeTab === 'events' && <ManagerEventsAnalytics dateFrom={dateFrom} dateTo={dateTo} attributionMode={attributionMode} hideOwnFilters />}
-      {activeTab === 'ai' && <AIRecommendationsTab dateFrom={dateFrom} dateTo={dateTo} problemLeads={problemLeads} />}
+      {activeTab === 'closed' && <ClosedLostTab dateFrom={appliedDateFrom} dateTo={appliedDateTo} />}
+      {activeTab === 'events' && <ManagerEventsAnalytics dateFrom={appliedDateFrom} dateTo={appliedDateTo} attributionMode={attributionMode} hideOwnFilters />}
+      {activeTab === 'ai' && <AIRecommendationsTab dateFrom={appliedDateFrom} dateTo={appliedDateTo} problemLeads={problemLeads} />}
       {activeTab === 'settings' && <SettingsTab settings={settings} setSettings={setSettings} onSave={handleSaveSettings} savingSettings={savingSettings} />}
     </div>
   );
