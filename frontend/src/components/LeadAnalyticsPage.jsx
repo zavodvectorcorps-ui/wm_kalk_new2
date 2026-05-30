@@ -40,7 +40,7 @@ const formatHours = (h) => {
 // shown in the «Контроль лидов» header so the user can spot leaders/outsiders
 // without switching between tabs. Click navigates to "По событиям" with that
 // manager pre-selected.
-const ManagerKPIBar = ({ dateFrom, dateTo, attributionMode = 'responsible', onOpenManager }) => {
+const ManagerKPIBar = ({ dateFrom, dateTo, attributionMode = 'responsible', dateField = 'created', onOpenManager }) => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -49,7 +49,7 @@ const ManagerKPIBar = ({ dateFrom, dateTo, attributionMode = 'responsible', onOp
     const load = async () => {
       setLoading(true);
       try {
-        const params = { attribution_mode: attributionMode };
+        const params = { attribution_mode: attributionMode, date_field: dateField };
         if (dateFrom) params.date_from = dateFrom;
         if (dateTo) params.date_to = dateTo;
         const r = await axios.get(`${API_URL}/api/lead-analytics/events/manager-stats`, { params });
@@ -71,7 +71,7 @@ const ManagerKPIBar = ({ dateFrom, dateTo, attributionMode = 'responsible', onOp
     };
     load();
     return () => { cancelled = true; };
-  }, [dateFrom, dateTo, attributionMode]);
+  }, [dateFrom, dateTo, attributionMode, dateField]);
 
   if (loading) {
     return (
@@ -1184,6 +1184,7 @@ const LeadAnalyticsPage = () => {
         dateFrom={appliedDateFrom}
         dateTo={appliedDateTo}
         attributionMode={attributionMode}
+        dateField={dateField}
         onOpenManager={(uid) => {
           setActiveTab('events');
           // Stash the selected manager id so the events tab can auto-open
@@ -1219,7 +1220,7 @@ const LeadAnalyticsPage = () => {
       {activeTab === 'advanced' && <AdvancedManagerDashboard />}
       {activeTab === 'problems' && <ProblemLeadsTab leads={problemLeads} loading={loading} />}
       {activeTab === 'closed' && <ClosedLostTab dateFrom={appliedDateFrom} dateTo={appliedDateTo} />}
-      {activeTab === 'events' && <ManagerEventsAnalytics dateFrom={appliedDateFrom} dateTo={appliedDateTo} attributionMode={attributionMode} hideOwnFilters />}
+      {activeTab === 'events' && <ManagerEventsAnalytics dateFrom={appliedDateFrom} dateTo={appliedDateTo} attributionMode={attributionMode} dateField={dateField} hideOwnFilters />}
       {activeTab === 'ai' && <AIRecommendationsTab dateFrom={appliedDateFrom} dateTo={appliedDateTo} problemLeads={problemLeads} />}
       {activeTab === 'settings' && <SettingsTab settings={settings} setSettings={setSettings} onSave={handleSaveSettings} savingSettings={savingSettings} />}
     </div>

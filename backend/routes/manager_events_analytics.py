@@ -688,7 +688,8 @@ async def _live_calls_by_manager(date_from: str = None, date_to: str = None) -> 
 
 @router.get("/manager-stats")
 async def get_event_manager_stats(date_from: str = None, date_to: str = None,
-                                    attribution_mode: str = "responsible"):
+                                    attribution_mode: str = "responsible",
+                                    date_field: str = "created"):
     """Get latest event-based manager statistics.
 
     ``attribution_mode``:
@@ -699,6 +700,13 @@ async def get_event_manager_stats(date_from: str = None, date_to: str = None,
         performed the **first manual action** (call/note/stage-change/task
         — opens / views are excluded). Surfaces real work in shops where
         managers don't bother setting themselves as responsible.
+
+    ``date_field``:
+      * ``created`` (default) — filter leads by ``createdAt`` (when the
+        lead arrived in amoCRM).
+      * ``processed`` — filter by ``firstActionAt`` (when a manager
+        actually worked the lead). Use this to evaluate manager activity
+        in a period regardless of when the lead originated.
 
     Call counts (outgoingCalls / incomingCalls / callsPerLead) are recomputed
     at read time from `call_analytics_calls` so the UI always reflects the
@@ -770,11 +778,20 @@ async def get_event_manager_stats(date_from: str = None, date_to: str = None,
     #      `firstManualActionBy`).
     need_recompute = user_overrode_dates or activity_mode
     if need_recompute and managers:
+        # Honour the same "По созданию / По обработке" toggle the Сводка uses:
+        # use createdAt for arrival-date filter, firstActionAt for activity-date
+        # filter. Without this the KPI bar always shows the wrong period when
+        # the user picked «По обработке» (e.g. leads created in March but
+        # worked on 29.05 disappear from the bar).
+        fld = "firstActionAt" if str(date_field).lower() == "processed" else "createdAt"
         lead_filter = {}
         if date_from:
-            lead_filter["createdAt"] = {"$gte": date_from}
+            lead_filter[fld] = {"$gte": date_from}
         if date_to:
-            lead_filter.setdefault("createdAt", {})["$lte"] = date_to + "T23:59:59"
+            lead_filter.setdefault(fld, {})["$lte"] = date_to + "T23:59:59"
+        if fld == "firstActionAt":
+            # Exclude leads with no first action when filtering by processing date
+            lead_filter[fld] = {**lead_filter.get(fld, {}), "$ne": None}
         leads_in_range = await db.lead_analytics_leads.find(
             lead_filter, {"_id": 0,
                           "responsibleUserId": 1, "processingStatus": 1,

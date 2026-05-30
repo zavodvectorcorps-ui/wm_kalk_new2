@@ -1770,3 +1770,23 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
 - **Verified:** lint чистый.
 - **Action:** деплой → выбрать даты → нажать «Применить» → все
   числа на странице обновятся вместе.
+
+
+### 🟡 P1: KPI-бар игнорировал тоггл «По созданию / По обработке»
+- **Симптом:** Сводка с «По обработке» 29-30.05 показывает много
+  лидов (с которыми менеджеры работали), а KPI-бар — только 1+1+0
+  (лидов, СОЗДАННЫХ в эти 2 дня). Это другой срез.
+- **Root cause:** endpoint `/manager-stats` всегда фильтровал по
+  `createdAt`. Параметр `date_field` фронтом не передавался.
+- **Fix:**
+  - **Backend:** `/manager-stats` принимает `date_field` (`created` /
+    `processed`). В режиме `processed` фильтрует по `firstActionAt`
+    и исключает лиды без первого действия — точно как Сводка.
+  - **Frontend:** `dateField` (из `LeadAnalyticsPage`) прокидывается
+    в `ManagerKPIBar` и `ManagerEventsAnalytics`, добавлен в
+    `useEffect`/`useCallback` deps — авто-refetch при переключении.
+- **Verified:** lint чистый, endpoint c `date_field=processed`
+  отдаёт 200 OK.
+- **Action:** деплой → выбрать «По обработке» + 29-30.05 → нажать
+  «Применить» → KPI-бар покажет реальную картину работы менеджеров
+  в эти дни (а не «созданных» лидов).

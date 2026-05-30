@@ -852,7 +852,7 @@ const EventSettings = ({ settings, setSettings, onSave, saving }) => (
 );
 
 // ==================== MAIN COMPONENT ====================
-const ManagerEventsAnalytics = ({ dateFrom: propDateFrom = null, dateTo: propDateTo = null, attributionMode = 'responsible', hideOwnFilters = false } = {}) => {
+const ManagerEventsAnalytics = ({ dateFrom: propDateFrom = null, dateTo: propDateTo = null, attributionMode = 'responsible', dateField = 'created', hideOwnFilters = false } = {}) => {
   const [activeTab, setActiveTab] = useState('managers');
   const [managers, setManagers] = useState([]);
   const [filterInfo, setFilterInfo] = useState(null);
@@ -877,7 +877,7 @@ const ManagerEventsAnalytics = ({ dateFrom: propDateFrom = null, dateTo: propDat
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const params = { attribution_mode: attributionMode };
+      const params = { attribution_mode: attributionMode, date_field: dateField };
       if (dateFrom) params.date_from = dateFrom;
       if (dateTo) params.date_to = dateTo;
       const [mgrRes, statusRes, settingsRes, binotelCfg] = await Promise.all([
@@ -920,7 +920,7 @@ const ManagerEventsAnalytics = ({ dateFrom: propDateFrom = null, dateTo: propDat
     } catch (e) {
       console.error('Error fetching event analytics:', e);
     } finally { setLoading(false); }
-  }, [dateFrom, dateTo, attributionMode]);
+  }, [dateFrom, dateTo, attributionMode, dateField]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
