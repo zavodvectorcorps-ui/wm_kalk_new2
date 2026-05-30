@@ -61,6 +61,7 @@ const ManagerKPIBar = ({ dateFrom, dateTo, onOpenManager }) => {
           totalLeads: m.totalLeads || 0,
           processedPct: m.processedPct || 0,
           problems: (m.notProcessedLeads || 0) + (m.stalledLeads || 0) + (m.weakLeads || 0),
+          isUnassigned: !!m.isUnassigned,
         }));
         setItems(mgrs);
       } catch (e) {

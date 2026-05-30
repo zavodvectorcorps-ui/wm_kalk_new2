@@ -360,6 +360,15 @@ async def _compute_event_manager_stats(sync_id: str, ts_from: int = None, ts_to:
     bot_ids = {str(x) for x in (la_settings.get("botUserIds") or [])}
     bot_ids.update({"0", "", "None", "unknown"})
     manager_whitelist = {str(x) for x in (la_settings.get("managerUserIds") or [])}
+    # Capture orphan/unassigned leads BEFORE filtering them out — they
+    # represent leads with responsibleUserId="0"/"" in amoCRM (= no manager
+    # assigned). Without this they vanish from the dashboard and the user
+    # sees totals like "36 лидов / 2 на менеджерах" with no explanation.
+    orphan_leads = []
+    for orphan_uid in ("", "0", "None", "unknown"):
+        orphan_leads.extend(leads_by_manager.get(orphan_uid, []))
+    orphan_count = len(orphan_leads)
+
     all_managers = {
         uid for uid in all_managers
         if str(uid) not in bot_ids
@@ -559,6 +568,67 @@ async def _compute_event_manager_stats(sync_id: str, ts_from: int = None, ts_to:
         stat["singleTouchPenalty"] = single_touch_penalty
         stat["performanceScore"] = score
 
+    # ── Orphan / Unassigned bucket ────────────────────────────────────
+    # Synthetic "manager" card representing leads with responsibleUserId=0
+    # (no manager assigned in amoCRM). Surfaces a problem that previously
+    # vanished from analytics (e.g. "36 лидов but only 2 у менеджеров").
+    if orphan_count > 0:
+        orphan_active = [l for l in orphan_leads if l.get("processingStatus") != "closed_lost"]
+        orphan_closed_lost = orphan_count - len(orphan_active)
+        orphan_processed = sum(1 for l in orphan_active if l.get("processingStatus") in ("processed_fast", "processed_late"))
+        orphan_not_processed = sum(1 for l in orphan_active if l.get("processingStatus") == "not_processed")
+        orphan_weak = sum(1 for l in orphan_active if l.get("processingStatus") == "weak_processing")
+        orphan_stalled = sum(1 for l in orphan_active if l.get("isStalled"))
+        all_stats.append({
+            "userId": "unassigned",
+            "userName": "⚠️ Без ответственного",
+            "sync_id": sync_id,
+            "computedAt": datetime.now(timezone.utc).isoformat(),
+            "totalEvents": 0,
+            "totalLeads": len(orphan_active),
+            "closedLostLeads": orphan_closed_lost,
+            "processedLeads": orphan_processed,
+            "notProcessedLeads": orphan_not_processed,
+            "weakLeads": orphan_weak,
+            "stalledLeads": orphan_stalled,
+            "singleTouchLeads": 0,
+            "autoOnlyLeads": 0,
+            "withProgress": 0,
+            "toSuccess": 0,
+            "leadEvents": 0,
+            "contactEvents": 0,
+            "stageChanges": 0,
+            "taskEvents": 0,
+            "noteEvents": 0,
+            "usefulEvents": 0,
+            "manualActions": 0,
+            "outgoingCalls": 0,
+            "incomingCalls": 0,
+            "outgoingEmails": 0,
+            "outgoingMessages": 0,
+            "newLeadActions": 0,
+            "avgReactionHours": None,
+            "processedPercent": 0,
+            "processedPct": 0,
+            "singleTouchPercent": 0,
+            "singleTouchPct": 0,
+            "autoOnlyPercent": 0,
+            "autoOnlyPct": 0,
+            "followUpRate": 0,
+            "avgActionsPerLead": 0,
+            "callsPerLead": 0,
+            "manualEventShare": 0,
+            "reactionScore": 0,
+            "processingScore": 0,
+            "activityScore": 0,
+            "progressScore": 0,
+            "followUpScore": 0,
+            "problemScore": 0,
+            "singleTouchPenalty": 0,
+            "performanceScore": 0,
+            "isUnassigned": True,
+        })
+
     # Rank by score
     all_stats.sort(key=lambda s: s.get("performanceScore", 0), reverse=True)
     for i, stat in enumerate(all_stats):
@@ -732,6 +802,30 @@ async def get_event_manager_stats(date_from: str = None, date_to: str = None):
             m["singleTouchPct"] = round(single_touch / total * 100, 1) if total > 0 else 0
             m["autoOnlyPct"] = round(auto_only / total * 100, 1) if total > 0 else 0
             m["followUpRate"] = round(followups / len(leads_with_touch) * 100, 1) if leads_with_touch else 0
+
+        # Recompute the synthetic "unassigned" card too — or add one if it
+        # was missing from the persisted snapshot but exists in the picked
+        # date range. Users need to see orphan counts for *their* period.
+        orphan_in_range = [l for l in leads_in_range
+                            if str(l.get("responsibleUserId", "")) in ("", "0", "None", "unknown")]
+        if orphan_in_range:
+            active = [l for l in orphan_in_range if l.get("processingStatus") != "closed_lost"]
+            existing = next((m for m in managers if m.get("userId") == "unassigned"), None)
+            stat = existing or {
+                "userId": "unassigned", "userName": "⚠️ Без ответственного",
+                "isUnassigned": True, "performanceScore": 0,
+                "totalEvents": 0, "outgoingCalls": 0, "incomingCalls": 0,
+            }
+            stat["totalLeads"] = len(active)
+            stat["closedLostLeads"] = len(orphan_in_range) - len(active)
+            stat["processedLeads"] = sum(1 for l in active if l.get("processingStatus") in ("processed_fast", "processed_late"))
+            stat["notProcessedLeads"] = sum(1 for l in active if l.get("processingStatus") == "not_processed")
+            stat["weakLeads"] = sum(1 for l in active if l.get("processingStatus") == "weak_processing")
+            stat["stalledLeads"] = sum(1 for l in active if l.get("isStalled"))
+            stat["processedPct"] = round(stat["processedLeads"] / stat["totalLeads"] * 100, 1) if stat["totalLeads"] > 0 else 0
+            if not existing:
+                managers.append(stat)
+
         filter_info["leadsRecomputedForDateRange"] = True
 
     live_calls = await _live_calls_by_manager(df, dt)
