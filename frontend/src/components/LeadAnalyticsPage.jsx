@@ -40,7 +40,7 @@ const formatHours = (h) => {
 // shown in the «Контроль лидов» header so the user can spot leaders/outsiders
 // without switching between tabs. Click navigates to "По событиям" with that
 // manager pre-selected.
-const ManagerKPIBar = ({ dateFrom, dateTo, onOpenManager }) => {
+const ManagerKPIBar = ({ dateFrom, dateTo, attributionMode = 'responsible', onOpenManager }) => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -49,7 +49,7 @@ const ManagerKPIBar = ({ dateFrom, dateTo, onOpenManager }) => {
     const load = async () => {
       setLoading(true);
       try {
-        const params = {};
+        const params = { attribution_mode: attributionMode };
         if (dateFrom) params.date_from = dateFrom;
         if (dateTo) params.date_to = dateTo;
         const r = await axios.get(`${API_URL}/api/lead-analytics/events/manager-stats`, { params });
@@ -71,7 +71,7 @@ const ManagerKPIBar = ({ dateFrom, dateTo, onOpenManager }) => {
     };
     load();
     return () => { cancelled = true; };
-  }, [dateFrom, dateTo]);
+  }, [dateFrom, dateTo, attributionMode]);
 
   if (loading) {
     return (
@@ -924,6 +924,11 @@ const LeadAnalyticsPage = () => {
   const [savingSettings, setSavingSettings] = useState(false);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  // 'responsible' (default) — group leads by amoCRM responsible owner.
+  // 'activity' — re-attribute leads with no responsible to whoever first did
+  // a manual action (call/note/stage-change/task). Surfaces real work even
+  // when managers don't bother to set themselves as responsible.
+  const [attributionMode, setAttributionMode] = useState('responsible');
   const [dateField, setDateField] = useState('created'); // 'created' | 'processed'
 
   const fetchSummary = useCallback(async () => {
@@ -1104,10 +1109,41 @@ const LeadAnalyticsPage = () => {
         </div>
       )}
 
+      {/* Attribution mode toggle */}
+      <div className="flex items-center gap-2 text-xs">
+        <span className="text-muted-foreground">Атрибуция лидов:</span>
+        <div className="inline-flex rounded-md border bg-card overflow-hidden" data-testid="attribution-toggle">
+          <button
+            type="button"
+            onClick={() => setAttributionMode('responsible')}
+            className={`px-3 py-1 transition-colors ${attributionMode === 'responsible' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
+            data-testid="attribution-mode-responsible"
+            title="Считать лидов только по ответственному в amoCRM"
+          >
+            По ответственному
+          </button>
+          <button
+            type="button"
+            onClick={() => setAttributionMode('activity')}
+            className={`px-3 py-1 transition-colors ${attributionMode === 'activity' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
+            data-testid="attribution-mode-activity"
+            title="Лиды без ответственного засчитывать тому, кто первым сделал действие (звонок/заметку/смену этапа/задачу)"
+          >
+            По активности
+          </button>
+        </div>
+        {attributionMode === 'activity' && (
+          <span className="text-xs text-muted-foreground italic">
+            лиды без ответственного засчитываются по первому действию
+          </span>
+        )}
+      </div>
+
       {/* Compact KPI bar — top managers at a glance, click to deep-dive */}
       <ManagerKPIBar
         dateFrom={dateFrom}
         dateTo={dateTo}
+        attributionMode={attributionMode}
         onOpenManager={(uid) => {
           setActiveTab('events');
           // Stash the selected manager id so the events tab can auto-open
@@ -1143,7 +1179,7 @@ const LeadAnalyticsPage = () => {
       {activeTab === 'advanced' && <AdvancedManagerDashboard />}
       {activeTab === 'problems' && <ProblemLeadsTab leads={problemLeads} loading={loading} />}
       {activeTab === 'closed' && <ClosedLostTab dateFrom={dateFrom} dateTo={dateTo} />}
-      {activeTab === 'events' && <ManagerEventsAnalytics dateFrom={dateFrom} dateTo={dateTo} hideOwnFilters />}
+      {activeTab === 'events' && <ManagerEventsAnalytics dateFrom={dateFrom} dateTo={dateTo} attributionMode={attributionMode} hideOwnFilters />}
       {activeTab === 'ai' && <AIRecommendationsTab dateFrom={dateFrom} dateTo={dateTo} problemLeads={problemLeads} />}
       {activeTab === 'settings' && <SettingsTab settings={settings} setSettings={setSettings} onSave={handleSaveSettings} savingSettings={savingSettings} />}
     </div>

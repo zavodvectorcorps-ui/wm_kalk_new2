@@ -1698,3 +1698,32 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
 - **Verified:** lint backend/frontend чистый, endpoint 200 OK.
 - **Action:** деплой → после полного синка появится оранжевая
   карточка «⚠️ Без ответственного: 34 лида» в KPI-баре.
+
+
+### ✨ Enhancement: гибридная атрибуция лидов (По ответственному / По активности)
+- **Запрос:** «можно ли анализировать не по активному менеджеру,
+  а по тому, от кого проходит действие? Чтобы менеджеры не были
+  обязаны ставить себя ответственным».
+- **Что сделано:**
+  - **Backend (`lead_analytics.py`):** каждому лиду при синке
+    сохраняется поле `firstManualActionBy` — `user_id` того, кто
+    первым сделал ручное действие (звонок/заметка/смена этапа/задача;
+    open/view исключены).
+  - **Backend (`manager_events_analytics.py`):** endpoint
+    `/manager-stats` принимает параметр `attribution_mode`:
+      * `responsible` (по умолчанию) — старая логика.
+      * `activity` — лиды с `responsibleUserId in ("","0")`
+        перебакетятся к `firstManualActionBy`. Если действия так
+        и не было — остаются в orphan-bucket.
+  - **Frontend (`LeadAnalyticsPage.jsx`):** в шапке появился
+    тоггл «По ответственному / По активности» (data-testid:
+    `attribution-mode-responsible`/`activity`). Прокидывается в
+    `ManagerKPIBar` и `ManagerEventsAnalytics` через props.
+    При смене режима — авто-refetch (deps `useCallback`).
+- **filterInfo:** в режиме activity возвращает
+  `activityReattributedLeads: N` — сколько orphan-лидов перешло
+  к реальному исполнителю.
+- **Verified:** lint всё чистый, endpoint оба режима 200 OK.
+- **Action:** деплой → запустить полную синхронизацию (чтобы
+  заполнить `firstManualActionBy` для существующих лидов) →
+  переключить тоггл в «По активности».

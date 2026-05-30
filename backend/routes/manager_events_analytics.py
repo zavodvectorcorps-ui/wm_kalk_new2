@@ -687,8 +687,18 @@ async def _live_calls_by_manager(date_from: str = None, date_to: str = None) -> 
 
 
 @router.get("/manager-stats")
-async def get_event_manager_stats(date_from: str = None, date_to: str = None):
+async def get_event_manager_stats(date_from: str = None, date_to: str = None,
+                                    attribution_mode: str = "responsible"):
     """Get latest event-based manager statistics.
+
+    ``attribution_mode``:
+      * ``responsible`` (default) — group leads by ``responsibleUserId``
+        (the assigned owner in amoCRM). Legacy behaviour.
+      * ``activity`` — for leads with no assigned manager
+        (responsibleUserId in "", "0"), credit them to the manager who
+        performed the **first manual action** (call/note/stage-change/task
+        — opens / views are excluded). Surfaces real work in shops where
+        managers don't bother setting themselves as responsible.
 
     Call counts (outgoingCalls / incomingCalls / callsPerLead) are recomputed
     at read time from `call_analytics_calls` so the UI always reflects the
@@ -753,7 +763,13 @@ async def get_event_manager_stats(date_from: str = None, date_to: str = None):
     # performanceScore) stay from sync because they are expensive to
     # recompute and the user mostly cares about lead counts here.
     user_overrode_dates = (date_from is not None) or (date_to is not None)
-    if user_overrode_dates and managers:
+    activity_mode = (attribution_mode == "activity")
+    # We need on-the-fly recompute when:
+    #   1. User picked a date range different from sync window, OR
+    #   2. Activity attribution is requested (re-bucket orphan leads by
+    #      `firstManualActionBy`).
+    need_recompute = user_overrode_dates or activity_mode
+    if need_recompute and managers:
         lead_filter = {}
         if date_from:
             lead_filter["createdAt"] = {"$gte": date_from}
@@ -765,13 +781,30 @@ async def get_event_manager_stats(date_from: str = None, date_to: str = None):
                           "isStalled": 1, "timeToFirstActionHours": 1,
                           "manualActionCount": 1, "singleTouchLead": 1,
                           "autoOnlyLead": 1, "followUpWithin72h": 1,
-                          "hasProgress": 1, "totalActions": 1}
+                          "hasProgress": 1, "totalActions": 1,
+                          "firstManualActionBy": 1}
         ).to_list(length=20000)
-        # Bucket by responsible
+        # Bucket by responsible OR by first action user (activity mode).
+        # In activity mode: leads with a real responsibleUserId still go to that
+        # manager (preserves explicit assignments); only orphans get re-routed
+        # to whoever first worked the lead.
         by_uid: dict = {}
+        activity_reattributed = 0
         for ld in leads_in_range:
-            uid = str(ld.get("responsibleUserId", ""))
-            by_uid.setdefault(uid, []).append(ld)
+            resp_uid = str(ld.get("responsibleUserId", ""))
+            is_orphan = resp_uid in ("", "0", "None", "unknown")
+            if activity_mode and is_orphan:
+                first_by = str(ld.get("firstManualActionBy", "") or "")
+                if first_by and first_by not in ("0", "", "None"):
+                    by_uid.setdefault(first_by, []).append(ld)
+                    activity_reattributed += 1
+                else:
+                    by_uid.setdefault(resp_uid, []).append(ld)
+            else:
+                by_uid.setdefault(resp_uid, []).append(ld)
+        if activity_mode:
+            filter_info["attributionMode"] = "activity"
+            filter_info["activityReattributedLeads"] = activity_reattributed
         for m in managers:
             uid = str(m.get("userId", ""))
             mgr_leads = by_uid.get(uid, [])
@@ -806,8 +839,19 @@ async def get_event_manager_stats(date_from: str = None, date_to: str = None):
         # Recompute the synthetic "unassigned" card too — or add one if it
         # was missing from the persisted snapshot but exists in the picked
         # date range. Users need to see orphan counts for *their* period.
-        orphan_in_range = [l for l in leads_in_range
-                            if str(l.get("responsibleUserId", "")) in ("", "0", "None", "unknown")]
+        # In activity mode, orphans that were re-attributed to an actual
+        # manager (via firstManualActionBy) must NOT inflate this bucket —
+        # only "truly untouched" orphans remain.
+        def _is_orphan(ld):
+            resp = str(ld.get("responsibleUserId", ""))
+            if resp not in ("", "0", "None", "unknown"):
+                return False
+            if activity_mode:
+                first_by = str(ld.get("firstManualActionBy", "") or "")
+                if first_by and first_by not in ("0", "", "None"):
+                    return False  # got re-attributed
+            return True
+        orphan_in_range = [l for l in leads_in_range if _is_orphan(l)]
         if orphan_in_range:
             active = [l for l in orphan_in_range if l.get("processingStatus") != "closed_lost"]
             existing = next((m for m in managers if m.get("userId") == "unassigned"), None)

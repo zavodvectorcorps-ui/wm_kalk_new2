@@ -565,6 +565,10 @@ def _compute_lead_metrics(lead: dict, events: list, notes: list, tasks: list,
     last_action_ts = actions[-1]["ts"] if actions else None
     first_action_dt = datetime.fromtimestamp(first_action_ts, tz=timezone.utc) if first_action_ts else None
     last_action_dt = datetime.fromtimestamp(last_action_ts, tz=timezone.utc) if last_action_ts else None
+    # Who performed the first manual action — used by the "activity" attribution
+    # mode in events analytics so leads without a responsibleUserId in amoCRM
+    # still get credited to the manager who actually worked them.
+    first_action_by = str(actions[0]["user"]) if actions else ""
 
     # Time to first action (in hours)
     time_to_first_action = None
@@ -657,6 +661,7 @@ def _compute_lead_metrics(lead: dict, events: list, notes: list, tasks: list,
         "followUpWithin72h": follow_up_within_72h,
         "autoOnlyLead": auto_only_lead,
         "singleTouchLead": single_touch_lead,
+        "firstManualActionBy": first_action_by,
         "amocrm_link": f"https://{get_amocrm_settings().get('amocrm_domain', '')}/leads/detail/{lead_id}",
     }
 
