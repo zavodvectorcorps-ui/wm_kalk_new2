@@ -813,6 +813,33 @@ async def get_event_manager_stats(date_from: str = None, date_to: str = None,
             ]
             async for doc in db.amocrm_events.aggregate(pipeline):
                 activity_by_uid[str(doc["_id"])] = doc["leadIds"]
+            # Also count event types per manager so the KPI tooltip can show
+            # what kind of work each manager did (stage changes / notes /
+            # tasks / total events).
+            breakdown_pipeline = [
+                {"$match": ev_query},
+                {"$group": {
+                    "_id": {"uid": "$created_by", "type": "$type"},
+                    "count": {"$sum": 1},
+                }},
+            ]
+            event_breakdown: dict = {}
+            async for doc in db.amocrm_events.aggregate(breakdown_pipeline):
+                uid = str(doc["_id"].get("uid", ""))
+                etype = doc["_id"].get("type", "")
+                cnt = doc.get("count", 0)
+                bucket = event_breakdown.setdefault(uid, {
+                    "stageChanges": 0, "notes": 0, "tasks": 0, "messages": 0, "total": 0,
+                })
+                bucket["total"] += cnt
+                if "lead_status" in etype or etype == "lead_added":
+                    bucket["stageChanges"] += cnt
+                elif "note" in etype:
+                    bucket["notes"] += cnt
+                elif "task" in etype:
+                    bucket["tasks"] += cnt
+                elif "message" in etype or "talk" in etype:
+                    bucket["messages"] += cnt
             all_lead_ids = {lid for lst in activity_by_uid.values() for lid in lst}
             if all_lead_ids:
                 docs = await db.lead_analytics_leads.find(
@@ -905,6 +932,12 @@ async def get_event_manager_stats(date_from: str = None, date_to: str = None,
             m["singleTouchPct"] = round(single_touch / total * 100, 1) if total > 0 else 0
             m["autoOnlyPct"] = round(auto_only / total * 100, 1) if total > 0 else 0
             m["followUpRate"] = round(followups / len(leads_with_touch) * 100, 1) if leads_with_touch else 0
+            # Attach the per-period event breakdown so the KPI tooltip can show
+            # what kind of work happened.
+            if use_activity_query:
+                m["eventBreakdown"] = event_breakdown.get(uid, {
+                    "stageChanges": 0, "notes": 0, "tasks": 0, "messages": 0, "total": 0,
+                })
 
         # Recompute the synthetic "unassigned" card too — only meaningful when
         # we're filtering by createdAt. In "по обработке" (activity-query) mode

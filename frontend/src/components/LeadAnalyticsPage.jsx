@@ -62,6 +62,9 @@ const ManagerKPIBar = ({ dateFrom, dateTo, attributionMode = 'responsible', date
           processedPct: m.processedPct || 0,
           problems: (m.notProcessedLeads || 0) + (m.stalledLeads || 0) + (m.weakLeads || 0),
           isUnassigned: !!m.isUnassigned,
+          breakdown: m.eventBreakdown || null,
+          outgoingCalls: m.outgoingCalls || 0,
+          incomingCalls: m.incomingCalls || 0,
         }));
         setItems(mgrs);
       } catch (e) {
@@ -98,14 +101,29 @@ const ManagerKPIBar = ({ dateFrom, dateTo, attributionMode = 'responsible', date
           const orphanTooltip = attributionMode === 'activity'
             ? `${m.totalLeads} лидов, которых вообще никто не тронул — нужно срочно распределить или сделать первое касание. В режиме «По активности» лиды с действиями уже засчитаны их исполнителям.`
             : `${m.totalLeads} лидов без назначенного ответственного в amoCRM — нужно распределить. Переключите режим на «По активности», чтобы засчитать тех, у кого уже есть действия от менеджера.`;
+          // Build a rich breakdown tooltip for real managers (only when we have
+          // event-breakdown from the activity-query mode).
+          const bd = m.breakdown;
+          const callsTotal = (m.outgoingCalls || 0) + (m.incomingCalls || 0);
+          const managerTooltip = bd
+            ? `${m.name}\n` +
+              `• Лидов: ${m.totalLeads}\n` +
+              `• Звонков: ${callsTotal} (исх ${m.outgoingCalls}/вх ${m.incomingCalls})\n` +
+              `• Смен этапа: ${bd.stageChanges}\n` +
+              `• Заметок: ${bd.notes}\n` +
+              `• Задач: ${bd.tasks}\n` +
+              `• Сообщений: ${bd.messages}\n` +
+              `• Всего событий: ${bd.total}\n` +
+              `\nКлик — открыть детальную аналитику.`
+            : `Открыть детальную аналитику менеджера ${m.name}`;
           return (
           <button
             type="button"
             key={m.userId}
             onClick={() => onOpenManager && onOpenManager(m.userId)}
-            className={`flex-shrink-0 ${scoreBg(m.score, m.isUnassigned)} border rounded-lg px-3 py-2 hover:shadow-md transition-shadow text-left min-w-[180px] cursor-pointer`}
+            className={`flex-shrink-0 ${scoreBg(m.score, m.isUnassigned)} border rounded-lg px-3 py-2 hover:shadow-md transition-shadow text-left min-w-[200px] cursor-pointer`}
             data-testid={`kpi-bar-manager-${m.userId}`}
-            title={m.isUnassigned ? orphanTooltip : `Открыть детальную аналитику менеджера ${m.name}`}
+            title={m.isUnassigned ? orphanTooltip : managerTooltip}
           >
             <div className="flex items-center justify-between gap-2 mb-1">
               <div className="flex items-center gap-1.5 min-w-0">
@@ -135,6 +153,16 @@ const ManagerKPIBar = ({ dateFrom, dateTo, attributionMode = 'responsible', date
                 </span>
               )}
             </div>
+            {/* Inline event breakdown (only in activity-query mode) */}
+            {!m.isUnassigned && m.breakdown && (m.breakdown.total > 0 || callsTotal > 0) && (
+              <div className="flex items-center gap-2 mt-1 text-[10px] text-muted-foreground/80 flex-wrap">
+                {callsTotal > 0 && <span title="Звонков" className="whitespace-nowrap">📞 {callsTotal}</span>}
+                {m.breakdown.stageChanges > 0 && <span title="Смен этапа" className="whitespace-nowrap">↗ {m.breakdown.stageChanges}</span>}
+                {m.breakdown.notes > 0 && <span title="Заметок" className="whitespace-nowrap">📝 {m.breakdown.notes}</span>}
+                {m.breakdown.tasks > 0 && <span title="Задач" className="whitespace-nowrap">✓ {m.breakdown.tasks}</span>}
+                {m.breakdown.messages > 0 && <span title="Сообщений" className="whitespace-nowrap">💬 {m.breakdown.messages}</span>}
+              </div>
+            )}
           </button>
           );
         })}
