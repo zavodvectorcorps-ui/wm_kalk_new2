@@ -504,11 +504,12 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
     const discountAmount = subtotal * (appliedDiscount / 100);
     let afterDiscount = subtotal - discountAmount;
     if (certificateDiscount) {
-      afterDiscount = afterDiscount * 0.87; // additional 13%
+      const certPct = prices.certificateDiscountPercent ?? 13;
+      afterDiscount = afterDiscount * (1 - certPct / 100); // configurable certificate discount
     }
     // Delivery is shown separately, NOT included in total
     return afterDiscount;
-  }, [calculateSubtotal, appliedDiscount, certificateDiscount]);
+  }, [calculateSubtotal, appliedDiscount, certificateDiscount, prices.certificateDiscountPercent]);
 
   // Input handlers
   const handleInputChange = (e) => {
