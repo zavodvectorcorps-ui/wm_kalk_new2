@@ -504,7 +504,7 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
     const discountAmount = subtotal * (appliedDiscount / 100);
     let afterDiscount = subtotal - discountAmount;
     if (certificateDiscount) {
-      afterDiscount = afterDiscount * 0.82; // additional 18%
+      afterDiscount = afterDiscount * 0.87; // additional 13%
     }
     // Delivery is shown separately, NOT included in total
     return afterDiscount;
@@ -865,7 +865,7 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
       const discountAmount = subtotal * (appliedDiscount / 100);
       let total = subtotal - discountAmount;
       if (certificateDiscount) {
-        total = total * 0.82; // additional 18% certificate discount
+        total = total * 0.87; // additional 13% certificate discount
       }
       
       const orderId = isEditMode && editOrderId ? editOrderId : undefined;

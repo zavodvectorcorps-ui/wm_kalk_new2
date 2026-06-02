@@ -39,7 +39,7 @@ async def create_sauna_order(order: SaunaOrder):
                 "subtotal": order_dict.get('subtotal', 0),
                 "discountPercent": order_dict.get('discountPercent', 0),
                 "totalAfterDiscount": order_dict.get('total', 0),
-                "certificateSavings": round((order_dict.get('subtotal', 0) * (1 - order_dict.get('discountPercent', 0) / 100)) * 0.18),
+                "certificateSavings": round((order_dict.get('subtotal', 0) * (1 - order_dict.get('discountPercent', 0) / 100)) * 0.13),
                 "createdBy": order_dict.get('createdBy', ''),
                 "createdAt": datetime.now(timezone.utc).isoformat()
             }
@@ -179,7 +179,7 @@ async def update_sauna_order(order_id: str, order: SaunaOrder):
                 "subtotal": order_dict.get('subtotal', 0),
                 "discountPercent": order_dict.get('discountPercent', 0),
                 "totalAfterDiscount": order_dict.get('total', 0),
-                "certificateSavings": round((order_dict.get('subtotal', 0) * (1 - order_dict.get('discountPercent', 0) / 100)) * 0.18),
+                "certificateSavings": round((order_dict.get('subtotal', 0) * (1 - order_dict.get('discountPercent', 0) / 100)) * 0.13),
                 "createdBy": order_dict.get('updatedBy', order_dict.get('createdBy', '')),
                 "createdAt": datetime.now(timezone.utc).isoformat()
             }
