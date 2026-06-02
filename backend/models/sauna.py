@@ -188,6 +188,7 @@ class SaunaPriceData(BaseModel):
     modelsHintImageUrl: Optional[str] = None
     modelsHintVideoUrl: Optional[str] = None
     maxManagerDiscount: int = 10  # Maximum discount % for managers (non-admin users)
+    certificateDiscountPercent: int = 13  # Certificate discount % (configurable from admin)
     # Variant comparison table
     variantComparisonTitle: Optional[str] = "Różnice modeli"  # Title for comparison table
     variantComparisonRows: Optional[List[SaunaVariantComparisonRow]] = []  # Comparison rows

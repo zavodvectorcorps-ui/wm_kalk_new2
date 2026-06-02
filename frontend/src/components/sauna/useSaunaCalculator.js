@@ -584,7 +584,8 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
   const handleToggleCertificateDiscount = () => {
     setCertificateDiscount(prev => {
       if (!prev) {
-        toast.success(txt.certificateApplied);
+        const certPct = prices.certificateDiscountPercent ?? 13;
+        toast.success(txt.certificateApplied.replace(/\d+%/, `${certPct}%`));
       } else {
         toast.info(txt.certificateRemoved);
       }
@@ -865,7 +866,8 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
       const discountAmount = subtotal * (appliedDiscount / 100);
       let total = subtotal - discountAmount;
       if (certificateDiscount) {
-        total = total * 0.87; // additional 13% certificate discount
+        const certPct = prices.certificateDiscountPercent ?? 13;
+        total = total * (1 - certPct / 100); // configurable certificate discount
       }
       
       const orderId = isEditMode && editOrderId ? editOrderId : undefined;

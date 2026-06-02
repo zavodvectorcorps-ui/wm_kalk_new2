@@ -1837,6 +1837,7 @@ const SummaryCard = ({
               subtotal={subtotal}
               total={total}
               maxManagerDiscount={maxManagerDiscount}
+              certificateDiscountPercent={prices?.certificateDiscountPercent ?? 13}
               lang={lang}
               txt={txt}
             />
@@ -1909,7 +1910,7 @@ const SummaryCard = ({
                 <div className="text-xs text-amber-100 mt-1">
                   {appliedDiscount > 0 && <span>{txt.discount}: {appliedDiscount}%</span>}
                   {appliedDiscount > 0 && certificateDiscount && <span> + </span>}
-                  {certificateDiscount && <span>Certyfikat: 18%</span>}
+                  {certificateDiscount && <span>Certyfikat: {prices.certificateDiscountPercent ?? 13}%</span>}
                   <span> ({txt.priceBeforeDiscount}: {formatPrice(subtotal)} PLN)</span>
                 </div>
               )}
@@ -2053,8 +2054,8 @@ const SelectedOptionsList = ({ prices, formData, getCategoryName, isOptionVisibl
   );
 };
 
-const DiscountSection = ({ appliedDiscount, certificateDiscount, discountAmount, isAdminUser, adminDiscountApproved, setAdminDiscountApproved, handleDiscountChange, handleApplyStandardDiscount, handleToggleCertificateDiscount, subtotal, total, maxManagerDiscount, lang, txt }) => {
-  const certSavings = certificateDiscount ? (subtotal - discountAmount) * 0.18 : 0;
+const DiscountSection = ({ appliedDiscount, certificateDiscount, discountAmount, isAdminUser, adminDiscountApproved, setAdminDiscountApproved, handleDiscountChange, handleApplyStandardDiscount, handleToggleCertificateDiscount, subtotal, total, maxManagerDiscount, certificateDiscountPercent = 13, lang, txt }) => {
+  const certSavings = certificateDiscount ? (subtotal - discountAmount) * (certificateDiscountPercent / 100) : 0;
   const totalSavings = discountAmount + certSavings;
   return (
   <div className="p-3 bg-green-50 rounded-lg border border-green-200 space-y-3">

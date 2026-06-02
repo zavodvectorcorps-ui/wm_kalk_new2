@@ -32,6 +32,9 @@ async def create_sauna_order(order: SaunaOrder):
     # Log certificate usage if applied
     if order_dict.get('certificateDiscount'):
         try:
+            # Read configured percent from sauna_prices, fallback to 13
+            prices_doc = await db.sauna_prices.find_one({"_id": "default"}, {"certificateDiscountPercent": 1}) or {}
+            cert_pct = int(prices_doc.get('certificateDiscountPercent', 13))
             cert_log = {
                 "orderId": order_dict.get('id', ''),
                 "clientName": order_dict.get('fullName', ''),
@@ -39,7 +42,8 @@ async def create_sauna_order(order: SaunaOrder):
                 "subtotal": order_dict.get('subtotal', 0),
                 "discountPercent": order_dict.get('discountPercent', 0),
                 "totalAfterDiscount": order_dict.get('total', 0),
-                "certificateSavings": round((order_dict.get('subtotal', 0) * (1 - order_dict.get('discountPercent', 0) / 100)) * 0.13),
+                "certificateSavings": round((order_dict.get('subtotal', 0) * (1 - order_dict.get('discountPercent', 0) / 100)) * (cert_pct / 100)),
+                "certificatePercent": cert_pct,
                 "createdBy": order_dict.get('createdBy', ''),
                 "createdAt": datetime.now(timezone.utc).isoformat()
             }
@@ -172,6 +176,8 @@ async def update_sauna_order(order_id: str, order: SaunaOrder):
     # Log certificate usage if newly applied
     if order_dict.get('certificateDiscount') and not existing.get('certificateDiscount'):
         try:
+            prices_doc = await db.sauna_prices.find_one({"_id": "default"}, {"certificateDiscountPercent": 1}) or {}
+            cert_pct = int(prices_doc.get('certificateDiscountPercent', 13))
             cert_log = {
                 "orderId": order_id,
                 "clientName": order_dict.get('fullName', ''),
@@ -179,7 +185,8 @@ async def update_sauna_order(order_id: str, order: SaunaOrder):
                 "subtotal": order_dict.get('subtotal', 0),
                 "discountPercent": order_dict.get('discountPercent', 0),
                 "totalAfterDiscount": order_dict.get('total', 0),
-                "certificateSavings": round((order_dict.get('subtotal', 0) * (1 - order_dict.get('discountPercent', 0) / 100)) * 0.13),
+                "certificateSavings": round((order_dict.get('subtotal', 0) * (1 - order_dict.get('discountPercent', 0) / 100)) * (cert_pct / 100)),
+                "certificatePercent": cert_pct,
                 "createdBy": order_dict.get('updatedBy', order_dict.get('createdBy', '')),
                 "createdAt": datetime.now(timezone.utc).isoformat()
             }

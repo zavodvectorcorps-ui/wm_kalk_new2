@@ -39,6 +39,7 @@ export const SaunaPricingPage = () => {
     moveModel,
     handleModelsDisplayTypeChange,
     handleUpdateModelsHint,
+    handleUpdatePricingSetting,
     // Categories
     handleAddCategory,
     handleSaveEditCategory,
@@ -331,6 +332,7 @@ export const SaunaPricingPage = () => {
             moveModel={moveModel}
             handleModelsDisplayTypeChange={handleModelsDisplayTypeChange}
             onUpdateModelsHint={handleUpdateModelsHint}
+            onUpdatePricingSetting={handleUpdatePricingSetting}
           />
         </TabsContent>
 

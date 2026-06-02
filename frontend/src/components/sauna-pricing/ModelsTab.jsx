@@ -18,6 +18,7 @@ export const ModelsTab = ({
   moveModel,
   handleModelsDisplayTypeChange,
   onUpdateModelsHint,
+  onUpdatePricingSetting,
 }) => {
   const { canEdit } = useAuth();
   const [isModelDialogOpen, setIsModelDialogOpen] = useState(false);
@@ -70,6 +71,26 @@ export const ModelsTab = ({
       <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-3">
         <CardTitle>{txt.models}</CardTitle>
         <div className="flex items-center gap-3">
+          {/* Global pricing setting: certificate discount % */}
+          {canEdit() && onUpdatePricingSetting && (
+            <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-3 py-1.5" data-testid="cert-discount-setting">
+              <Label htmlFor="certificateDiscountPercent" className="text-xs whitespace-nowrap">
+                Скидка сертификат:
+              </Label>
+              <Input
+                id="certificateDiscountPercent"
+                type="number"
+                min="0"
+                max="100"
+                step="1"
+                value={prices.certificateDiscountPercent ?? 13}
+                onChange={(e) => onUpdatePricingSetting('certificateDiscountPercent', parseInt(e.target.value) || 0)}
+                className="w-16 h-8"
+                data-testid="cert-discount-input"
+              />
+              <span className="text-xs text-muted-foreground">%</span>
+            </div>
+          )}
           {canEdit() && (
             <div className="flex items-center gap-2 bg-muted/50 rounded-lg p-1">
               <span className="text-sm text-muted-foreground px-2">{txt.displayType}:</span>

@@ -359,6 +359,14 @@ export const useSaunaPricing = () => {
     }));
   };
 
+  // Update global pricing setting (e.g. certificateDiscountPercent)
+  const handleUpdatePricingSetting = (field, value) => {
+    setPrices(prev => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
   // Update global models hint
   const handleUpdateModelsHint = (field, value) => {
     setPrices(prev => ({
@@ -730,6 +738,7 @@ export const useSaunaPricing = () => {
     handleDeleteModel,
     moveModel,
     handleModelsDisplayTypeChange,
+    handleUpdatePricingSetting,
     handleUpdateModelsHint,
     // Categories
     handleAddCategory,
