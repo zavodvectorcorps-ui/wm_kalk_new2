@@ -15,6 +15,44 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Sauna Orders"])
 
 
+async def _recompute_total_with_current_cert(order: dict, cert_pct: Optional[int] = None) -> dict:
+    """Recompute ``total`` on the fly using the CURRENT certificate discount %.
+
+    User chose option B: don't store the cert-discounted total — recompute at
+    read time so changing the admin setting immediately reflects across all
+    orders that have ``certificateDiscount=true``. We still keep ``subtotal``
+    and ``discountPercent`` and the cert flag as stored.
+
+    For orders without ``certificateDiscount`` the stored total is returned
+    untouched (no change).
+    """
+    if not order.get("certificateDiscount"):
+        return order
+    subtotal = order.get("subtotal") or 0
+    if not subtotal:
+        return order
+    if cert_pct is None:
+        prices = await db.sauna_prices.find_one({"_id": "default"}, {"certificateDiscountPercent": 1}) or {}
+        cert_pct = int(prices.get("certificateDiscountPercent", 13))
+    discount = order.get("discountPercent") or 0
+    new_total = round(subtotal * (1 - discount / 100) * (1 - cert_pct / 100))
+    order["total"] = new_total
+    order["certificatePercentApplied"] = cert_pct  # for transparency on FE
+    return order
+
+
+async def _recompute_totals_bulk(orders: list) -> list:
+    """Apply ``_recompute_total_with_current_cert`` to many orders with a single
+    settings read."""
+    if not orders:
+        return orders
+    prices = await db.sauna_prices.find_one({"_id": "default"}, {"certificateDiscountPercent": 1}) or {}
+    cert_pct = int(prices.get("certificateDiscountPercent", 13))
+    for o in orders:
+        await _recompute_total_with_current_cert(o, cert_pct=cert_pct)
+    return orders
+
+
 async def generate_sauna_pdf_bytes_import(request: SaunaPDFRequest) -> bytes:
     """Import the PDF generation function from sauna module."""
     from routes.sauna import generate_sauna_pdf_bytes
@@ -110,6 +148,7 @@ async def get_sauna_orders(username: str = None, role: str = None, for_logistics
         ]
     
     orders = await db.sauna_orders.find(query, {"_id": 0}).sort("createdAt", -1).to_list(5000)
+    await _recompute_totals_bulk(orders)
     return orders
 
 
@@ -119,6 +158,7 @@ async def get_sauna_order(order_id: str):
     order = await db.sauna_orders.find_one({"id": order_id}, {"_id": 0})
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
+    await _recompute_total_with_current_cert(order)
     return order
 
 
