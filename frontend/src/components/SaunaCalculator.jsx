@@ -2216,6 +2216,28 @@ const SelectedOptionsList = ({ prices, formData, getCategoryName, isOptionVisibl
           );
         }
       })}
+
+      {/* Free-form custom options added by manager in the calculator */}
+      {Array.isArray(formData.customOptions) && formData.customOptions.length > 0 && (
+        <div className="text-sm" data-testid="selected-custom-options">
+          <div className="text-muted-foreground font-medium">Произвольные позиции / Pozycje niestandardowe</div>
+          {formData.customOptions.map((it, idx) => {
+            const qty = parseInt(it.quantity) || 1;
+            const price = parseInt(it.price) || 0;
+            const sum = price * qty;
+            return (
+              <div key={it.id || idx} className="flex items-center justify-between gap-1" data-testid={`selected-custom-${idx}`}>
+                <span className="truncate flex-1 text-fuchsia-800 dark:text-fuchsia-300">
+                  {it.name || '—'}{qty > 1 ? ` ×${qty}` : ''}
+                </span>
+                <span className="whitespace-nowrap font-medium text-amber-700">
+                  {sum > 0 ? `+${formatPrice(sum)} PLN` : txt.gratis}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </>
   );
 };
