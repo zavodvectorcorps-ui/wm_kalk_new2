@@ -300,6 +300,43 @@ export const OrderPreviewModal = ({
             </>
           )}
 
+          {/* Custom (free-form) positions added in calculator */}
+          {Array.isArray(order.customOptions) && order.customOptions.length > 0 && (
+            <>
+              <Separator />
+              <div>
+                <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                  <FileText className={`h-5 w-5 text-${themeColor}-600`} />
+                  Произвольные позиции / Pozycje niestandardowe
+                </h3>
+                <div className="rounded-lg border border-violet-200 bg-violet-50 overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead className="bg-violet-100">
+                      <tr>
+                        <th className="text-left px-3 py-2 font-medium">Название / Nazwa</th>
+                        <th className="text-right px-3 py-2 font-medium w-20">Кол-во</th>
+                        <th className="text-right px-3 py-2 font-medium w-32">Цена</th>
+                        <th className="text-right px-3 py-2 font-medium w-32">Сумма</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {order.customOptions.map((it, i) => (
+                        <tr key={it.id || i} className="border-t border-violet-200" data-testid={`order-custom-row-${i}`}>
+                          <td className="px-3 py-2">{it.name || '—'}</td>
+                          <td className="px-3 py-2 text-right">{it.quantity || 1}</td>
+                          <td className="px-3 py-2 text-right">{(parseInt(it.price) || 0).toLocaleString()} {currency}</td>
+                          <td className="px-3 py-2 text-right font-medium">
+                            {((parseInt(it.price) || 0) * (parseInt(it.quantity) || 1)).toLocaleString()} {currency}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </>
+          )}
+
           {/* Notes */}
           {order.notes && (
             <>

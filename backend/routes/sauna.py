@@ -333,7 +333,38 @@ async def generate_sauna_pdf_bytes(request: SaunaPDFRequest) -> bytes:
                     elements.append(sub_table)
         
         elements.append(Spacer(1, 6*mm))
-    
+
+    # ── Custom (free-form) options added by manager in calculator ──────
+    custom_opts = getattr(request, 'customOptions', None) or []
+    if custom_opts:
+        elements.append(Paragraph("✏️ POZYCJE NIESTANDARDOWE", section_style))
+        custom_data = [["Nazwa", "Ilość", "Cena (PLN)", "Suma (PLN)"]]
+        for it in custom_opts:
+            name = str(it.get('name', '')).strip() or '—'
+            qty = int(it.get('quantity', 1) or 1)
+            price = int(it.get('price', 0) or 0)
+            custom_data.append([
+                name,
+                str(qty),
+                f"{price:,}".replace(",", " "),
+                f"{price * qty:,}".replace(",", " "),
+            ])
+        custom_table = Table(custom_data, colWidths=[85*mm, 25*mm, 35*mm, 35*mm])
+        custom_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#e9d5ff')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.HexColor('#581c87')),
+            ('FONTNAME', (0, 0), (-1, 0), 'DejaVuSans-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('FONTNAME', (0, 1), (-1, -1), 'DejaVuSans'),
+            ('ALIGN', (1, 0), (-1, -1), 'RIGHT'),
+            ('ALIGN', (0, 0), (0, -1), 'LEFT'),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#c084fc')),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ]))
+        elements.append(custom_table)
+        elements.append(Spacer(1, 6*mm))
+
     # Fallback to old selections format if no selectedOptions
     elif request.selections:
         elements.append(Paragraph("📦 WYBRANE OPCJE", section_style))

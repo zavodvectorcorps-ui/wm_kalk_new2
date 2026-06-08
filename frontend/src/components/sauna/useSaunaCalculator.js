@@ -206,7 +206,9 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
           selections: rebuiltSelections, 
           quantities: rebuiltQuantities,
           variantSelections: rebuiltVariantSelections,
-          subSelections: rebuiltSubSelections 
+          subSelections: rebuiltSubSelections,
+          openPrices: editingOrder.openPrices || {},
+          customOptions: editingOrder.customOptions || [],
         }));
       }
       
@@ -939,6 +941,9 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
         variantSelections: formData.variantSelections || {},
         subSelections: formData.subSelections || {}, // Legacy compatibility
         selectedOptions,
+        // Manager-entered prices + free-form custom options from calculator
+        openPrices: formData.openPrices || {},
+        customOptions: formData.customOptions || [],
         notes: formData.notes || '',
         optionsTotal: calculateOptionsTotal(),
         subtotal,

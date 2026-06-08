@@ -230,6 +230,10 @@ class SaunaOrder(BaseModel):
     optionsTotal: int = 0
     subtotal: float = 0.0
     total: float = 0.0
+    # Open-price option entries: {optionId: price}
+    openPrices: Dict[str, Any] = {}
+    # Free-form custom options entered by manager in calculator
+    customOptions: List[Dict[str, Any]] = []
     createdBy: str = ""
     createdAt: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     # Admin discount fields
@@ -324,6 +328,9 @@ class SaunaPDFRequest(BaseModel):
     # Admin gifts - list of option IDs that are gifts
     adminGifts: List[str] = []
     selectedOptions: List[Dict[str, Any]] = []
+    # Open-price option entries and free-form custom options (from calculator)
+    openPrices: Dict[str, Any] = {}
+    customOptions: List[Dict[str, Any]] = []
     # Room sizes
     relaxRoomSize: Optional[str] = None  # e.g., "2.5 x 3.0 m"
     steamRoomSize: Optional[str] = None  # e.g., "2.0 x 2.0 m"
