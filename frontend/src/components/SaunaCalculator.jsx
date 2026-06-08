@@ -287,7 +287,8 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPre
     handleApplyStandardDiscount, handleToggleCertificateDiscount, handleRadioChange, handleCheckboxChange,
     handleQuantityChange, handleVariantChange, handleSubOptionChange, toggleGift, removeOption,
     handleSaveAndGeneratePDF, handleClearForm,
-    handleCancelEdit, getCategoryName, isOptionVisible, getOptionBasePrice
+    handleCancelEdit, getCategoryName, isOptionVisible, getOptionBasePrice,
+    handleOpenPriceChange, addCustomOption, updateCustomOption, removeCustomOption
   } = useSaunaCalculator(editingOrder, onEditComplete, amocrmPrefill, onAmocrmPrefillUsed);
 
   // Auth context for admin check
@@ -593,6 +594,18 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPre
               </CardContent>
             </Card>
           )}
+
+          {/* Open-price options entries + Custom (free-form) options */}
+          <ExtraOptionsCard
+            prices={prices}
+            formData={formData}
+            handleOpenPriceChange={handleOpenPriceChange}
+            addCustomOption={addCustomOption}
+            updateCustomOption={updateCustomOption}
+            removeCustomOption={removeCustomOption}
+            isOptionVisible={isOptionVisible}
+            lang={lang}
+          />
 
           {/* Notes */}
           <Card className="shadow-md">
@@ -1949,6 +1962,159 @@ const SummaryCard = ({
   </Card>
   );
 };
+
+// ── Extra options card: open-price inputs + free-form custom options ─────
+const ExtraOptionsCard = ({
+  prices, formData, handleOpenPriceChange,
+  addCustomOption, updateCustomOption, removeCustomOption,
+  isOptionVisible, lang,
+}) => {
+  const t = lang === 'pl'
+    ? {
+        title: 'Dodatkowe pozycje',
+        openPriceTitle: 'Opcje z otwartą ceną',
+        customTitle: 'Opcje niestandardowe',
+        addBtn: '+ Dodaj pozycję',
+        name: 'Nazwa', price: 'Cena', qty: 'Ilość', remove: 'Usuń',
+        namePh: 'Nazwa pozycji', pricePh: 'Cena (PLN)',
+        emptyOpen: 'Brak wybranych opcji z otwartą ceną.',
+        helpOpen: 'Wpisz cenę dla każdej wybranej opcji.',
+      }
+    : {
+        title: 'Дополнительные позиции',
+        openPriceTitle: 'Опции с открытой ценой',
+        customTitle: 'Произвольные позиции',
+        addBtn: '+ Добавить позицию',
+        name: 'Название', price: 'Цена', qty: 'Кол-во', remove: 'Удалить',
+        namePh: 'Название позиции', pricePh: 'Цена (PLN)',
+        emptyOpen: 'Нет выбранных опций с открытой ценой.',
+        helpOpen: 'Введите цену для каждой выбранной опции.',
+      };
+
+  // Find all currently SELECTED open-price options across categories.
+  const selectedOpenPriceOptions = React.useMemo(() => {
+    const result = [];
+    (prices.categories || []).forEach(cat => {
+      const sel = formData.selections?.[cat.id];
+      if (!sel) return;
+      const ids = Array.isArray(sel) ? sel : [sel];
+      ids.forEach(id => {
+        const opt = cat.options?.find(o => o.id === id);
+        if (opt?.isOpenPrice && isOptionVisible(opt)) {
+          result.push({ option: opt, categoryName: cat.name });
+        }
+      });
+    });
+    return result;
+  }, [prices.categories, formData.selections, isOptionVisible]);
+
+  const customOptions = formData.customOptions || [];
+  if (selectedOpenPriceOptions.length === 0 && customOptions.length === 0 && !addCustomOption) return null;
+
+  return (
+    <Card className="shadow-md">
+      <CardHeader className="bg-gradient-to-r from-violet-50 to-fuchsia-50 dark:from-slate-900/70 dark:to-slate-900/40 border-b border-violet-200/40 dark:border-violet-700/20">
+        <CardTitle className="text-lg text-slate-800 dark:text-slate-100">{t.title}</CardTitle>
+      </CardHeader>
+      <CardContent className="pt-4 space-y-5">
+        {/* Open-price options */}
+        <div>
+          <Label className="text-sm font-semibold mb-2 block">{t.openPriceTitle}</Label>
+          {selectedOpenPriceOptions.length === 0 ? (
+            <p className="text-xs text-muted-foreground italic">{t.emptyOpen}</p>
+          ) : (
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground">{t.helpOpen}</p>
+              {selectedOpenPriceOptions.map(({ option, categoryName }) => (
+                <div key={option.id} className="flex items-center gap-2 bg-violet-50 dark:bg-violet-900/20 rounded-md p-2 border border-violet-200" data-testid={`open-price-${option.id}`}>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium truncate">{option.name}</div>
+                    <div className="text-[10px] text-muted-foreground">{categoryName}</div>
+                  </div>
+                  <InputOrange
+                    type="number"
+                    min="0"
+                    step="1"
+                    placeholder={t.pricePh}
+                    value={formData.openPrices?.[option.id] ?? ''}
+                    onChange={(e) => handleOpenPriceChange(option.id, e.target.value)}
+                    className="w-32 h-8"
+                    data-testid={`open-price-input-${option.id}`}
+                  />
+                  <span className="text-xs text-muted-foreground">PLN</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Custom options */}
+        <div className="border-t pt-4">
+          <div className="flex items-center justify-between mb-2">
+            <Label className="text-sm font-semibold">{t.customTitle}</Label>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => addCustomOption(t.namePh, 0, 1)}
+              data-testid="add-custom-option-btn"
+            >
+              {t.addBtn}
+            </Button>
+          </div>
+          {customOptions.length > 0 && (
+            <div className="space-y-2">
+              {customOptions.map((it, idx) => (
+                <div key={it.id} className="flex items-center gap-2 bg-fuchsia-50 dark:bg-fuchsia-900/20 rounded-md p-2 border border-fuchsia-200" data-testid={`custom-option-${idx}`}>
+                  <InputOrange
+                    type="text"
+                    placeholder={t.namePh}
+                    value={it.name}
+                    onChange={(e) => updateCustomOption(it.id, { name: e.target.value })}
+                    className="flex-1 h-8 text-sm"
+                    data-testid={`custom-option-name-${idx}`}
+                  />
+                  <InputOrange
+                    type="number"
+                    min="0"
+                    step="1"
+                    placeholder={t.pricePh}
+                    value={it.price}
+                    onChange={(e) => updateCustomOption(it.id, { price: parseInt(e.target.value) || 0 })}
+                    className="w-28 h-8"
+                    data-testid={`custom-option-price-${idx}`}
+                  />
+                  <InputOrange
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={it.quantity || 1}
+                    onChange={(e) => updateCustomOption(it.id, { quantity: parseInt(e.target.value) || 1 })}
+                    className="w-16 h-8"
+                    title={t.qty}
+                    data-testid={`custom-option-qty-${idx}`}
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 w-8 p-0 text-red-600 hover:bg-red-50"
+                    onClick={() => removeCustomOption(it.id)}
+                    title={t.remove}
+                    data-testid={`custom-option-remove-${idx}`}
+                  >
+                    ×
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
 
 const SelectedOptionsList = ({ prices, formData, getCategoryName, isOptionVisible, getOptionBasePrice, adminGifts = [], toggleGift, removeOption, canGiveGifts, txt }) => {
   // Helper to get variant info for an option

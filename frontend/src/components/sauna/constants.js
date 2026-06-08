@@ -200,5 +200,7 @@ export const getInitialFormData = () => ({
   quantities: {},
   variantSelections: {}, // For option variants: { "optionId": "variantId" } - only one variant per option
   subSelections: {}, // Legacy - kept for backward compatibility
+  openPrices: {}, // Prices entered by manager for open-price options: { "optionId": number }
+  customOptions: [], // Free-form options added by manager: [{ id, name, price, quantity }]
   notes: '',
 });

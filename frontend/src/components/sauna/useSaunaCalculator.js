@@ -339,7 +339,12 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
   // Get option base price considering model-specific pricing
   const getOptionBasePrice = useCallback((option) => {
     if (!option) return 0;
-    
+
+    // Open-price option: read whatever the manager typed in the calculator.
+    if (option.isOpenPrice) {
+      return parseInt(formData.openPrices?.[option.id]) || 0;
+    }
+
     // Check if option has model-specific pricing
     const priceByModel = option.priceByModel || {};
     const selectedModelId = formData.selectedModel;
@@ -351,7 +356,7 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
     
     // Otherwise use default option price
     return option.price || 0;
-  }, [formData.selectedModel]);
+  }, [formData.selectedModel, formData.openPrices]);
 
   // Calculate options total (only visible options)
   const calculateOptionsTotal = useCallback(() => {
@@ -488,6 +493,13 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
     return option.price || 0;
   }, [prices.categories, formData.selections, formData.variantSelections, adminGifts]);
 
+  // Sum of custom (free-form) options added by the manager directly in the
+  // calculator. Each entry: {id, name, price, quantity?}.
+  const calculateCustomOptionsTotal = useCallback(() => {
+    const list = formData.customOptions || [];
+    return list.reduce((s, it) => s + (parseInt(it.price) || 0) * (parseInt(it.quantity) || 1), 0);
+  }, [formData.customOptions]);
+
   // Calculate subtotal (without delivery)
   const calculateSubtotal = useCallback(() => {
     const model = getSelectedModel();
@@ -495,8 +507,8 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
     
     // Use variant price if available, otherwise use base price
     const modelPrice = getModelPrice();
-    return modelPrice + calculateOptionsTotal() + calculateFoundationPrice();
-  }, [getSelectedModel, getModelPrice, calculateOptionsTotal, calculateFoundationPrice]);
+    return modelPrice + calculateOptionsTotal() + calculateFoundationPrice() + calculateCustomOptionsTotal();
+  }, [getSelectedModel, getModelPrice, calculateOptionsTotal, calculateFoundationPrice, calculateCustomOptionsTotal]);
 
   // Calculate total (subtotal with discount, WITHOUT delivery)
   const calculateTotal = useCallback(() => {
@@ -1394,6 +1406,46 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
   const total = calculateTotal();
   const roomSizes = getRoomSizes();
 
+  // ── Open-price option handlers ─────────────────────────────────
+  const handleOpenPriceChange = (optionId, value) => {
+    const num = parseInt(value) || 0;
+    setFormData(prev => ({
+      ...prev,
+      openPrices: { ...(prev.openPrices || {}), [optionId]: num },
+    }));
+  };
+
+  // ── Custom (free-form) options handlers ────────────────────────
+  const addCustomOption = (name, price, quantity = 1) => {
+    if (!name || !name.trim()) return;
+    const item = {
+      id: `custom_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      name: name.trim(),
+      price: parseInt(price) || 0,
+      quantity: parseInt(quantity) || 1,
+    };
+    setFormData(prev => ({
+      ...prev,
+      customOptions: [...(prev.customOptions || []), item],
+    }));
+  };
+
+  const updateCustomOption = (id, patch) => {
+    setFormData(prev => ({
+      ...prev,
+      customOptions: (prev.customOptions || []).map(it =>
+        it.id === id ? { ...it, ...patch } : it
+      ),
+    }));
+  };
+
+  const removeCustomOption = (id) => {
+    setFormData(prev => ({
+      ...prev,
+      customOptions: (prev.customOptions || []).filter(it => it.id !== id),
+    }));
+  };
+
   return {
     // State
     loading,
@@ -1474,6 +1526,10 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
     isCategoryVisible,
     isTerraceSelected,
     getOptionBasePrice,
+    handleOpenPriceChange,
+    addCustomOption,
+    updateCustomOption,
+    removeCustomOption,
   };
 };
 

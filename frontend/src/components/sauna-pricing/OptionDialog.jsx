@@ -271,6 +271,16 @@ export const AddOptionDialog = ({ open, onOpenChange, newOption, setNewOption, c
               {txt.defaultSelected || 'Выбрано по умолчанию'}
             </Label>
           </div>
+          <div className="flex items-center space-x-2" data-testid="add-option-open-price">
+            <Checkbox
+              id="isOpenPrice"
+              checked={newOption.isOpenPrice || false}
+              onCheckedChange={(checked) => setNewOption(prev => ({ ...prev, isOpenPrice: checked }))}
+            />
+            <Label htmlFor="isOpenPrice" className="cursor-pointer">
+              Открытая цена (менеджер вводит при продаже)
+            </Label>
+          </div>
           
           {/* Tech Spec Mapping Section */}
           <div className="border-t pt-4 mt-4">
@@ -655,6 +665,14 @@ export const EditOptionDialog = ({ open, onOpenChange, editingOption, setEditing
                 onCheckedChange={(checked) => setEditingOption(prev => ({ ...prev, isDefaultSelected: checked }))}
               />
               <Label htmlFor="edit-isDefaultSelected">{txt.defaultSelected || 'Выбрано по умолчанию'}</Label>
+            </div>
+            <div className="flex items-center space-x-2" data-testid="edit-option-open-price">
+              <Checkbox
+                id="edit-isOpenPrice"
+                checked={editingOption.isOpenPrice || false}
+                onCheckedChange={(checked) => setEditingOption(prev => ({ ...prev, isOpenPrice: checked }))}
+              />
+              <Label htmlFor="edit-isOpenPrice">Открытая цена (менеджер вводит при продаже)</Label>
             </div>
             <div className="flex items-center space-x-2">
               <Checkbox
