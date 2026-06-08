@@ -864,6 +864,44 @@ const SaunaProductionPage = ({ onBack }) => {
                 </div>
               </div>
 
+              {/* Custom (free-form) positions from calculator — surfaces
+                  off-catalog work for the production team so they know what
+                  extra services / materials were promised at the sale. */}
+              {(() => {
+                const custom = selectedOrder?.calculatorData?.customOptions
+                  || selectedOrder?.customOptions
+                  || [];
+                if (!Array.isArray(custom) || custom.length === 0) return null;
+                return (
+                  <div className="border border-violet-200 bg-violet-50 dark:bg-violet-900/20 rounded-lg p-3" data-testid="prod-custom-options">
+                    <Label className="text-sm font-semibold text-violet-900 dark:text-violet-200 mb-2 block">
+                      ✏️ Произвольные позиции (вне каталога)
+                    </Label>
+                    <table className="w-full text-sm">
+                      <thead className="text-xs text-violet-700">
+                        <tr>
+                          <th className="text-left font-medium">Название</th>
+                          <th className="text-right font-medium w-16">Кол-во</th>
+                          <th className="text-right font-medium w-24">Цена</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {custom.map((it, i) => (
+                          <tr key={it.id || i} className="border-t border-violet-200/60" data-testid={`prod-custom-row-${i}`}>
+                            <td className="py-1">{it.name || '—'}</td>
+                            <td className="py-1 text-right">{it.quantity || 1}</td>
+                            <td className="py-1 text-right">{(parseInt(it.price) || 0).toLocaleString()} PLN</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    <p className="text-[10px] text-violet-700/70 mt-2 italic">
+                      Эти позиции не в каталоге BOM — учтите при планировании цеха
+                    </p>
+                  </div>
+                );
+              })()}
+
               {/* Production Notes */}
               <div>
                 <Label className="text-xs text-muted-foreground">Заметки производства</Label>
