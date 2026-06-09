@@ -335,9 +335,9 @@ async def generate_sauna_pdf_bytes(request: SaunaPDFRequest) -> bytes:
         elements.append(Spacer(1, 6*mm))
 
     # ── Custom (free-form) options added by manager in calculator ──────
-    custom_opts = getattr(request, 'customOptions', None) or []
+    custom_opts = list(request.customOptions or [])
     if custom_opts:
-        elements.append(Paragraph("✏️ POZYCJE NIESTANDARDOWE", section_style))
+        elements.append(Paragraph("POZYCJE NIESTANDARDOWE", section_style))
         custom_data = [["Nazwa", "Ilość", "Cena (PLN)", "Suma (PLN)"]]
         for it in custom_opts:
             name = str(it.get('name', '')).strip() or '—'
@@ -1493,6 +1493,27 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                     
                     options_items.append({'name': name, 'price': price_str, 'is_gift': is_gift, 'original_price': total_price})
     
+
+    # ── Append free-form custom options entered by manager in calculator ──
+    # These are NOT in the price catalog (no category, no tech card). The
+    # manager typed name + price + qty directly. They land in the WYBRANE
+    # OPCJE table so the client and the production team can see them.
+    for _it in (getattr(request, 'customOptions', None) or []):
+        _name_raw = str(_it.get('name', '')).strip()
+        if not _name_raw:
+            continue
+        _qty = int(_it.get('quantity', 1) or 1)
+        _price = int(_it.get('price', 0) or 0)
+        _total_price = _price * _qty
+        _display_name = f"{_name_raw} ×{_qty}" if _qty > 1 else _name_raw
+        _price_str = f"{_total_price:,} PLN".replace(',', ' ') if _total_price > 0 else '0 PLN'
+        options_items.append({
+            'name': _display_name,
+            'price': _price_str,
+            'is_gift': False,
+            'original_price': _total_price,
+        })
+
     if options_items:
         # Start WYBRANE OPCJE on a new page
         elements.append(PageBreak())
@@ -1573,6 +1594,36 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
         options_table.setStyle(TableStyle(table_style))
         elements.append(options_table)
         elements.append(Spacer(1, 10))
+
+        # ── "Что входит в наши услуги" — admin-configurable free-form text ──
+        included_text = (request.pdfIncludedServicesText
+                           if getattr(request, 'pdfIncludedServicesText', None)
+                           else None)
+        if not included_text:
+            # Fallback to value stored in sauna_prices.default
+            try:
+                prices_doc = await db.sauna_prices.find_one(
+                    {"_id": "default"}, {"pdfIncludedServicesText": 1}
+                ) or {}
+                included_text = str(prices_doc.get('pdfIncludedServicesText') or '').strip()
+            except Exception:
+                included_text = ''
+        if included_text:
+            # Preserve manual line breaks from the admin textarea.
+            safe_html = included_text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;').replace('\n', '<br/>')
+            included_style = ParagraphStyle(
+                'IncludedServices',
+                parent=styles['Normal'],
+                fontName='DejaVuSans',
+                fontSize=9,
+                textColor=colors.HexColor('#3F2A14'),
+                leading=12,
+                leftIndent=4, rightIndent=4,
+                spaceBefore=4, spaceAfter=4,
+            )
+            elements.append(Spacer(1, 6))
+            elements.append(Paragraph(safe_html, included_style))
+            elements.append(Spacer(1, 8))
     
     # ========== TOTAL SECTION ==========
     total_price_int = int(round(total_after_discount))

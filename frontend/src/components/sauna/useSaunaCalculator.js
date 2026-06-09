@@ -1223,6 +1223,8 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
         selectedLayoutSize: selectedLayoutSize,
         // Page 2 settings
         ...pdfPage2Settings,
+        // Admin-configurable "What's included in our services" text shown after WYBRANE OPCJE.
+        pdfIncludedServicesText: prices.pdfIncludedServicesText || '',
       };
       const response = await axios.post(`${API_URL}/api/sauna/generate-pdf`, pdfData, { responseType: 'blob' });
 

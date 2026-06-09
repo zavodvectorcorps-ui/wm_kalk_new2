@@ -3,9 +3,10 @@ import { useAuth } from '../../context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
-import { Dialog, DialogTrigger } from '../ui/dialog';
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
+import { Textarea } from '../ui/textarea';
 import { Plus, ArrowUp, ArrowDown, Edit2, Trash2, LayoutGrid, List, Info, Upload, X, Image as ImageIcon, Video, Copy } from 'lucide-react';
 import { AddModelDialog, EditModelDialog } from './ModelDialog';
 
@@ -90,6 +91,34 @@ export const ModelsTab = ({
               />
               <span className="text-xs text-muted-foreground">%</span>
             </div>
+          )}
+          {canEdit() && onUpdatePricingSetting && (
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button type="button" variant="outline" size="sm" className="h-8" data-testid="pdf-included-text-btn">
+                  📝 Текст «Что входит в услуги» (PDF)
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Текст «Что входит в наши услуги»</DialogTitle>
+                  <DialogDescription>
+                    Этот текст появится в PDF после блока выбранных опций. Поддерживаются переносы строк (Enter).
+                  </DialogDescription>
+                </DialogHeader>
+                <Textarea
+                  value={prices.pdfIncludedServicesText || ''}
+                  onChange={(e) => onUpdatePricingSetting('pdfIncludedServicesText', e.target.value)}
+                  placeholder="✓ Доставка по Польше&#10;✓ Установка фундамента&#10;✓ Гарантия 24 месяца&#10;✓ Подключение к электросети"
+                  rows={10}
+                  className="font-mono text-sm"
+                  data-testid="pdf-included-text-textarea"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Не забудьте нажать «Сохранить» в правом верхнем углу страницы — иначе текст не применится.
+                </p>
+              </DialogContent>
+            </Dialog>
           )}
           {canEdit() && (
             <div className="flex items-center gap-2 bg-muted/50 rounded-lg p-1">

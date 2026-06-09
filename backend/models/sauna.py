@@ -192,6 +192,8 @@ class SaunaPriceData(BaseModel):
     modelsHintVideoUrl: Optional[str] = None
     maxManagerDiscount: int = 10  # Maximum discount % for managers (non-admin users)
     certificateDiscountPercent: int = 13  # Certificate discount % (configurable from admin)
+    # Free-form text shown in PDF after WYBRANE OPCJE block (e.g. "Что входит в наши услуги").
+    pdfIncludedServicesText: str = ""
     # Variant comparison table
     variantComparisonTitle: Optional[str] = "Różnice modeli"  # Title for comparison table
     variantComparisonRows: Optional[List[SaunaVariantComparisonRow]] = []  # Comparison rows
@@ -335,6 +337,9 @@ class SaunaPDFRequest(BaseModel):
     relaxRoomSize: Optional[str] = None  # e.g., "2.5 x 3.0 m"
     steamRoomSize: Optional[str] = None  # e.g., "2.0 x 2.0 m"
     hasTerrace: Optional[bool] = False  # Whether terrace option is selected
+    # Free-form text shown in PDF after WYBRANE OPCJE block.
+    # Falls back to value stored in sauna_prices.default if not passed.
+    pdfIncludedServicesText: Optional[str] = ""
     # Capacity - number of people
     capacity: Optional[str] = None  # e.g., "4-6"
     # Model variants data for Page 2
