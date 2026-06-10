@@ -3,7 +3,7 @@
 ## Базовый URL
 ```
 Production: https://wm-kalkulator.pl
-Preview: https://margin-simulator-1.preview.emergentagent.com
+Preview: https://sauna-prod-suite.preview.emergentagent.com
 ```
 
 ---

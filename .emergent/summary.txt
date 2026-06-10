@@ -1,86 +1,89 @@
-<analysis>**original_problem_statement:** Build a Modular Sauna Configurator with comprehensive CRM, production management, logistics, and amoCRM integration. Add a separate multi-tenant Dealer Portal. PRODUCT REQUIREMENTS include Excel Export/Import for base sauna prices and components, an internal team Planner (Task Manager), Tech Cards (BOM), Inventory tracking, and a VAT-aware Price Simulator.
+<analysis>**original_problem_statement:** Build a Modular Sauna Configurator with comprehensive CRM, production management, logistics, and amoCRM integration. Add a separate multi-tenant Dealer Portal. PRODUCT REQUIREMENTS include Excel Export/Import for base sauna prices and components, an internal team Planner (Task Manager), Tech Cards (BOM), Inventory tracking, and a VAT-aware Price Simulator. 
 
-**User's preferred language**: Russian (You MUST automatically detect the user's primary language from their messages inside the <trajectory> tag and INSTRUCT next agent to respond in **Russian** only).
+**User's preferred language**: Russian (You MUST automatically detect the user's primary language from their messages inside the <trajectory> tag and INSTRUCT next agent to respond in **Russian** only)
 
 **what currently exists?** 
-A mature React/FastAPI/MongoDB application with a robust Price Matrix and Dealer Matrix, PDF generation, amoCRM synced pipelines, Planner, and Call Analytics. Recently expanded with per-dealer EUR currency conversion, Balia calculator quantity/gratis options, multi-assignee tasks in Planner, and an overhauled Manager Events Analytics module with daily AI Telegram reports.
+A mature React/FastAPI/MongoDB application with a robust Price/Dealer Matrix, PDF generation, Planner, Call/Manager Analytics (synced with amoCRM and Binotel), Sauna Orders tracking, and automated JIT Inventory. In this session, significant enhancements were made to the Manager Analytics dashboard (unified filters, hybrid attribution) and the Sauna Configurator (configurable certificate discounts, open-price options, and custom free-form options natively integrated into PDFs and production views).
 
 **Last working item**:
-    - Last item agent was working: Debugging an issue where the Manager Analytics UI shows 0 calls for a manager, even though calls exist in the system and are shown in the calls list. The agent was inspecting  right before the session ended.
-    - Status: IN PROGRESS
-    - Agent Testing Done: N
-    - Which testing method agent to use? backend testing agent / manual testing by python -c
+    - Last item agent was working: Updating the hardcoded GWARANCJA: 12 miesiące text to 24 miesiące in the PDF generator and preparing to refactor other hardcoded PDF strings (delivery term, advance payment) into the configurable  editor in the Admin panel.
+    - Status: USER VERIFICATION PENDING
+    - Agent Testing Done: Y
+    - Which testing method agent to use? manual testing by python lint
     - User Testing Done: N
 
 **All Pending/In progress Issue list**:
-  Issue 1: (P0) Manager Analytics shows 0 calls despite calls existing in the list
-     - Attempted fixes: The agent previously patched  in  to count calls using the  collection instead of lead notes. 
-     - Next debug checklist: Check if there is a type mismatch for  (e.g., string vs integer) between  and . Check  inside  around line 286. You may need to trigger a fresh sync () after fixing to see the numbers update.
-     - Why fix this issue and what will be achieved with the fix?: The manager performance dashboard is incomplete and inaccurate without call data.
-     - Status: IN PROGRESS
-     - Is recurring issue? N
-     - Should Test frontend/backend/both after fix?: backend
+  *(No broken issues pending. All reported bugs in the session were resolved and deployed).*
 
 **In progress Task List**:
-  *(None. Last task morphed into the bug listed above)*
+  Task 1: Refactor hardcoded PDF texts into Admin configuration
+     - Where to resume:  and frontend .
+     - What will be achieved with this?: Moving hardcoded strings like TERMIN REALIZACJI: 1–3 tygodni, ZALICZKA: 50% przed produkcją, and Oferta ważna 30 dni to the DB via  so the user can edit them without code changes.
+     - Status: NOT STARTED
+     - Should Test frontend/backend/both after fix?: Both
+     - Blocked on something: User approval.
 
 **Upcoming and Future Tasks**
-    - P1: SLA real-time alerts (notify if lead is untouched for X hours).
-    - P2: Automatic inventory deduction based on production stages.
+    - P1: Minus-stock alerts: Create Telegram alerts or UI warnings when  drops below zero.
+    - P2: Add custom options as service line items in Sauna Production to calculate margin accurately.
+    - P2: Add a filter/KPI for Orders with missing cost price on the Orders Page.
     - P2: Export to Excel/CSV for calls and leads tables.
     - P3: Replace deprecated Google Maps Autocomplete component.
     - P3: Bulk edit mode in Price Matrix (select rows -> add +10% / round up).
-    - P3: Add Average check of confirmed and Conversion % to Sales page KPI cards.
-    - P3: Income forecast in Dealer Matrix based on expected monthly sales volume.
     - P3: Comfino QR code leading to the installment calculator in PDF.
 
 **Completed work in this session**
-- Verified and fixed B2B netto column in Price Matrix (DONE)
-- Added EUR currency override per-dealer in Price Matrix, Dealer Matrix, and Dealer Portal (DONE)
-- Added multi-assignee support in Planner tasks (DONE)
-- Added Default and Gratis (В подарок) checkboxes for Balia options in admin and calculator (DONE)
-- Added quantity (+/-) steppers for Balia calculator options (DONE)
-- Created a dedicated Dealer Detail Dialog (opens by clicking dealer name in Admin) (DONE)
-- Overhauled Manager Analytics to track follow-up rates, single-touch leads, and manual vs. auto actions (DONE)
-- Built a daily Telegram report for manager analytics with an AI-generated advice summary (DONE)
-- Fixed Call Analytics transcription hanging / HTML instead of audio issues by adding a fallback download chain (Cloudinary -> Binotel -> amoCRM) and an explicit unblock button (DONE)
+- Fixed 401 error on Пересчитать маржи by using correct  key. (DONE)
+- Fixed Binotel API integration to extract top-level . (DONE)
+- Fixed Call Analytics stuck progress bar (errors were excluded from numerator). (DONE)
+- Resolved Zombie calls bug (calls with 0 duration stuck in queue). (DONE)
+- **CRITICAL FIX**: Prevented daily auto-sync from deleting historical leads not returned in the daily incremental amoCRM fetch. (DONE)
+- Manager Analytics: Unified date filters across all tabs. (DONE)
+- Manager Analytics: Added Orphan leads card for leads without . (DONE)
+- Manager Analytics: Implemented Hybrid lead attribution mode (Responsible vs Activity). (DONE)
+- Sauna Configurator: Made certificate discount % configurable in Admin panel. (DONE)
+- Sauna Configurator: Modified total calculation to compute on-the-fly upon reading to reflect % changes retroactively. (DONE)
+- Sauna Configurator: Added Open Price options and Custom free-form positions to calculator, PDF, and Production UI. (DONE)
+- Sauna Configurator: Added configurable  printed on PDFs. (DONE)
 
 **Earlier issues found/mentioned but not fixed**
    Issue 1: Monolithic architecture.
-   - Debug checklist:  (2500+ lines),  (1400+), .
-   - Why to solve this issue and what will be achieved with this?: Maintainability is degrading. 
+   - Debug checklist:  (2600+ lines),  (1400+ lines),  (1500+ lines).
+   - Why to solve this issue and what will be achieved with this?: Maintainability is degrading. File edits are prone to chunking errors.
    - Should Test frontend/backend/both after fix: Both
    - Is recurring issue? N
 
 **Known issue recurrence from previous fork**
   - Issue recurrence in previous fork: Asymmetrical Deployments (Prod vs Preview)
-  - Recurrence count: 4 (User continuously reports bugs from their PROD environment  while the agent is fixing them in PREVIEW).
-  - Status: IN PROGRESS 
-  - Note: **Always remind user to deploy changes to prod** if they say a bug is still happening.
+  - Recurrence count: 10+
+  - Status: IN PROGRESS
+  - Note: **CRITICAL.** The user actively tests and evaluates on the PRODUCTION environment () but you ONLY have access to the PREVIEW environment. Always explicitly instruct the user to Deploy to Production to see the fixes you make.
 
 **Code Architecture**
 React frontend + FastAPI backend + MongoDB.
 
 **Key Technical Concepts**
-React, Tailwind, Shadcn UI, FastAPI, Async Motor (MongoDB), ReportLab (for PDFs), Whisper (AI Audio Transcription), amoCRM API, Binotel API.
+React, Tailwind, Shadcn UI, FastAPI, Async Motor (MongoDB), ReportLab (PDFs), Whisper, amoCRM API, Binotel API, Telegram Bot API.
 
 **key DB schema**
   - : 
   - : 
-  - : 
-  - : 
+  - : Core CRM tracking DB (synced from amoCRM).
+  - : Contains  for hybrid manager attribution.
 
 **changes in tech stack**
-- None in this session.
+- None.
 
 **All files of reference** 
-  -  (CURRENT FOCUS)
-  - 
-  - 
-  -  (Added Telegram scheduler)
+  -  &  (Analytics fixes)
+  -  &  (Analytics UI)
+  -  &  (Calculator core)
+  -  (PDF Generation)
+  -  (On-the-fly total recomputation)
+  -  (DB schema expansions)
 
 **Areas that need refactoring**
- is getting complex with nested data fetching.  and  remain huge.
+ and  are massive and contain highly coupled legacy code (e.g.  vs ). 
 
 **key api endpoints**
   - 
@@ -89,50 +92,51 @@ React, Tailwind, Shadcn UI, FastAPI, Async Motor (MongoDB), ReportLab (for PDFs)
 
 **Critical Info for New Agent**
 - **LANGUAGE:** Reply strictly in Russian.
-- **PROD vs PREVIEW:** The user constantly tests on PROD () while you develop in PREVIEW. Always remind them to press Deploy to see the latest fixes, otherwise, they will think your code didn't work.
-- **SYNC REQUIREMENT:** Analytics endpoints compute stats asynchronously and store them. If you change calculation logic in  or , you **must** trigger a sync () to see the results.
+- **DEPLOYMENT:** User tests on PRODUCTION. You must remind them to deploy.
+- **PDF GENERATION TRAP:** There are *two* PDF functions in . Do NOT edit  (legacy). The active endpoint uses .
+- **ANALYTICS ATTRIBUTION:** Manager events can now be grouped by  OR  (). Ensure  and  logic is respected if you touch analytics endpoints.
 
 **documents and test reports created in this job**
-  -  (Updated)
+  -  (Continuously updated throughout session)
 
 **Last 10 User Messages and any pending HUMAN messages** 
-1. *User*: для некоторых дилеров мне нужна цена в евро, давай добавим конвертер -> *Agent*: Implemented EUR settings for dealers.
-2. *User*: в планнер добавь возможность ставить несколько ответственных на задачу -> *Agent*: Implemented  array.
-3. *User*: В калькуляторе купелей добавь возможность выбирать опцию выбранную по умолчанию, а так же что бы можно было сделать опцию Gratis. -> *Agent*: Added isDefault and isGratis logic.
-4. *User*: В калькуляторе купелей нужна возможность выбирать кол-во опций... В разделе дилеров сделать страницу с его данными. -> *Agent*: Added steppers and Dealer detail dialog.
-5. *User*: мы добавили аналитику менеджеров, посмотри и посоветуй, как лучше анализировать... мне кажется что они просто отправляют письмо и больше ничего не делают -> *Agent*: Refactored analytics to track manual vs auto and follow-up rates.
-6. *User*: сделай все предложения, мне нужна хорошая аналитика менеджеров. Можно так же связать с разделом контроля звонков -> *Agent*: Linked Call Analytics to Manager Analytics.
-7. *User*: настрой что бы в телеграм ежедневно приходил отчет вместе с советом от ии -> *Agent*: Built automated scheduled report.
-8. *User*: [Screenshot] выдало ошибки и висит анализ (Call processing stuck). -> *Agent*: Added fallback chain for audio URLs and unblock button.
-9. *User*: Получена HTML-страница вместо аудио -> *Agent*: Deployed Cloudinary -> Binotel -> amoCRM fallback logic.
-10. *(Pending)* *User*: [Screenshot] смотри, в списке есть звонок, а в окне пишет 0 -> *Agent*: Started looking into the manager events sync logic to find why calls aren't mapping properly.
+1. *User*: (Requests changing certificate discount from 18% to 13%). -> *Agent*: Made it configurable in Admin panel.
+2. *User*: Totals are still showing 18%. -> *Agent*: Changed backend to calculate total dynamically on read.
+3. *User*: Add open price options and custom free-form options. -> *Agent*: Added  toggle and Custom Options UI.
+4. *User*: Make custom options visible in Sauna Production. -> *Agent*: Added to Production modal.
+5. *User*: Custom options dont show up in PDF". -> *Agent*: Agent accidentally edited legacy PDF function.
+6. *User*: "Still doesnt show in PDF. -> *Agent*: Found the correct  function and fixed it.
+7. *User*: Add a text block for what is included in the PDF. -> *Agent*: Added  admin field and injected it into PDF.
+8. *User*: Change warranty from 12 to 24 months in PDF. -> *Agent*: Hardcoded replacement across 5 files.
+9. *Agent*: Proposed refactoring all hardcoded PDF texts (warranty, delivery, advance payment) into the  editor.
+10. *(Pending)* *User*: сделай улучшение -> *Agent*: Agent accepted the task but job ended before implementation. Next step is to implement this refactor.
 
 **Project Health Check:**
-Broken: Call mapping inside  (displays 0 calls for a manager).
+Healthy.
 
 **3rd Party Integrations**
   - amoCRM — requires User API credentials.
   - Binotel API — requires User API credentials.
-  - OpenAI GPT-5.2 / GPT-4o-mini / Whisper (via  directly) — uses Emergent LLM Key.
   - Telegram — uses User Bot Token.
-  - Cloudinary — requires User API credentials.
+  - OpenAI GPT-5.2 / Whisper — uses Emergent LLM Key.
 
 **Testing status**
-  - Testing agent used after significant changes: NO.
+  - Testing agent used after significant changes: NO (Agent primarily relied on bash  tests, linting, and screenshot tool).
   - Troubleshoot agent used after agent stuck in loop: NO.
   - Test files created: None.
-  - Known regressions: Call mapping in analytics failed after switching source of truth.
+  - Known regressions: None.
 
 **Credentials to test flow:**
   - Admin:  / 
-  - Test Dealer:  /  (access via  path)
+  - Test Dealer:  / 
 
 **What agent forgot to execute**
-The agent forgot to verify the data types (e.g. integer vs string ) when linking  to the  during the analytics sync, which resulted in the UI showing 0 calls for managers. The agent also didn't use the testing agent after overhauling the manager analytics.
+The agent proposed moving the hardcoded PDF texts (like Delivery Term and Advance Payment) to the  settings. The user approved (сделай улучшение), but the session ended right after the agent started examining . 
 
 **Debugging checklist for current issue**
-    Issue: Manager Analytics UI shows 0 calls for a manager despite calls existing.
+    Task: Refactor PDF text to Admin Config.
     Backend files to check: 
-    -  (Check  where it queries . Specifically look at lines ~286. Make sure  type matches what is in the DB.  user IDs are sometimes integers, while  IDs or frontend IDs might be strings).
-    -  (Check how  is saved).
-    </analysis>
+    -  (Add fields to  and )
+    -  (Pull text from config instead of hardcoded strings in )
+    Frontend files to check:
+    -  (Add input fields for new text parameters)</analysis>

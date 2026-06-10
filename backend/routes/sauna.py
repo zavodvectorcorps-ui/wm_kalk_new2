@@ -1643,10 +1643,19 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                            ParagraphStyle('TotalLeft', fontName='DejaVuSans-Bold', fontSize=11, 
                                          textColor=colors.white, leading=14))
     
-    # Build right content as a single Paragraph
-    right_html = '''TERMIN REALIZACJI: 1–3 tygodni + montaż 1–2 dni<br/>
-    ZALICZKA: 50% przed produkcją, 50% przed wysyłką<br/>
-    GWARANCJA: 24 miesiące od daty montażu'''
+    # Read configurable template texts (with fallbacks) so admin can edit
+    # all PDF terms (delivery / payment / warranty) without code changes.
+    try:
+        template_doc = await db.pdf_templates.find_one({"isDefault": True}) or {}
+        tt = (template_doc.get('texts') or {})
+    except Exception:
+        tt = {}
+    delivery_line = tt.get('deliveryText') or 'TERMIN REALIZACJI: 1–3 tygodni + montaż 1–2 dni'
+    payment_line = tt.get('paymentText') or 'ZALICZKA: 50% przed produkcją, 50% przed wysyłką'
+    warranty_line = tt.get('warrantyText') or 'GWARANCJA: 24 miesiące od daty montażu'
+    right_html = f'''{delivery_line}<br/>
+    {payment_line}<br/>
+    {warranty_line}'''
     
     total_right = Paragraph(right_html, 
                             ParagraphStyle('TotalRight', fontName='DejaVuSans', fontSize=8, 

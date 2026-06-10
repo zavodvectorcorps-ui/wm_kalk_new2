@@ -39,6 +39,8 @@ class PDFTexts(BaseModel):
     promoTitle: str = "PROMOCJA"
     promoText: str = "Darmowa balia do schłodzenia<br/>lub beczka z sauną!"
     warrantyText: str = "GWARANCJA: 24 miesiące od daty montażu"
+    deliveryText: str = "TERMIN REALIZACJI: 1–3 tygodni + montaż 1–2 dni"
+    paymentText: str = "ZALICZKA: 50% przed produkcją, 50% przed wysyłką"
     footerText: str = "Oferta ważna 30 dni od daty wystawienia."
     galleryTitle: str = "GALERIA REALIZACJI"
     companySlogan: str = "WM-Group — Producent saun i bali na wymiar"

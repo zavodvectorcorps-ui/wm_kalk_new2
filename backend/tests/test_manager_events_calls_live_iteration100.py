@@ -20,7 +20,7 @@ try:
 except Exception:
     pass
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://margin-simulator-1.preview.emergentagent.com").rstrip("/")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://sauna-prod-suite.preview.emergentagent.com").rstrip("/")
 MONGO_URL = os.environ.get("MONGO_URL", "mongodb://localhost:27017")
 DB_NAME = os.environ.get("DB_NAME", "test_database")
 
