@@ -66,7 +66,7 @@ DEFAULT_PDF_TEMPLATE = {
         "companyWebsite": "www.wm-sauna.pl",
         "promoTitle": "PROMOCJA",
         "promoText": "Darmowa balia do schłodzenia<br/>lub beczka z sauną!",
-        "warrantyText": "GWARANCJA: 12 miesiące od daty montażu",
+        "warrantyText": "GWARANCJA: 24 miesiące od daty montażu",
         "footerText": "Oferta ważna 30 dni od daty wystawienia.",
         "galleryTitle": "GALERIA REALIZACJI",
         "companySlogan": "WM-Group — Producent saun i bali na wymiar"
@@ -1646,7 +1646,7 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     # Build right content as a single Paragraph
     right_html = '''TERMIN REALIZACJI: 1–3 tygodni + montaż 1–2 dni<br/>
     ZALICZKA: 50% przed produkcją, 50% przed wysyłką<br/>
-    GWARANCJA: 12 miesiące od daty montażu'''
+    GWARANCJA: 24 miesiące od daty montażu'''
     
     total_right = Paragraph(right_html, 
                             ParagraphStyle('TotalRight', fontName='DejaVuSans', fontSize=8, 

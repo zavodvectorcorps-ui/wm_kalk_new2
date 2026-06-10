@@ -38,7 +38,7 @@ class PDFTexts(BaseModel):
     headerTitle: str = "OFERTA HANDLOWA"
     promoTitle: str = "PROMOCJA"
     promoText: str = "Darmowa balia do schłodzenia<br/>lub beczka z sauną!"
-    warrantyText: str = "GWARANCJA: 12 miesiące od daty montażu"
+    warrantyText: str = "GWARANCJA: 24 miesiące od daty montażu"
     footerText: str = "Oferta ważna 30 dni od daty wystawienia."
     galleryTitle: str = "GALERIA REALIZACJI"
     companySlogan: str = "WM-Group — Producent saun i bali na wymiar"
@@ -768,7 +768,7 @@ async def generate_preview_pdf(calculator_type: str):
     # ========== TOTAL SECTION ==========
     if is_block_enabled('total'):
         total_price_str = "21 150"
-        warranty_text = template_texts.get('warrantyText', 'GWARANCJA: 12 miesiące od daty montażu')
+        warranty_text = template_texts.get('warrantyText', 'GWARANCJA: 24 miesiące od daty montażu')
         
         total_left = Paragraph(f'''<font color="white"><b>WARTOŚĆ CAŁKOWITA OFERTY</b></font><br/><br/>
         <font color="white" size="20"><b>{total_price_str} PLN</b></font>''', 

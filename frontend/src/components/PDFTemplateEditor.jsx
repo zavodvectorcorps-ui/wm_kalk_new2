@@ -1110,7 +1110,7 @@ export const PDFTemplateEditor = ({ calculatorType = 'sauna' }) => {
                 <Input
                   value={template?.texts?.warrantyText || ''}
                   onChange={(e) => handleTextChange('warrantyText', e.target.value)}
-                  placeholder="GWARANCJA: 12 miesiące..."
+                  placeholder="GWARANCJA: 24 miesiące..."
                 />
               </div>
               

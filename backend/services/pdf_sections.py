@@ -184,7 +184,7 @@ def build_comment_section(elements, notes, colors_dict, section_title_style, nor
 
 def build_total_section(elements, subtotal, discount_percent, total_after_discount, colors_dict, template_texts):
     """Build total price section."""
-    warranty_text = template_texts.get('warrantyText', 'GWARANCJA: 12 miesiące od daty montażu')
+    warranty_text = template_texts.get('warrantyText', 'GWARANCJA: 24 miesiące od daty montażu')
     footer_text = template_texts.get('footerText', 'Oferta ważna 30 dni od daty wystawienia.')
     
     if discount_percent > 0:
