@@ -1645,11 +1645,10 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     
     # Read configurable template texts (with fallbacks) so admin can edit
     # all PDF terms (delivery / payment / warranty) without code changes.
-    try:
-        template_doc = await db.pdf_templates.find_one({"isDefault": True}) or {}
-        tt = (template_doc.get('texts') or {})
-    except Exception:
-        tt = {}
+    # Reuse the already-loaded sauna template_texts (filtered by
+    # calculator_type) instead of re-fetching any isDefault doc, which could
+    # accidentally return the balia template's texts.
+    tt = template_texts or {}
     delivery_line = tt.get('deliveryText') or 'TERMIN REALIZACJI: 1–3 tygodni + montaż 1–2 dni'
     payment_line = tt.get('paymentText') or 'ZALICZKA: 50% przed produkcją, 50% przed wysyłką'
     warranty_line = tt.get('warrantyText') or 'GWARANCJA: 24 miesiące od daty montażu'

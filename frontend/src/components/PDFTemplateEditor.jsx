@@ -1106,8 +1106,29 @@ export const PDFTemplateEditor = ({ calculatorType = 'sauna' }) => {
               </div>
               
               <div>
+                <Label>Срок реализации</Label>
+                <Input
+                  data-testid="pdf-text-delivery"
+                  value={template?.texts?.deliveryText || ''}
+                  onChange={(e) => handleTextChange('deliveryText', e.target.value)}
+                  placeholder="TERMIN REALIZACJI: 1–3 tygodni + montaż 1–2 dni"
+                />
+              </div>
+
+              <div>
+                <Label>Аванс / предоплата</Label>
+                <Input
+                  data-testid="pdf-text-payment"
+                  value={template?.texts?.paymentText || ''}
+                  onChange={(e) => handleTextChange('paymentText', e.target.value)}
+                  placeholder="ZALICZKA: 50% przed produkcją, 50% przed wysyłką"
+                />
+              </div>
+
+              <div>
                 <Label>Текст гарантии</Label>
                 <Input
+                  data-testid="pdf-text-warranty"
                   value={template?.texts?.warrantyText || ''}
                   onChange={(e) => handleTextChange('warrantyText', e.target.value)}
                   placeholder="GWARANCJA: 24 miesiące..."

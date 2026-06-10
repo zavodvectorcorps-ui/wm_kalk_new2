@@ -277,6 +277,22 @@ Completed all three open items from Phase 2:
   The computed **Маржа** (margin) column is displayed in Admin → Заказы **AND**
   in Sauna CRM lead card (since Session 12).
 
+## Session — Jun 10, 2026: PDF texts fully configurable in Admin
+- `PDFTemplateEditor.jsx` («Тексты» tab) now exposes **«Срок реализации»**
+  (`deliveryText`) and **«Аванс / предоплата»** (`paymentText`) input fields
+  (data-testid `pdf-text-delivery` / `pdf-text-payment`), next to the existing
+  warranty/footer fields. Admin can now edit all PDF terms without code.
+- `routes/sauna.py::generate_sauna_pdf` total-section now reuses the
+  already-loaded sauna `template_texts` (filtered by calculator_type) instead
+  of re-fetching any `isDefault` doc — fixes a latent bug where the balia
+  template's texts could leak into the sauna PDF.
+- DB: both sauna `pdf_templates` docs updated — warranty 12→24 miesiące,
+  delivery/payment seeded with standard defaults.
+- Verified: PUT round-trip persists fields; generated PDF shows TERMIN
+  REALIZACJI / ZALICZKA / 24 miesiące / footer; editor screenshot confirms
+  fields render with values.
+- ⚠️ DEPLOY TO PRODUCTION (wm-kalkulator.pl) required for user to see changes.
+
 ## Prioritized Backlog
 - 🔥 Session 12 — Dealer Calculator parity (Feb 7, 2026):
   - **Same calculator as managers**: dealer panel now mounts the original
