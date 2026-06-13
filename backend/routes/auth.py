@@ -14,6 +14,7 @@ from services.auth_service import (
     get_admin_user,
     init_admin_user
 )
+from config import ADMIN_USERNAME
 
 router = APIRouter(tags=["Authentication"])
 
@@ -120,7 +121,7 @@ async def create_user(user_data: UserCreate, admin: dict = Depends(get_admin_use
         raise HTTPException(status_code=400, detail=f"Role must be one of: {VALID_ROLES}")
     
     # Only super-admin (username: 'admin') can create users with 'admin' role
-    if user_data.role == "admin" and admin.get("username") != "admin":
+    if user_data.role == "admin" and admin.get("username") != ADMIN_USERNAME:
         raise HTTPException(status_code=403, detail="Only super-admin can assign admin role")
     
     new_user = {
@@ -151,11 +152,11 @@ async def update_user(user_id: str, user_data: UserUpdate, admin: dict = Depends
         raise HTTPException(status_code=404, detail="User not found")
     
     # Only super-admin can edit users with admin role
-    if user.get("role") == "admin" and admin.get("username") != "admin":
+    if user.get("role") == "admin" and admin.get("username") != ADMIN_USERNAME:
         raise HTTPException(status_code=403, detail="Only super-admin can edit admin users")
     
     # Prevent editing the super-admin account itself (except by super-admin)
-    if user.get("username") == "admin" and admin.get("username") != "admin":
+    if user.get("username") == ADMIN_USERNAME and admin.get("username") != ADMIN_USERNAME:
         raise HTTPException(status_code=403, detail="Cannot edit super-admin account")
     
     update_data = {}
@@ -177,7 +178,7 @@ async def update_user(user_id: str, user_data: UserUpdate, admin: dict = Depends
         if user_data.role not in VALID_ROLES:
             raise HTTPException(status_code=400, detail=f"Role must be one of: {VALID_ROLES}")
         # Only super-admin can assign admin role
-        if user_data.role == "admin" and admin.get("username") != "admin":
+        if user_data.role == "admin" and admin.get("username") != ADMIN_USERNAME:
             raise HTTPException(status_code=403, detail="Only super-admin can assign admin role")
         update_data["role"] = user_data.role
     
@@ -199,11 +200,11 @@ async def delete_user(user_id: str, admin: dict = Depends(get_admin_user)):
         raise HTTPException(status_code=404, detail="User not found")
     
     # Cannot delete super-admin account
-    if user.get("username") == "admin":
+    if user.get("username") == ADMIN_USERNAME:
         raise HTTPException(status_code=403, detail="Cannot delete super-admin account")
     
     # Only super-admin can delete other admins
-    if user.get("role") == "admin" and admin.get("username") != "admin":
+    if user.get("role") == "admin" and admin.get("username") != ADMIN_USERNAME:
         raise HTTPException(status_code=403, detail="Only super-admin can delete admin users")
     
     await db.users.delete_one({"id": user_id})

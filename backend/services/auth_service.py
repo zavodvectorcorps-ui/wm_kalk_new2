@@ -8,7 +8,7 @@ import uuid
 import asyncio
 import logging
 
-from config import JWT_SECRET, JWT_ALGORITHM, JWT_EXPIRATION_HOURS, ADMIN_PASSWORD
+from config import JWT_SECRET, JWT_ALGORITHM, JWT_EXPIRATION_HOURS, ADMIN_PASSWORD, ADMIN_USERNAME
 from database import db
 
 logger = logging.getLogger(__name__)
@@ -100,17 +100,17 @@ async def init_admin_user():
         try:
             # Use findOneAndUpdate with upsert to prevent race conditions
             # This is atomic and safe for multiple instances
-            admin = await db.users.find_one({"username": "admin"})
+            admin = await db.users.find_one({"username": ADMIN_USERNAME})
             if not admin:
                 # Only create if truly doesn't exist
                 # Check again with a slight delay to handle race conditions
                 import asyncio
                 await asyncio.sleep(0.1)
-                admin = await db.users.find_one({"username": "admin"})
+                admin = await db.users.find_one({"username": ADMIN_USERNAME})
                 if not admin:
                     admin_user = {
                         "id": str(uuid.uuid4()),
-                        "username": "admin",
+                        "username": ADMIN_USERNAME,
                         "password": hash_password(ADMIN_PASSWORD),
                         "role": "admin",
                         "access": "all",
