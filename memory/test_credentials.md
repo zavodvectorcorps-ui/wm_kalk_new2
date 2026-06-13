@@ -6,6 +6,7 @@
   - Currency: EUR, eurRate: 4.35 (set Feb 2026 for EUR feature testing)
 
 ## Production / local-default (backend/.env ADMIN_PASSWORD)
+- Admin (production, https://wm-kalkulator.pl): `admin` / `375296253180`
 - Admin: `admin` / `159357` (recreated on first startup in fresh DB)
 - Storekeeper: `kladovshchik` / `kladovshchik123`
 - Marketer: `marketer` / `marketer123`
