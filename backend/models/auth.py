@@ -31,6 +31,13 @@ class UserResponse(BaseModel):
     access: Union[str, List[str]]  # 'balia', 'sauna', 'logistics', 'driver', 'warehouse', 'sauna_crm', 'all' or list
     createdAt: str
     amocrm_name: Optional[str] = None  # amoCRM user name mapping
+    superAdmin: Optional[bool] = False  # True only for the protected super-admin account
+
+
+class SuperAdminCredentials(BaseModel):
+    """Payload for the super-admin to change their own login/password."""
+    newUsername: Optional[str] = None
+    newPassword: Optional[str] = None
 
 
 class TokenResponse(BaseModel):

@@ -156,10 +156,20 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('authUser');
   };
 
+  // Apply a fresh token + user (e.g. after the super-admin changes own creds).
+  const applyAuth = (newToken, newUser) => {
+    setToken(newToken);
+    setUser(newUser);
+    localStorage.setItem('authToken', newToken);
+    localStorage.setItem('authUser', JSON.stringify(newUser));
+  };
+
   const isAdmin = () => user?.role === 'admin';
   
-  // Super-admin is the user with username 'admin'
-  const isSuperAdmin = () => user?.role === 'admin' && user?.username === 'admin';
+  // Super-admin is identified by the `superAdmin` DB flag (decoupled from the
+  // username) so the account can be renamed freely. Fallback to the legacy
+  // username check keeps older tokens working until the next login.
+  const isSuperAdmin = () => user?.role === 'admin' && (user?.superAdmin === true || user?.username === 'admin');
   
   const isObserver = () => user?.role === 'observer';
   
@@ -229,6 +239,7 @@ export const AuthProvider = ({ children }) => {
     loading,
     login,
     logout,
+    applyAuth,
     isAdmin,
     isSuperAdmin,
     isObserver,

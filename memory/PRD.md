@@ -277,6 +277,25 @@ Completed all three open items from Phase 2:
   The computed **Маржа** (margin) column is displayed in Admin → Заказы **AND**
   in Sauna CRM lead card (since Session 12).
 
+## Session — Jun 13, 2026: In-app super-admin management + force-logout-all
+- Super-admin decoupled from username via DB flag `superAdmin:true`. JWTs now
+  carry `iat` + `superAdmin` claims. Global token invalidation timestamp in
+  `db.app_config` (`_id="auth_invalidation"`, 30s cache) → force-logout all.
+- New endpoints: `POST /api/auth/logout-all-devices` (super-admin),
+  `POST /api/auth/super-admin/credentials` (rename own login / change password,
+  returns fresh token). All 6 super-admin gates in `routes/auth.py` now use the
+  `superAdmin` flag instead of hardcoded `"admin"` username.
+- `init_admin_user` reworked: seed only if no super-admin exists; promote a
+  legacy `ADMIN_USERNAME` user (one-time migration); never resurrect after rename.
+- Frontend: `SuperAdminCard` in «Работники» (rename login, change password,
+  «Выйти на всех устройствах»). `AuthContext.isSuperAdmin` uses the flag (+legacy
+  username fallback); added `applyAuth` to refresh session in-place.
+- Why: production deploy Secrets panel only allows EDITING existing keys (can't
+  add `ADMIN_USERNAME`/`JWT_SECRET`), so renaming admin→maxim + force-logout are
+  done entirely in-app — no secret changes required.
+- Tested: 5/5 pytest (`tests/test_configurable_super_admin.py`) + e2e curl
+  (rename, logout-all invalidates old token, fresh login works) + UI screenshot.
+
 ## Session — Jun 10, 2026: PDF texts fully configurable in Admin
 - `PDFTemplateEditor.jsx` («Тексты» tab) now exposes **«Срок реализации»**
   (`deliveryText`) and **«Аванс / предоплата»** (`paymentText`) input fields

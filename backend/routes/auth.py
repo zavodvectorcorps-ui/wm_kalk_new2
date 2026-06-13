@@ -5,17 +5,16 @@ import uuid
 from datetime import datetime, timezone
 
 from database import db
-from models.auth import UserLogin, UserCreate, UserUpdate, UserResponse, TokenResponse
+from models.auth import UserLogin, UserCreate, UserUpdate, UserResponse, TokenResponse, SuperAdminCredentials
 from services.auth_service import (
     hash_password,
     verify_password,
     create_token,
     get_current_user,
     get_admin_user,
-    init_admin_user
+    init_admin_user,
+    set_tokens_invalid_before,
 )
-from config import ADMIN_USERNAME
-
 router = APIRouter(tags=["Authentication"])
 
 import logging
@@ -79,7 +78,8 @@ async def login(credentials: UserLogin):
         role=user["role"],
         access=user["access"],
         createdAt=user["createdAt"],
-        amocrm_name=user.get("amocrm_name")
+        amocrm_name=user.get("amocrm_name"),
+        superAdmin=bool(user.get("superAdmin", False))
     )
     return TokenResponse(token=token, user=user_response)
 
@@ -121,7 +121,7 @@ async def create_user(user_data: UserCreate, admin: dict = Depends(get_admin_use
         raise HTTPException(status_code=400, detail=f"Role must be one of: {VALID_ROLES}")
     
     # Only super-admin (username: 'admin') can create users with 'admin' role
-    if user_data.role == "admin" and admin.get("username") != ADMIN_USERNAME:
+    if user_data.role == "admin" and not admin.get("superAdmin"):
         raise HTTPException(status_code=403, detail="Only super-admin can assign admin role")
     
     new_user = {
@@ -152,11 +152,11 @@ async def update_user(user_id: str, user_data: UserUpdate, admin: dict = Depends
         raise HTTPException(status_code=404, detail="User not found")
     
     # Only super-admin can edit users with admin role
-    if user.get("role") == "admin" and admin.get("username") != ADMIN_USERNAME:
+    if user.get("role") == "admin" and not admin.get("superAdmin"):
         raise HTTPException(status_code=403, detail="Only super-admin can edit admin users")
     
     # Prevent editing the super-admin account itself (except by super-admin)
-    if user.get("username") == ADMIN_USERNAME and admin.get("username") != ADMIN_USERNAME:
+    if user.get("superAdmin") and not admin.get("superAdmin"):
         raise HTTPException(status_code=403, detail="Cannot edit super-admin account")
     
     update_data = {}
@@ -178,7 +178,7 @@ async def update_user(user_id: str, user_data: UserUpdate, admin: dict = Depends
         if user_data.role not in VALID_ROLES:
             raise HTTPException(status_code=400, detail=f"Role must be one of: {VALID_ROLES}")
         # Only super-admin can assign admin role
-        if user_data.role == "admin" and admin.get("username") != ADMIN_USERNAME:
+        if user_data.role == "admin" and not admin.get("superAdmin"):
             raise HTTPException(status_code=403, detail="Only super-admin can assign admin role")
         update_data["role"] = user_data.role
     
@@ -199,13 +199,82 @@ async def delete_user(user_id: str, admin: dict = Depends(get_admin_user)):
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    # Cannot delete super-admin account
-    if user.get("username") == ADMIN_USERNAME:
+    # Cannot delete the super-admin account
+    if user.get("superAdmin"):
         raise HTTPException(status_code=403, detail="Cannot delete super-admin account")
     
     # Only super-admin can delete other admins
-    if user.get("role") == "admin" and admin.get("username") != ADMIN_USERNAME:
+    if user.get("role") == "admin" and not admin.get("superAdmin"):
         raise HTTPException(status_code=403, detail="Only super-admin can delete admin users")
     
     await db.users.delete_one({"id": user_id})
     return {"message": "User deleted successfully"}
+
+
+
+@router.post("/auth/logout-all-devices")
+async def logout_all_devices(admin: dict = Depends(get_admin_user)):
+    """Force-logout every session on every device (super-admin only).
+
+    Sets a global invalidation timestamp; all JWTs issued before now become
+    invalid on their next request. The caller is logged out too and must
+    re-authenticate.
+    """
+    if not admin.get("superAdmin"):
+        raise HTTPException(status_code=403, detail="Only super-admin can log out all devices")
+    now_ts = int(datetime.now(timezone.utc).timestamp()) + 1
+    await set_tokens_invalid_before(now_ts)
+    logger.warning(f"Global logout triggered by {admin.get('username')} at ts={now_ts}")
+    return {"ok": True, "invalidatedBefore": now_ts}
+
+
+@router.post("/auth/super-admin/credentials", response_model=TokenResponse)
+async def change_super_admin_credentials(
+    payload: SuperAdminCredentials,
+    admin: dict = Depends(get_admin_user),
+):
+    """Let the super-admin change their own login and/or password.
+
+    Returns a fresh token so the current session keeps working under the new
+    credentials. Other devices are NOT auto-logged-out (use logout-all for that).
+    """
+    if not admin.get("superAdmin"):
+        raise HTTPException(status_code=403, detail="Only super-admin can change these credentials")
+
+    user = await db.users.find_one({"id": admin["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Super-admin account not found")
+
+    update_data = {}
+    new_username = (payload.newUsername or "").strip()
+    if new_username and new_username != user.get("username"):
+        existing = await db.users.find_one({"username": new_username, "id": {"$ne": user["id"]}})
+        if existing:
+            raise HTTPException(status_code=400, detail="Username already exists")
+        update_data["username"] = new_username
+
+    if payload.newPassword:
+        if len(payload.newPassword) < 4:
+            raise HTTPException(status_code=400, detail="Password too short")
+        update_data["password"] = hash_password(payload.newPassword)
+
+    if not update_data:
+        raise HTTPException(status_code=400, detail="Nothing to update")
+
+    await db.users.update_one({"id": user["id"]}, {"$set": update_data})
+    updated = await db.users.find_one({"id": user["id"]}, {"_id": 0})
+
+    token = create_token(updated)
+    logger.info(f"Super-admin credentials updated (username -> {updated.get('username')})")
+    return TokenResponse(
+        token=token,
+        user=UserResponse(
+            id=updated["id"],
+            username=updated["username"],
+            role=updated["role"],
+            access=updated["access"],
+            createdAt=updated["createdAt"],
+            amocrm_name=updated.get("amocrm_name"),
+            superAdmin=bool(updated.get("superAdmin", False)),
+        ),
+    )

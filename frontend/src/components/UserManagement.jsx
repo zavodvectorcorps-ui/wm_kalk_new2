@@ -29,7 +29,7 @@ import {
   TableHeader,
   TableRow,
 } from './ui/table';
-import { Users, Plus, Pencil, Trash2, Waves, Flame, Shield, Save, X, Eye, Truck, Package, Kanban, GraduationCap, BarChart3, Phone, Building2, ClipboardList } from 'lucide-react';
+import { Users, Plus, Pencil, Trash2, Waves, Flame, Shield, Save, X, Eye, Truck, Package, Kanban, GraduationCap, BarChart3, Phone, Building2, ClipboardList, LogOut } from 'lucide-react';
 import { Checkbox } from './ui/checkbox';
 import { toast } from 'sonner';
 
@@ -42,6 +42,125 @@ const getApiUrl = () => {
   return process.env.REACT_APP_BACKEND_URL || ''; 
 };
 const API_URL = getApiUrl();
+
+// ── Super-admin self-management: rename own login, change own password and
+// force-logout every device. Visible only to the super-admin. ──────────────
+const SuperAdminCard = () => {
+  const { i18n } = useTranslation();
+  const { user, token, applyAuth, logout } = useAuth();
+  const ru = i18n.language !== 'pl';
+  const [newUsername, setNewUsername] = useState(user?.username || '');
+  const [newPassword, setNewPassword] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const t = ru ? {
+    title: 'Супер-администратор',
+    desc: 'Логин и пароль главного администратора. Изменения применяются сразу.',
+    currentLogin: 'Текущий логин',
+    newLogin: 'Новый логин',
+    newPass: 'Новый пароль (пусто — не менять)',
+    save: 'Сохранить',
+    saved: 'Данные супер-админа обновлены',
+    nothing: 'Нечего сохранять',
+    logoutAll: 'Выйти на всех устройствах',
+    logoutAllDesc: 'Завершит все активные сессии на всех устройствах. Потребуется войти заново.',
+    loggedOutAll: 'Все устройства разлогинены. Войдите заново.',
+    confirmLogout: 'Завершить сессии на всех устройствах? Вам тоже придётся войти заново.',
+    error: 'Ошибка',
+  } : {
+    title: 'Super-administrator',
+    desc: 'Login i hasło głównego administratora. Zmiany działają od razu.',
+    currentLogin: 'Bieżący login',
+    newLogin: 'Nowy login',
+    newPass: 'Nowe hasło (puste = bez zmian)',
+    save: 'Zapisz',
+    saved: 'Dane super-admina zaktualizowane',
+    nothing: 'Brak zmian do zapisania',
+    logoutAll: 'Wyloguj ze wszystkich urządzeń',
+    logoutAllDesc: 'Zakończy wszystkie aktywne sesje. Trzeba będzie zalogować się ponownie.',
+    loggedOutAll: 'Wszystkie urządzenia wylogowane. Zaloguj się ponownie.',
+    confirmLogout: 'Zakończyć wszystkie sesje? Ty też będziesz musiał zalogować się ponownie.',
+    error: 'Błąd',
+  };
+
+  const handleSave = async () => {
+    const body = {};
+    if (newUsername && newUsername.trim() !== user?.username) body.newUsername = newUsername.trim();
+    if (newPassword) body.newPassword = newPassword;
+    if (Object.keys(body).length === 0) { toast.error(t.nothing); return; }
+    setSaving(true);
+    try {
+      const res = await fetch(`${API_URL}/api/auth/super-admin/credentials`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || t.error);
+      applyAuth(data.token, data.user);
+      setNewPassword('');
+      toast.success(t.saved);
+    } catch (e) {
+      toast.error(e.message || t.error);
+    } finally { setSaving(false); }
+  };
+
+  const handleLogoutAll = async () => {
+    if (!window.confirm(t.confirmLogout)) return;
+    setLoggingOut(true);
+    try {
+      const res = await fetch(`${API_URL}/api/auth/logout-all-devices`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.detail || t.error); }
+      toast.success(t.loggedOutAll);
+      setTimeout(() => logout(), 900);
+    } catch (e) {
+      toast.error(e.message || t.error);
+      setLoggingOut(false);
+    }
+  };
+
+  return (
+    <Card className="mb-6 border-amber-300 dark:border-amber-700" data-testid="super-admin-card">
+      <CardHeader className="pb-3">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-lg bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center">
+            <Shield className="h-5 w-5 text-amber-600" />
+          </div>
+          <div>
+            <CardTitle className="text-lg">{t.title}</CardTitle>
+            <p className="text-sm text-muted-foreground">{t.desc}</p>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <Label>{t.newLogin}</Label>
+            <Input data-testid="super-admin-username" value={newUsername} onChange={e => setNewUsername(e.target.value)} placeholder={user?.username} />
+            <p className="text-xs text-muted-foreground mt-1">{t.currentLogin}: <b>{user?.username}</b></p>
+          </div>
+          <div>
+            <Label>{t.newPass}</Label>
+            <Input data-testid="super-admin-password" type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="••••••" />
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button data-testid="super-admin-save" onClick={handleSave} disabled={saving} className="gap-2">
+            <Save className="w-4 h-4" /> {t.save}
+          </Button>
+          <Button data-testid="logout-all-devices" onClick={handleLogoutAll} disabled={loggingOut} variant="destructive" className="gap-2">
+            <LogOut className="w-4 h-4" /> {t.logoutAll}
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground">{t.logoutAllDesc}</p>
+      </CardContent>
+    </Card>
+  );
+};
 
 export const UserManagement = () => {
   const { i18n } = useTranslation();
@@ -435,11 +554,12 @@ export const UserManagement = () => {
     }
   };
 
-  // Show employees, observers, drivers and admins (except the main 'admin' account)
-  const employees = users.filter(u => u.role === 'employee' || u.role === 'observer' || u.role === 'driver' || u.role === 'storekeeper' || u.role === 'marketer' || (u.role === 'admin' && u.username !== 'admin'));
+  // Show employees, observers, drivers and admins (except the protected super-admin)
+  const employees = users.filter(u => u.role === 'employee' || u.role === 'observer' || u.role === 'driver' || u.role === 'storekeeper' || u.role === 'marketer' || (u.role === 'admin' && !u.superAdmin && u.username !== 'admin'));
 
   return (
     <div className="container mx-auto px-4 py-6 max-w-5xl">
+      {canAssignAdminRole && <SuperAdminCard />}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
           <div className="flex items-center gap-3">
