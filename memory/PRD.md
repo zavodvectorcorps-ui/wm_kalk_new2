@@ -277,6 +277,17 @@ Completed all three open items from Phase 2:
   The computed **Маржа** (margin) column is displayed in Admin → Заказы **AND**
   in Sauna CRM lead card (since Session 12).
 
+## Session — Jun 26, 2026 (later): swatches merged into gallery page
+- Moved the «Warianty malowania» + «Warianty gontu» swatch image OUT of its own
+  flow position INTO the gallery block (after the photo rows, before the
+  company slogan) so it shares the GALERIA REALIZACJI page instead of orphaning
+  onto a separate page. Verified: gallery photos + both swatch sections render
+  together on one page, nothing cut off.
+- Old logo in PDF header = production template's uploaded `logoImageId` (DB data,
+  not code). Code already ignores `logo7.png`; header = custom logo OR styled
+  «ALICOR SPA» text. Fix = user removes the uploaded logo in PDF editor
+  (Изображения → Логотип → ✕ → Сохранить) on production.
+
 ## Session — Jun 26, 2026: Sauna PDF rebranded to ALICOR + finish swatches
 - Sauna PDF (`generate_sauna_pdf`) rebranded WM → **ALICOR**: header logo text
   (`companyName`), legal name/address/NIP/REGON in header-right block, ALICOR

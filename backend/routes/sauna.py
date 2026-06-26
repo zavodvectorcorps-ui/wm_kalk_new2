@@ -2166,23 +2166,6 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                 elements.append(options_table)
                 elements.append(Spacer(1, 8))
     
-    # ========== WARIANTY MALOWANIA + GONTU (kolorystyka / swatches) ==========
-    # Static finish samples (wood paint colors + bitumen shingle) — same for
-    # every offer. Rendered from a pre-composed image so the layout matches the
-    # approved design exactly.
-    if is_block_enabled(pdf_template, 'swatches'):
-        swatch_path = '/app/assets/swatches_alicor.png'
-        if os.path.exists(swatch_path):
-            try:
-                _sw_w = 535
-                _sw_h = _sw_w * 1626.0 / 5876.0  # preserve aspect ratio (~148)
-                elements.append(Spacer(1, 12))
-                _sw_img = RLImage(swatch_path, width=_sw_w, height=_sw_h)
-                _sw_img.hAlign = 'CENTER'
-                elements.append(_sw_img)
-            except Exception as e:
-                logger.warning(f"Could not load swatch image: {e}")
-
     # ========== GALLERY PROMO PAGE ==========
     if is_block_enabled(pdf_template, 'gallery_promo'):
         gallery_promo_title = pdf_template.get('galleryPromoTitle')
@@ -2346,6 +2329,22 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                 row2 = Table([row2_images], colWidths=[176, 176, 176], rowHeights=[125])
                 row2.setStyle(row_style)
                 elements.append(row2)
+
+        # ===== WARIANTY MALOWANIA + GONTU (finish swatches) =====
+        # Rendered on the gallery page (merged with the photo collage) so the
+        # static color/shingle samples never sit alone on a separate page.
+        if is_block_enabled(pdf_template, 'swatches'):
+            swatch_path = '/app/assets/swatches_alicor.png'
+            if os.path.exists(swatch_path):
+                try:
+                    _sw_w = 535
+                    _sw_h = _sw_w * 1626.0 / 5876.0  # preserve aspect ratio (~148)
+                    elements.append(Spacer(1, 14))
+                    _sw_img = RLImage(swatch_path, width=_sw_w, height=_sw_h)
+                    _sw_img.hAlign = 'CENTER'
+                    elements.append(_sw_img)
+                except Exception as e:
+                    logger.warning(f"Could not load swatch image: {e}")
         
         # Gallery footer / company slogan from template
         company_slogan = template_texts.get('companySlogan', 'WM-Group — Producent saun i bali na wymiar')
