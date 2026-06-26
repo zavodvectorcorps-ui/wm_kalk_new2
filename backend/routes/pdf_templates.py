@@ -36,6 +36,14 @@ class PDFColors(BaseModel):
 
 class PDFTexts(BaseModel):
     headerTitle: str = "OFERTA HANDLOWA"
+    companyName: str = "ALICOR SPA"
+    companyLegalName: str = "ALICOR Sp. z o.o."
+    companyAddress: str = "Warszawa, ul. Szeligowska 77, 05-850"
+    companyNIP: str = "7011250572"
+    companyRegon: str = "541183349"
+    companyPhone: str = "+48 555 666 777"
+    companyEmail: str = "info@alicor.pl"
+    companyWebsite: str = "www.alicor.pl"
     promoTitle: str = "PROMOCJA"
     promoText: str = "Darmowa balia do schłodzenia<br/>lub beczka z sauną!"
     warrantyText: str = "GWARANCJA: 24 miesiące od daty montażu"
@@ -43,7 +51,7 @@ class PDFTexts(BaseModel):
     paymentText: str = "ZALICZKA: 50% przed produkcją, 50% przed wysyłką"
     footerText: str = "Oferta ważna 30 dni od daty wystawienia."
     galleryTitle: str = "GALERIA REALIZACJI"
-    companySlogan: str = "WM-Group — Producent saun i bali na wymiar"
+    companySlogan: str = "ALICOR SPA  •  ul. Szeligowska 77, 05-850 Warszawa  •  +48 555 666 777  •  info@alicor.pl"
 
 
 class PDFTemplate(BaseModel):

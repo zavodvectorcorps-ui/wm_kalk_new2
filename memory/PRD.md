@@ -277,6 +277,25 @@ Completed all three open items from Phase 2:
   The computed **Маржа** (margin) column is displayed in Admin → Заказы **AND**
   in Sauna CRM lead card (since Session 12).
 
+## Session — Jun 26, 2026: Sauna PDF rebranded to ALICOR + finish swatches
+- Sauna PDF (`generate_sauna_pdf`) rebranded WM → **ALICOR**: header logo text
+  (`companyName`), legal name/address/NIP/REGON in header-right block, ALICOR
+  contacts in footer slogan. Brown-beige theme kept; all calculator data flow
+  and interior-plan diagram preserved (unchanged).
+- New configurable PDF text fields (editable in «Тексты» tab + PDFTexts model):
+  `companyName`, `companyLegalName`, `companyAddress`, `companyNIP`,
+  `companyRegon`. Header-right no longer shows Tel/Email/Website (moved to footer
+  per ALICOR design). DB sauna templates updated with ALICOR values.
+- Added **«Warianty malowania» + «Warianty gontu bitumicznego»** swatch section
+  (static image `/app/assets/swatches_alicor.png`, cropped from client's КП at
+  300 DPI, full width centered, aspect-preserved). Gated by new `swatches` block
+  (default enabled). Rendered before the gallery page.
+- Verified: 2-page PDF generates (HTTP 200), contains ALICOR/NIP/REGON/contacts,
+  zero WM references, both swatch headings + all samples fully visible (no clip),
+  editor renders the 5 new company fields with ALICOR values.
+- NOTE: the web-app top-nav still shows "WM-Sauna" branding (UI only, not PDF) —
+  not changed (out of scope of this request).
+
 ## Session — Jun 13, 2026: In-app super-admin management + force-logout-all
 - Super-admin decoupled from username via DB flag `superAdmin:true`. JWTs now
   carry `iat` + `superAdmin` claims. Global token invalidation timestamp in

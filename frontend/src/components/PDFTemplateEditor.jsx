@@ -1052,6 +1052,58 @@ export const PDFTemplateEditor = ({ calculatorType = 'sauna' }) => {
                   placeholder="OFERTA HANDLOWA"
                 />
               </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Название (логотип в шапке)</Label>
+                  <Input
+                    data-testid="pdf-company-name"
+                    value={template?.texts?.companyName || ''}
+                    onChange={(e) => handleTextChange('companyName', e.target.value)}
+                    placeholder="ALICOR SPA"
+                  />
+                </div>
+                <div>
+                  <Label>Юр. название</Label>
+                  <Input
+                    data-testid="pdf-company-legal"
+                    value={template?.texts?.companyLegalName || ''}
+                    onChange={(e) => handleTextChange('companyLegalName', e.target.value)}
+                    placeholder="ALICOR Sp. z o.o."
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label>Адрес компании</Label>
+                <Input
+                  data-testid="pdf-company-address"
+                  value={template?.texts?.companyAddress || ''}
+                  onChange={(e) => handleTextChange('companyAddress', e.target.value)}
+                  placeholder="Warszawa, ul. Szeligowska 77, 05-850"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>NIP</Label>
+                  <Input
+                    data-testid="pdf-company-nip"
+                    value={template?.texts?.companyNIP || ''}
+                    onChange={(e) => handleTextChange('companyNIP', e.target.value)}
+                    placeholder="7011250572"
+                  />
+                </div>
+                <div>
+                  <Label>REGON</Label>
+                  <Input
+                    data-testid="pdf-company-regon"
+                    value={template?.texts?.companyRegon || ''}
+                    onChange={(e) => handleTextChange('companyRegon', e.target.value)}
+                    placeholder="541183349"
+                  />
+                </div>
+              </div>
               
               <div className="grid grid-cols-3 gap-3">
                 <div>
@@ -1059,7 +1111,7 @@ export const PDFTemplateEditor = ({ calculatorType = 'sauna' }) => {
                   <Input
                     value={template?.texts?.companyPhone || ''}
                     onChange={(e) => handleTextChange('companyPhone', e.target.value)}
-                    placeholder="+48 732 099 201"
+                    placeholder="+48 555 666 777"
                     data-testid="pdf-company-phone"
                   />
                 </div>
@@ -1068,7 +1120,7 @@ export const PDFTemplateEditor = ({ calculatorType = 'sauna' }) => {
                   <Input
                     value={template?.texts?.companyEmail || ''}
                     onChange={(e) => handleTextChange('companyEmail', e.target.value)}
-                    placeholder="wmsauna@gmail.com"
+                    placeholder="info@alicor.pl"
                     data-testid="pdf-company-email"
                   />
                 </div>
@@ -1077,7 +1129,7 @@ export const PDFTemplateEditor = ({ calculatorType = 'sauna' }) => {
                   <Input
                     value={template?.texts?.companyWebsite || ''}
                     onChange={(e) => handleTextChange('companyWebsite', e.target.value)}
-                    placeholder="www.wm-sauna.pl"
+                    placeholder="www.alicor.pl"
                     data-testid="pdf-company-website"
                   />
                 </div>

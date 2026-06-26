@@ -61,15 +61,20 @@ DEFAULT_PDF_TEMPLATE = {
     },
     "texts": {
         "headerTitle": "OFERTA HANDLOWA",
-        "companyPhone": "+48 732 099 201",
-        "companyEmail": "wmsauna@gmail.com",
-        "companyWebsite": "www.wm-sauna.pl",
+        "companyName": "ALICOR SPA",
+        "companyLegalName": "ALICOR Sp. z o.o.",
+        "companyAddress": "Warszawa, ul. Szeligowska 77, 05-850",
+        "companyNIP": "7011250572",
+        "companyRegon": "541183349",
+        "companyPhone": "+48 555 666 777",
+        "companyEmail": "info@alicor.pl",
+        "companyWebsite": "www.alicor.pl",
         "promoTitle": "PROMOCJA",
         "promoText": "Darmowa balia do schłodzenia<br/>lub beczka z sauną!",
         "warrantyText": "GWARANCJA: 24 miesiące od daty montażu",
         "footerText": "Oferta ważna 30 dni od daty wystawienia.",
         "galleryTitle": "GALERIA REALIZACJI",
-        "companySlogan": "WM-Group — Producent saun i bali na wymiar"
+        "companySlogan": "ALICOR SPA  •  ul. Szeligowska 77, 05-850 Warszawa  •  +48 555 666 777  •  info@alicor.pl"
     }
 }
 
@@ -708,15 +713,26 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
             except Exception as e:
                 logger.warning(f"Could not load custom logo: {e}")
     
-    logo_cell = custom_logo_img or logo_img if logo_img else Paragraph('<b>WM-SAUNA</b>', ParagraphStyle('Logo', fontName='DejaVuSans-Bold', fontSize=24, textColor=BROWN))
-    
+    # ALICOR company identity (all configurable via PDF template editor)
+    company_name = template_texts.get('companyName', 'ALICOR SPA')
+    company_legal = template_texts.get('companyLegalName', 'ALICOR Sp. z o.o.')
+    company_address = template_texts.get('companyAddress', 'Warszawa, ul. Szeligowska 77, 05-850')
+    company_nip = template_texts.get('companyNIP', '7011250572')
+    company_regon = template_texts.get('companyRegon', '541183349')
+
+    # Logo: custom uploaded logo if present, otherwise the styled company name
+    logo_cell = custom_logo_img or Paragraph(
+        f'<b>{company_name}</b>',
+        ParagraphStyle('Logo', fontName='DejaVuSans-Bold', fontSize=24, textColor=BROWN)
+    )
+
     header_data = [[
         logo_cell,
         '',
         Paragraph(f'''<b>{header_title}</b><br/>
-        <font size="9" color="#95856e">Tel: {template_texts.get('companyPhone', '+48 732 099 201')}</font><br/>
-        <font size="9" color="#95856e">Email: {template_texts.get('companyEmail', 'wmsauna@gmail.com')}</font><br/>
-        <font size="9" color="#95856e">{template_texts.get('companyWebsite', 'www.wm-sauna.pl')}</font>''',
+        <font size="9" color="#95856e">{company_legal}</font><br/>
+        <font size="8" color="#95856e">{company_address}</font><br/>
+        <font size="8" color="#95856e">NIP: {company_nip}  •  REGON: {company_regon}</font>''',
         ParagraphStyle('HeaderRight', fontName='DejaVuSans', fontSize=16, alignment=TA_RIGHT, textColor=BROWN))
     ]]
     header_table = Table(header_data, colWidths=[200, 130, 200])
@@ -2150,6 +2166,23 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                 elements.append(options_table)
                 elements.append(Spacer(1, 8))
     
+    # ========== WARIANTY MALOWANIA + GONTU (kolorystyka / swatches) ==========
+    # Static finish samples (wood paint colors + bitumen shingle) — same for
+    # every offer. Rendered from a pre-composed image so the layout matches the
+    # approved design exactly.
+    if is_block_enabled(pdf_template, 'swatches'):
+        swatch_path = '/app/assets/swatches_alicor.png'
+        if os.path.exists(swatch_path):
+            try:
+                _sw_w = 535
+                _sw_h = _sw_w * 1626.0 / 5876.0  # preserve aspect ratio (~148)
+                elements.append(Spacer(1, 12))
+                _sw_img = RLImage(swatch_path, width=_sw_w, height=_sw_h)
+                _sw_img.hAlign = 'CENTER'
+                elements.append(_sw_img)
+            except Exception as e:
+                logger.warning(f"Could not load swatch image: {e}")
+
     # ========== GALLERY PROMO PAGE ==========
     if is_block_enabled(pdf_template, 'gallery_promo'):
         gallery_promo_title = pdf_template.get('galleryPromoTitle')
