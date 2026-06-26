@@ -1,4 +1,4 @@
-/* Service Worker for WM-Group Push Notifications */
+/* Service Worker for ALICOR SPA Push Notifications */
 
 const CACHE_NAME = 'wm-group-v1';
 
@@ -19,7 +19,7 @@ self.addEventListener('push', (event) => {
   console.log('Push notification received');
   
   let data = {
-    title: 'WM-Group',
+    title: 'ALICOR SPA',
     body: 'Новое уведомление',
     icon: '/icons/icon-192x192.png',
     badge: '/icons/icon-72x72.png',

@@ -99,7 +99,7 @@ self.addEventListener('push', (event) => {
     };
     
     event.waitUntil(
-      self.registration.showNotification(data.title || 'WM Kalkulator', options)
+      self.registration.showNotification(data.title || 'ALICOR SPA', options)
     );
   }
 });

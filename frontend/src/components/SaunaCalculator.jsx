@@ -419,11 +419,10 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPre
     <div className="container mx-auto px-4 py-8 max-w-7xl">
       {/* Logo */}
       <div className="flex justify-center mb-6">
-        <img 
-          src="/logo-wm-sauna.svg" 
-          alt="WM Sauna" 
-          className="h-16 md:h-20"
-        />
+        <div className="text-center leading-none" data-testid="alicor-logo">
+          <span className="text-4xl md:text-5xl font-extrabold tracking-tight text-[#97724E]">ALICOR</span>
+          <span className="block text-sm md:text-base font-semibold tracking-[0.45em] text-[#B89B7A] mt-1">SPA</span>
+        </div>
       </div>
       
       {/* Edit Mode Banner */}

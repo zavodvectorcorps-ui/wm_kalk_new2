@@ -991,7 +991,7 @@ export default function DealerApp() {
               <Building2 className="h-4.5 w-4.5 text-white" />
             </div>
             <div>
-              <div className="text-sm font-semibold tracking-tight">WM Saunas · Dealer Portal</div>
+              <div className="text-sm font-semibold tracking-tight">ALICOR SPA · Dealer Portal</div>
               <div className="text-[10px] uppercase tracking-[0.2em] text-slate-400">{dealer?.name || dealer?.username || 'dealer'}</div>
             </div>
           </div>

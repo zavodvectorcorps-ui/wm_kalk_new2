@@ -35,7 +35,7 @@ export default function DealerLogin({ onSuccess }) {
             <Building2 className="h-5 w-5 text-white" />
           </div>
           <div>
-            <div className="text-xl font-bold text-white tracking-tight">WM Saunas · Panel Dealera</div>
+            <div className="text-xl font-bold text-white tracking-tight">ALICOR SPA · Panel Dealera</div>
             <div className="text-xs text-slate-400">Panel dealera</div>
           </div>
         </div>
@@ -92,7 +92,7 @@ export default function DealerLogin({ onSuccess }) {
 
         <div className="mt-6 text-center text-xs text-slate-500 flex items-center justify-center gap-2">
           <Calculator className="h-3.5 w-3.5" />
-          Powered by WM Kalkulator
+          Powered by ALICOR
         </div>
       </div>
     </div>

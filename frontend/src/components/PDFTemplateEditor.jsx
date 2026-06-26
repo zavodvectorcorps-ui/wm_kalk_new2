@@ -1210,7 +1210,7 @@ export const PDFTemplateEditor = ({ calculatorType = 'sauna' }) => {
                 <Input
                   value={template?.texts?.companySlogan || ''}
                   onChange={(e) => handleTextChange('companySlogan', e.target.value)}
-                  placeholder="WM-Group — Producent saun..."
+                  placeholder="ALICOR SPA"
                 />
               </div>
             </CardContent>

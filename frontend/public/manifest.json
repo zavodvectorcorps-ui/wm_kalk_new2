@@ -1,7 +1,7 @@
 {
-  "name": "WM-Group",
-  "short_name": "WM-Group",
-  "description": "Kalkulator cen dla bali i saun - W.M. Group",
+  "name": "ALICOR SPA",
+  "short_name": "ALICOR SPA",
+  "description": "Kalkulator cen dla bali i saun - ALICOR SPA",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#355c7d",

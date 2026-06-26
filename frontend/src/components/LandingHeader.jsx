@@ -8,8 +8,8 @@ export const LandingHeader = () => {
   const { i18n } = useTranslation();
 
   const titles = {
-    ru: 'WM калькулятор',
-    pl: 'WM kalkulator',
+    ru: 'ALICOR',
+    pl: 'ALICOR',
   };
 
   const lang = i18n.language === 'pl' ? 'pl' : 'ru';

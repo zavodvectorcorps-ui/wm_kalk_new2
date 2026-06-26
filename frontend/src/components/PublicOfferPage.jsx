@@ -75,7 +75,7 @@ export default function PublicOfferPage() {
     );
   }
 
-  const dealerName = offer.dealer?.name || 'WM Saunas';
+  const dealerName = offer.dealer?.name || 'ALICOR SPA';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-orange-50/40">
@@ -212,7 +212,7 @@ export default function PublicOfferPage() {
         )}
 
         <footer className="text-center text-xs text-slate-400 pt-4 pb-8">
-          Powered by <span className="font-semibold text-slate-500">WM Kalkulator</span> · oferta ważna 14 dni
+          Powered by <span className="font-semibold text-slate-500">ALICOR</span> · oferta ważna 14 dni
         </footer>
       </main>
     </div>

@@ -85,7 +85,7 @@ const CONTENT = {
     nav: { features: 'Features', modules: 'Modules', stack: 'Stack', numbers: 'Numbers', live: 'Live' },
     hero: {
       badge: 'Case study · 2025 – 2026',
-      title: 'WM kalkulator',
+      title: 'ALICOR',
       subtitle: 'Sauna manufacturing platform',
       desc: 'A full-stack operations system for a European sauna manufacturer: product configurator, ERP/CRM, logistics with live map, AI-powered call analytics, lead SLA tracking and deep amoCRM sync.',
       cta1: 'Explore modules',
@@ -157,7 +157,7 @@ const CONTENT = {
     nav: { features: 'Возможности', modules: 'Модули', stack: 'Стек', numbers: 'Цифры', live: 'Live' },
     hero: {
       badge: 'Кейс · 2025 – 2026',
-      title: 'WM kalkulator',
+      title: 'ALICOR',
       subtitle: 'Платформа производителя саун',
       desc: 'Полнофункциональная операционная система для европейского производителя саун: конфигуратор продукта, CRM/ERP, логистика с живой картой, AI-аналитика звонков, SLA-контроль лидов и глубокая синхронизация с amoCRM.',
       cta1: 'Смотреть модули',
@@ -252,7 +252,7 @@ export default function PortfolioPage() {
 
   useEffect(() => {
     localStorage.setItem('portfolio-lang', lang);
-    document.title = 'WM kalkulator · Portfolio case study';
+    document.title = 'ALICOR · Portfolio case study';
   }, [lang]);
 
   return (
@@ -270,9 +270,9 @@ export default function PortfolioPage() {
       <header className="sticky top-0 z-40 backdrop-blur-xl border-b border-white/5" style={{ background: 'rgba(7,10,19,0.6)' }}>
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-cyan-400 flex items-center justify-center text-[15px] font-bold text-white shadow-lg shadow-indigo-500/30">W</div>
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-cyan-400 flex items-center justify-center text-[15px] font-bold text-white shadow-lg shadow-indigo-500/30">A</div>
             <div className="leading-tight">
-              <div className="text-sm font-semibold tracking-tight">WM kalkulator</div>
+              <div className="text-sm font-semibold tracking-tight">ALICOR</div>
               <div className="text-[10px] uppercase tracking-[0.2em] text-slate-400">Portfolio case</div>
             </div>
           </div>
