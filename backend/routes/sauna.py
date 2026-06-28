@@ -702,17 +702,6 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     # Get header title from template
     header_title = template_texts.get('headerTitle', 'OFERTA HANDLOWA')
     
-    # Try to load custom logo from template
-    custom_logo_img = None
-    if pdf_template.get('logoImageId'):
-        logo_data = await load_template_image(pdf_template.get('logoImageId'))
-        if logo_data:
-            try:
-                logo_buffer = io.BytesIO(logo_data)
-                custom_logo_img = RLImage(logo_buffer, width=180, height=36)
-            except Exception as e:
-                logger.warning(f"Could not load custom logo: {e}")
-    
     # ALICOR company identity (all configurable via PDF template editor)
     company_name = template_texts.get('companyName', 'ALICOR SPA')
     company_legal = template_texts.get('companyLegalName', 'ALICOR Sp. z o.o.')
@@ -720,8 +709,8 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     company_nip = template_texts.get('companyNIP', '7011250572')
     company_regon = template_texts.get('companyRegon', '541183349')
 
-    # Logo: custom uploaded logo if present, otherwise the styled company name
-    logo_cell = custom_logo_img or Paragraph(
+    # Logo: always rendered as a styled text wordmark (no image logo in PDF)
+    logo_cell = Paragraph(
         f'<b>{company_name}</b>',
         ParagraphStyle('Logo', fontName='DejaVuSans-Bold', fontSize=24, textColor=BROWN)
     )
