@@ -177,8 +177,8 @@ export const Header = ({
                   FAQ ⚙
                 </Button>
               )}
-              {/* PDF Template - only for sauna admins */}
-              {calculatorType === 'sauna' && isAdminAuthenticated && (
+              {/* PDF Template - for sauna & balia admins */}
+              {(calculatorType === 'sauna' || calculatorType === 'balia') && isAdminAuthenticated && (
                 <Button
                   variant={activeTab === 'pdf-template' ? 'default' : 'ghost'}
                   size="sm"
@@ -386,8 +386,8 @@ export const Header = ({
                     FAQ ⚙
                   </Button>
                 )}
-                {/* PDF Template - only for sauna admins */}
-                {calculatorType === 'sauna' && isAdminAuthenticated && (
+                {/* PDF Template - for sauna & balia admins */}
+                {(calculatorType === 'sauna' || calculatorType === 'balia') && isAdminAuthenticated && (
                   <Button
                     variant={activeTab === 'pdf-template' ? 'default' : 'ghost'}
                     size="sm"

@@ -1975,3 +1975,19 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
   registerFontFamily). Раньше balia PDF с markup в заголовке (`<font>`) падал ps2tt-
   ошибкой, если до этого в процессе не генерился sauna-PDF. Теперь работает автономно.
 - ⚠️ DEPLOY TO PRODUCTION (wm-kalkulator.pl) — чтобы увидеть на проде.
+
+## Session — Jul 2, 2026 (4th): Modal breakdown/warning + Balia PDF configurable requisites
+- **Модалка договора**: помимо панели сумм добавлено предупреждение (amber banner,
+  testid=contract-budget-warning) когда сумма выбранных КП ≠ сумме сделки лида
+  (totalAmount) — показывает разницу. Разбивка по каждому КП (модель + сумма) уже
+  видна в строках списка. Подтверждено скриншотом (50 000 vs 60 000, разница 10 000).
+- **Конфигурируемые реквизиты PDF Купелей**: `routes/balia.py::generate_pdf` теперь
+  читает companyName / companyLegalName / companyAddress / companyNIP / companyRegon /
+  companySlogan / headerTitle из `pdf_templates{calculator_type:'balia',isDefault:true}`
+  (fallback — дефолты ALICOR). Проверено curl: кастомные значения из шаблона попадают
+  в PDF; при отсутствии шаблона — ALICOR по умолчанию, WM отсутствует.
+- **Admin UI**: вкладка «Szablon PDF» (Konstruktor PDF) включена для купелей
+  (Header.jsx desktop+mobile: calculatorType 'sauna'||'balia'; App.js монтирует
+  `<PDFTemplateEditor calculatorType="balia"/>` на activeTab='pdf-template'). Вкладка
+  «Тексты» даёт редактирование всех реквизитов. Подтверждено скриншотом.
+- ⚠️ DEPLOY TO PRODUCTION (wm-kalkulator.pl).

@@ -100,6 +100,7 @@ export const ContractGenerationModal = ({ open, onOpenChange, leadId, apiUrl, au
   const selectedCount = kps.filter(k => selected[k.orderId]).length;
   const selectedTotal = kps.filter(k => selected[k.orderId]).reduce((s, k) => s + (Number(k.total) || 0), 0);
   const depositAmount = Math.round(selectedTotal * (Number(depositPct) || 0) / 100);
+  const budgetMismatch = Number(client.totalAmount) > 0 && Number(client.totalAmount) !== selectedTotal && selectedTotal > 0;
 
   const applyTotals = () => {
     setClient(prev => ({
@@ -206,6 +207,15 @@ export const ContractGenerationModal = ({ open, onOpenChange, leadId, apiUrl, au
                   <span className="text-gray-600">Сумма выбранных КП ({selectedCount})</span>
                   <span className="font-semibold" data-testid="contract-selected-total">{selectedTotal.toLocaleString('ru-RU')}</span>
                 </div>
+                {budgetMismatch && (
+                  <div className="flex items-start gap-2 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-md p-2" data-testid="contract-budget-warning">
+                    <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+                    <span>
+                      Сумма КП ({selectedTotal.toLocaleString('ru-RU')}) не совпадает с суммой сделки
+                      ({Number(client.totalAmount).toLocaleString('ru-RU')}). Разница: {Math.abs(selectedTotal - Number(client.totalAmount)).toLocaleString('ru-RU')}.
+                    </span>
+                  </div>
+                )}
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-gray-600 whitespace-nowrap">Задаток</span>
                   <Input

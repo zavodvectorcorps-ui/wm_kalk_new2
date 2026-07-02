@@ -1243,7 +1243,18 @@ async def generate_pdf(request: PDFRequest):
         except Exception as e:
             logger.warning(f"Could not load model image: {e}")
     
-    # ========== HEADER - styled ALICOR SPA text ==========
+    # Load configurable company requisites from the balia PDF template
+    _tpl = await db.pdf_templates.find_one({"calculator_type": "balia", "isDefault": True}, {"_id": 0})
+    _tt = (_tpl or {}).get("texts", {}) or {}
+    company_name = _tt.get('companyName', 'ALICOR SPA')
+    company_legal = _tt.get('companyLegalName', 'ALICOR Sp. z o.o.')
+    company_address = _tt.get('companyAddress', 'Warszawa, ul. Szeligowska 77, 05-850')
+    company_nip = _tt.get('companyNIP', '7011250572')
+    company_regon = _tt.get('companyRegon', '541183349')
+    header_title = _tt.get('headerTitle', 'OFERTA HANDLOWA')
+    company_slogan = _tt.get('companySlogan', 'ALICOR SPA  •  ul. Szeligowska 77, 05-850 Warszawa  •  +48 555 666 777  •  info@alicor.pl')
+
+    # ========== HEADER - styled company text ==========
     logo_style = ParagraphStyle(
         'LogoStyle',
         fontName='DejaVuSans-Bold',
@@ -1251,15 +1262,15 @@ async def generate_pdf(request: PDFRequest):
         textColor=BLUE_DARK,
         leading=32,
     )
-    logo_cell = Paragraph('<font color="#2563EB">ALICOR</font> <font color="#1E40AF">SPA</font>', logo_style)
+    logo_cell = Paragraph(f'<font color="#1E40AF"><b>{company_name}</b></font>', logo_style)
     
     header_data = [[
         logo_cell,
         '',
-        Paragraph('''<b>OFERTA HANDLOWA</b><br/>
-        <font size="9" color="#6B7280">ALICOR Sp. z o.o.</font><br/>
-        <font size="8" color="#6B7280">Warszawa, ul. Szeligowska 77, 05-850</font><br/>
-        <font size="8" color="#6B7280">NIP: 7011250572  •  REGON: 541183349</font>''',
+        Paragraph(f'''<b>{header_title}</b><br/>
+        <font size="9" color="#6B7280">{company_legal}</font><br/>
+        <font size="8" color="#6B7280">{company_address}</font><br/>
+        <font size="8" color="#6B7280">NIP: {company_nip}  •  REGON: {company_regon}</font>''',
         ParagraphStyle('HeaderRight', fontName='DejaVuSans', fontSize=16, alignment=TA_RIGHT, textColor=BLUE))
     ]]
     header_table = Table(header_data, colWidths=[200, 130, 200])
@@ -1735,8 +1746,8 @@ async def generate_pdf(request: PDFRequest):
     
     # ========== FOOTER ==========
     elements.append(Spacer(1, 20))
-    footer_text = Paragraph('''<font size="8" color="#6B7280">
-    ALICOR SPA  •  ul. Szeligowska 77, 05-850 Warszawa  •  +48 555 666 777  •  info@alicor.pl  •  www.alicor.pl<br/>
+    footer_text = Paragraph(f'''<font size="8" color="#6B7280">
+    {company_slogan}<br/>
     Dziękujemy za zainteresowanie naszą ofertą. W razie pytań prosimy o kontakt.<br/>
     Oferta nie stanowi oferty handlowej w rozumieniu Kodeksu Cywilnego.
     </font>''', ParagraphStyle('Footer', fontName='DejaVuSans', fontSize=8, textColor=MUTED, alignment=TA_CENTER))
