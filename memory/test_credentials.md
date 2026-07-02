@@ -33,7 +33,7 @@
 - Marketer: `marketer` / `marketer123`
 
 ## Dealer Portal access
-- Preview: https://sauna-prod-suite.preview.emergentagent.com/dealer
+- Preview: https://alicor-spa-preview.preview.emergentagent.com/dealer
 - Production after deploy: https://wm-kalkulator.pl/dealer
   (or on separate domain when DNS configured: dealer.wm-kalkulator.pl, wm-dealers.pl, etc.)
 

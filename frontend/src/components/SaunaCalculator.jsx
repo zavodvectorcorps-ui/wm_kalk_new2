@@ -1935,10 +1935,17 @@ const SummaryCard = ({
 
             {/* Action Buttons */}
             <div className="space-y-2">
-              <Button onClick={handleSaveAndGeneratePDF} disabled={loading} className="w-full bg-amber-600 hover:bg-amber-700">
+              <Button onClick={() => handleSaveAndGeneratePDF(false)} disabled={loading} className="w-full bg-amber-600 hover:bg-amber-700" data-testid="save-generate-pdf-btn">
                 {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <><Save className="h-4 w-4 mr-2" /><FileDown className="h-4 w-4 mr-2" /></>}
                 {isEditMode ? txt.saveChangesAndPdf : txt.saveAndGeneratePDF}
               </Button>
+
+              {isEditMode && (
+                <Button onClick={() => handleSaveAndGeneratePDF(true)} disabled={loading} variant="outline" className="w-full border-amber-500 text-amber-700 hover:bg-amber-50" data-testid="create-new-kp-btn">
+                  <Plus className="h-4 w-4 mr-2" />
+                  {txt.createNewKp}
+                </Button>
+              )}
               
               {isEditMode ? (
                 <Button onClick={handleCancelEdit} disabled={loading} variant="outline" className="w-full border-amber-300 text-amber-700 hover:bg-amber-50">

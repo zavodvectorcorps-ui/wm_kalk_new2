@@ -2332,7 +2332,38 @@ async def upload_calculator_pdf_to_amocrm(
             upsert=True
         )
         pdf_saved = True
-        
+
+        # --- KP version history (keep last 10 versions per order) ---
+        try:
+            vcol = db["calculator_pdf_versions"]
+            last = vcol.find_one(
+                {"order_id": order_id}, sort=[("version", -1)], projection={"version": 1}
+            )
+            next_ver = ((last or {}).get("version", 0) or 0) + 1
+            vcol.insert_one({
+                "order_id": order_id,
+                "amocrm_id": amocrm_id,
+                "calculator_type": calculator_type,
+                "client_name": client_name,
+                "employee_name": employee_name,
+                "total_amount": total_amount,
+                "pdf_data": pdf_bytes,
+                "filename": f"KP_{calculator_type.upper()}_{order_id}_v{next_ver}.pdf",
+                "version": next_ver,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            })
+            pdf_collection.update_one(
+                {"order_id": order_id}, {"$set": {"currentVersion": next_ver}}
+            )
+            # Trim to last 10 versions
+            old = list(
+                vcol.find({"order_id": order_id}, {"_id": 1}).sort("version", -1).skip(10)
+            )
+            if old:
+                vcol.delete_many({"_id": {"$in": [o["_id"] for o in old]}})
+        except Exception as ve:
+            logger.error(f"KP version save failed for {order_id}: {ve}")
+
     except Exception as e:
         logger.error(f"Error saving PDF: {e}")
     
@@ -2737,6 +2768,62 @@ async def download_calculator_pdf(order_id: str):
             "Content-Disposition": f'attachment; filename="{filename}"'
         }
     )
+
+
+@router.get("/calculator-pdf-versions/{order_id}")
+async def list_calculator_pdf_versions(order_id: str):
+    """List KP versions (metadata only) for an order, newest first."""
+    vcol = db["calculator_pdf_versions"]
+    versions = list(
+        vcol.find(
+            {"order_id": order_id},
+            {"_id": 0, "pdf_data": 0},
+        ).sort("version", -1)
+    )
+    current = None
+    cur_doc = db["calculator_pdfs"].find_one({"order_id": order_id}, {"currentVersion": 1})
+    if cur_doc:
+        current = cur_doc.get("currentVersion")
+    return {"order_id": order_id, "currentVersion": current, "versions": versions}
+
+
+@router.get("/calculator-pdf/{order_id}/version/{version}")
+async def download_calculator_pdf_version(order_id: str, version: int):
+    """Download a specific KP version by order id + version number."""
+    vcol = db["calculator_pdf_versions"]
+    vdoc = vcol.find_one({"order_id": order_id, "version": version}, {"_id": 0})
+    if not vdoc or not vdoc.get("pdf_data"):
+        return {"status": "error", "message": "Version not found"}
+    return Response(
+        content=vdoc["pdf_data"],
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="{vdoc.get("filename", f"KP_{order_id}_v{version}.pdf")}"'
+        }
+    )
+
+
+@router.post("/calculator-pdf/{order_id}/rollback/{version}")
+async def rollback_calculator_pdf_version(order_id: str, version: int):
+    """Make a previous KP version the current one (used by contracts / amoCRM).
+
+    Copies the chosen version's PDF bytes into the current calculator_pdfs doc.
+    """
+    vcol = db["calculator_pdf_versions"]
+    vdoc = vcol.find_one({"order_id": order_id, "version": version}, {"_id": 0})
+    if not vdoc or not vdoc.get("pdf_data"):
+        raise HTTPException(status_code=404, detail="Version not found")
+    db["calculator_pdfs"].update_one(
+        {"order_id": order_id},
+        {"$set": {
+            "pdf_data": vdoc["pdf_data"],
+            "filename": vdoc.get("filename", f"KP_{order_id}.pdf"),
+            "currentVersion": version,
+            "rolledBackAt": datetime.now(timezone.utc).isoformat(),
+        }},
+        upsert=True,
+    )
+    return {"status": "ok", "order_id": order_id, "currentVersion": version}
 
 
 @router.post("/sync-order")

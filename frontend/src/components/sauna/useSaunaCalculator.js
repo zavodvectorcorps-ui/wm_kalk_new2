@@ -866,7 +866,7 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
   }, [prices.categories, formData.selections, formData.quantities, formData.variantSelections, getSelectedModel, isOptionVisible, getOptionBasePrice]);
 
   // Save and generate PDF
-  const handleSaveAndGeneratePDF = async () => {
+  const handleSaveAndGeneratePDF = async (forceNew = false) => {
     if (!validateForm()) return;
 
     setLoading(true);
@@ -885,7 +885,7 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
         total = total * (1 - certPct / 100); // configurable certificate discount
       }
       
-      const orderId = isEditMode && editOrderId ? editOrderId : undefined;
+      const orderId = (isEditMode && editOrderId && !forceNew) ? editOrderId : undefined;
       
       // Get effective price (base price + variant price)
       const baseModelPrice = model?.basePrice || 0;
@@ -975,7 +975,7 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
           return null;
         })(),
         // Edit mode fields
-        ...(isEditMode && editOrderId && {
+        ...(isEditMode && editOrderId && !forceNew && {
           updatedBy: user?.username || 'calculator',
           updatedAt: new Date().toISOString(),
         }),
@@ -990,14 +990,14 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
 
       let finalOrderId;
       
-      if (isEditMode && editOrderId) {
+      if (isEditMode && editOrderId && !forceNew) {
         await axios.put(`${API_URL}/api/sauna/orders/${editOrderId}`, orderData);
         finalOrderId = editOrderId;
         toast.success(txt.orderUpdated);
       } else {
         const orderResponse = await axios.post(`${API_URL}/api/sauna/orders`, orderData);
         finalOrderId = orderResponse.data?.id || '';
-        toast.success(txt.orderSaved);
+        toast.success(forceNew ? (txt.newKpCreated || txt.orderSaved) : txt.orderSaved);
       }
 
       // Generate PDF with additional page 2 data

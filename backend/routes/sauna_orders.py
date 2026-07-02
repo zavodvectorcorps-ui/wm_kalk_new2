@@ -61,33 +61,11 @@ async def generate_sauna_pdf_bytes_import(request: SaunaPDFRequest) -> bytes:
 
 @router.post("/orders", response_model=SaunaOrder)
 async def create_sauna_order(order: SaunaOrder):
-    """Create a sauna order, or UPDATE the existing one for the same amoCRM
-    client so re-saving from the calculator does not spawn duplicate orders.
-
-    Dedup key: ``amocrm_id`` among calculator-created orders (source != 'amocrm').
-    This keeps ONE current order (and thus ONE current КП) per amoCRM client.
-    """
+    """Create a new sauna order"""
     order_dict = order.model_dump()
-
-    # Dedup by amoCRM id: reuse the existing calculator order's id so the
-    # linked КП (calculator_pdfs keyed by order_id) is overwritten in place.
-    amocrm_id = order_dict.get('amocrm_id')
-    existing = None
-    if amocrm_id:
-        existing = await db.sauna_orders.find_one({
-            "amocrm_id": amocrm_id,
-            "source": {"$ne": "amocrm"},
-        })
-
-    if existing:
-        order_dict['id'] = existing['id']
-        order_dict['createdAt'] = existing.get('createdAt', order_dict.get('createdAt'))
-        order_dict['updatedAt'] = datetime.now(timezone.utc).isoformat()
-        await db.sauna_orders.update_one({"id": existing['id']}, {"$set": order_dict})
-        order.id = order_dict['id']
-    else:
-        # Save order first
-        await db.sauna_orders.insert_one(order_dict)
+    
+    # Save order first
+    await db.sauna_orders.insert_one(order_dict)
     
     # Log certificate usage if applied
     if order_dict.get('certificateDiscount'):

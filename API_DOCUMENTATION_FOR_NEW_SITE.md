@@ -3,7 +3,7 @@
 ## Базовый URL
 ```
 Production: https://wm-kalkulator.pl
-Preview: https://sauna-prod-suite.preview.emergentagent.com
+Preview: https://alicor-spa-preview.preview.emergentagent.com
 ```
 
 ---
