@@ -1957,3 +1957,21 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
 - Note: a transient GET /api/orders 500 during testing was caused by main-agent
   seed data missing required `phoneNumber` — seed removed, endpoint back to 200.
 - ⚠️ DEPLOY TO PRODUCTION (wm-kalkulator.pl) required for user to see changes.
+
+## Session — Jul 2, 2026 (3rd): Contract-modal totals + Balia PDF ALICOR rebrand
+- **Улучшение модалки договора** (`ContractGenerationModal.jsx`): панель под списком КП
+  показывает «Сумма выбранных КП (N)», поле «Задаток %» (по умолч. 30) с авто-расчётом
+  суммы задатка и кнопку «Подставить в сумму и задаток» (заполняет totalAmount +
+  advancePayment клиента). testids: contract-totals-panel / contract-selected-total /
+  contract-deposit-pct / contract-deposit-amount / contract-apply-totals. Подтверждено
+  скриншотом.
+- **PDF Купелей (Balia) ребрендинг WM → ALICOR** (`routes/balia.py::generate_pdf`):
+  логотип-хедер «ALICOR SPA», справа ALICOR Sp. z o.o. + адрес + NIP 7011250572 /
+  REGON 541183349, футер со слоганом ALICOR (contacts + alicor.pl), ярлык подарка
+  «Prezent od ALICOR SPA». Проверено: PDF HTTP 200, ALICOR/NIP/alicor.pl присутствуют,
+  0 упоминаний WM.
+- **Фикс латентного бага шрифтов**: balia `generate_pdf`/`generate_pdf_bytes` теперь
+  вызывают `services.pdf_fonts.ensure_pdf_fonts()` (регистрирует шрифт-СЕМЕЙСТВО через
+  registerFontFamily). Раньше balia PDF с markup в заголовке (`<font>`) падал ps2tt-
+  ошибкой, если до этого в процессе не генерился sauna-PDF. Теперь работает автономно.
+- ⚠️ DEPLOY TO PRODUCTION (wm-kalkulator.pl) — чтобы увидеть на проде.

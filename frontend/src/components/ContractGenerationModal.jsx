@@ -21,6 +21,7 @@ export const ContractGenerationModal = ({ open, onOpenChange, leadId, apiUrl, au
   const [client, setClient] = useState({ clientName: '', phone: '', email: '', address: '', totalAmount: '', advancePayment: '' });
   const [kps, setKps] = useState([]);
   const [selected, setSelected] = useState({});
+  const [depositPct, setDepositPct] = useState(30);
 
   useEffect(() => {
     if (!open || !leadId) return;
@@ -97,6 +98,17 @@ export const ContractGenerationModal = ({ open, onOpenChange, leadId, apiUrl, au
   };
 
   const selectedCount = kps.filter(k => selected[k.orderId]).length;
+  const selectedTotal = kps.filter(k => selected[k.orderId]).reduce((s, k) => s + (Number(k.total) || 0), 0);
+  const depositAmount = Math.round(selectedTotal * (Number(depositPct) || 0) / 100);
+
+  const applyTotals = () => {
+    setClient(prev => ({
+      ...prev,
+      totalAmount: selectedTotal || prev.totalAmount,
+      advancePayment: depositAmount || prev.advancePayment,
+    }));
+    toast.success('Сумма и задаток подставлены в данные клиента');
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -186,6 +198,39 @@ export const ContractGenerationModal = ({ open, onOpenChange, leadId, apiUrl, au
                 </div>
               )}
             </div>
+
+            {/* Totals preview + auto deposit */}
+            {selectedCount > 0 && (
+              <div className="rounded-lg border border-blue-200 bg-blue-50/60 p-3 space-y-2" data-testid="contract-totals-panel">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600">Сумма выбранных КП ({selectedCount})</span>
+                  <span className="font-semibold" data-testid="contract-selected-total">{selectedTotal.toLocaleString('ru-RU')}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600 whitespace-nowrap">Задаток</span>
+                  <Input
+                    type="number"
+                    value={depositPct}
+                    onChange={e => setDepositPct(e.target.value)}
+                    className="h-8 w-20"
+                    data-testid="contract-deposit-pct"
+                  />
+                  <span className="text-sm text-gray-600">%</span>
+                  <span className="text-sm font-medium ml-auto" data-testid="contract-deposit-amount">
+                    = {depositAmount.toLocaleString('ru-RU')}
+                  </span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full border-blue-400 text-blue-700 hover:bg-blue-100"
+                  onClick={applyTotals}
+                  data-testid="contract-apply-totals"
+                >
+                  Подставить в сумму и задаток
+                </Button>
+              </div>
+            )}
           </div>
         )}
 
