@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Checkbox } from './ui/checkbox';
 import { Badge } from './ui/badge';
 import { toast } from 'sonner';
-import { FileDown, Save, RotateCcw, Loader2, Droplets, Check, Package, Info, Percent, Tag, X, Edit, Gift, Shield, Circle, Ruler, ArrowDownUp, Gauge, Users, Flame, Weight, User, Phone, Mail, MapPin, Play, Image as ImageIcon } from 'lucide-react';
+import { FileDown, Save, RotateCcw, Loader2, Droplets, Check, Package, Info, Percent, Tag, X, Edit, Gift, Shield, Circle, Ruler, ArrowDownUp, Gauge, Users, Flame, Weight, User, Phone, Mail, MapPin, Play, Plus, Image as ImageIcon } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import axios from 'axios';
@@ -749,7 +749,7 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
     return Number.isInteger(raw) && raw > 0 ? raw : 1;
   };
 
-  const handleSaveOrderAndGeneratePdf = async () => {
+  const handleSaveOrderAndGeneratePdf = async (forceNew = false) => {
     if (!formData.fullName || !formData.selectedModel) {
       toast.error(t('balia.fillRequired'));
       return;
@@ -844,10 +844,11 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
         }
       });
 
-      // Use existing order ID in edit mode, otherwise generate new one
-      const orderId = isEditMode && editOrderId 
-        ? editOrderId 
-        : `WMB-${String(new Date().getDate()).padStart(2, '0')}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${new Date().getFullYear()}-${String(new Date().getHours()).padStart(2, '0')}${String(new Date().getMinutes()).padStart(2, '0')}${String(new Date().getSeconds()).padStart(2, '0')}`;
+      // Use existing order ID when updating; generate a fresh one for new / "create new KP"
+      const isUpdate = isEditMode && editOrderId && !forceNew;
+      const orderId = isUpdate
+        ? editOrderId
+        : `ALB-${String(new Date().getDate()).padStart(2, '0')}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${new Date().getFullYear()}-${String(new Date().getHours()).padStart(2, '0')}${String(new Date().getMinutes()).padStart(2, '0')}${String(new Date().getSeconds()).padStart(2, '0')}`;
 
       // Calculate total considering admin gifts
       const subtotal = calculateSubtotal();
@@ -886,7 +887,7 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
         subtotal: subtotal,
         total: total,
         currency: prices.currency || 'EUR',
-        createdAt: isEditMode ? (editingOrder?.createdAt || new Date().toISOString()) : new Date().toISOString(),
+        createdAt: isUpdate ? (editingOrder?.createdAt || new Date().toISOString()) : new Date().toISOString(),
         createdBy: user?.username || '',
         // Admin fields
         adminGifts: adminGifts,
@@ -897,7 +898,7 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
         requestedDiscount: !isAdminUser ? requestedDiscount : 0,
         requestedDiscountNote: !isAdminUser ? requestedDiscountNote : '',
         // Edit mode fields
-        ...(isEditMode && {
+        ...(isUpdate && {
           updatedBy: user?.username || 'calculator',
           updatedAt: new Date().toISOString(),
         }),
@@ -910,13 +911,13 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
         }),
       };
 
-      // Save order - PUT for edit, POST for new
-      if (isEditMode) {
+      // Save order - PUT for edit/update, POST for new / create-new-KP
+      if (isUpdate) {
         await axios.put(`${API_URL}/api/orders/${orderId}`, order);
         toast.success(lang === 'pl' ? 'Zamówienie zaktualizowane!' : 'Заказ обновлён!');
       } else {
         await axios.post(`${API_URL}/api/orders`, order);
-        toast.success(t('balia.saved'));
+        toast.success(forceNew ? (lang === 'pl' ? 'Utworzono nowe KP!' : 'Создано новое КП!') : t('balia.saved'));
       }
 
       // Generate PDF
@@ -2111,9 +2112,10 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
 
               <div className="space-y-2 pt-4">
                 <Button
-                  onClick={handleSaveOrderAndGeneratePdf}
+                  onClick={() => handleSaveOrderAndGeneratePdf(false)}
                   disabled={saving || !formData.selectedModel}
                   className="w-full bg-blue-600 hover:bg-blue-700"
+                  data-testid="balia-save-generate-pdf-btn"
                 >
                   {saving ? (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -2123,10 +2125,22 @@ export const CalculatorPage = ({ editingOrder = null, onEditComplete, amocrmPref
                     </>
                   )}
                   {isEditMode 
-                    ? (lang === 'pl' ? 'Zapisz zmiany i pobierz PDF' : 'Сохранить изменения и скачать PDF')
+                    ? (lang === 'pl' ? 'Zaktualizuj KP i pobierz PDF' : 'Обновить КП и скачать PDF')
                     : (lang === 'pl' ? 'Zapisz i pobierz PDF' : 'Сохранить и скачать PDF')
                   }
                 </Button>
+                {isEditMode && (
+                  <Button
+                    variant="outline"
+                    onClick={() => handleSaveOrderAndGeneratePdf(true)}
+                    disabled={saving || !formData.selectedModel}
+                    className="w-full border-blue-500 text-blue-700 hover:bg-blue-50"
+                    data-testid="balia-create-new-kp-btn"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    {lang === 'pl' ? 'Utwórz nowe KP' : 'Создать новое КП'}
+                  </Button>
+                )}
                 {isEditMode ? (
                   <Button
                     variant="outline"

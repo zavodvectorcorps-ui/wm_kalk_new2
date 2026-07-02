@@ -23,6 +23,7 @@ import { getApiUrl } from '../utils/api';
 import { DuplicatesModal } from './DuplicatesModal';
 import { TechSpecModal } from './tech-spec';
 import { ContractTemplateSettings } from './ContractTemplateSettings';
+import { ContractGenerationModal } from './ContractGenerationModal';
 
 const API_URL = getApiUrl();
 
@@ -54,6 +55,7 @@ const SaunaCRMPage = () => {
   const [uploading, setUploading] = useState(false);
   const [uploadDocType, setUploadDocType] = useState('kp');
   const [generatingContract, setGeneratingContract] = useState(false);
+  const [contractModalOpen, setContractModalOpen] = useState(false);
   
   // Settings
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -1380,37 +1382,7 @@ const SaunaCRMPage = () => {
                 <Button
                   size="sm"
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                  onClick={async () => {
-                    try {
-                      setGeneratingContract(true);
-                      const res = await fetch(`${API_URL}/api/sauna-crm/generate-contract`, {
-                        method: 'POST',
-                        headers: { ...authHeaders, 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ leadId: selectedLead.id })
-                      });
-                      if (res.ok) {
-                        const data = await res.json();
-                        if (data.kpAttached) {
-                          toast.success('Договор создан (с КП)');
-                        } else {
-                          toast.warning(data.kpError ? `Договор создан без КП: ${data.kpError}` : 'Договор создан (без КП)');
-                        }
-                        // Refresh lead data
-                        const updated = await fetch(`${API_URL}/api/sauna-crm/leads/${selectedLead.id}`, { headers: authHeaders });
-                        if (updated.ok) {
-                          const updData = await updated.json();
-                          setSelectedLead(updData);
-                          setEditData(updData);
-                        }
-                        // Open contract in new tab
-                        if (data.contractUrl) window.open(data.contractUrl, '_blank');
-                      } else {
-                        const errData = await res.json().catch(() => ({}));
-                        toast.error(`Ошибка: ${errData.detail || res.statusText}`);
-                      }
-                    } catch (e) { toast.error(`Ошибка создания договора: ${e.message}`); }
-                    finally { setGeneratingContract(false); }
-                  }}
+                  onClick={() => setContractModalOpen(true)}
                   disabled={generatingContract}
                   data-testid="generate-contract-btn"
                 >
@@ -1496,6 +1468,23 @@ const SaunaCRMPage = () => {
 
       {/* Settings Modal */}
       <DuplicatesModal open={showDuplicatesModal} onClose={() => setShowDuplicatesModal(false)} onMerged={fetchLeads} />
+      {selectedLead && (
+        <ContractGenerationModal
+          open={contractModalOpen}
+          onOpenChange={setContractModalOpen}
+          leadId={selectedLead.id}
+          apiUrl={API_URL}
+          authHeaders={authHeaders}
+          onGenerated={async () => {
+            const updated = await fetch(`${API_URL}/api/sauna-crm/leads/${selectedLead.id}`, { headers: authHeaders });
+            if (updated.ok) {
+              const updData = await updated.json();
+              setSelectedLead(updData);
+              setEditData(updData);
+            }
+          }}
+        />
+      )}
       <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>

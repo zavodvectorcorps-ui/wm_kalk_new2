@@ -1,0 +1,34 @@
+{
+  "summary": "Verified Contract Generation Modal (Sauna CRM) + Balia edit-mode dual-button feature. All 4 backend tests passed. Frontend flow verified end-to-end: modal opens, all 6 client fields + KP checkboxes render, edited client name saves, contract generated (new tab opened, document appears in lead's Docs). Balia calculator confirmed to render both save-generate-pdf and create-new-kp buttons in edit mode (via ?edit=ALB-TEST-KP-1) and only the save button in new mode.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "SaunaCRMPage / SaunaProductionPage", "issues": ["React warning: 'Each child in a list should have a unique key prop.' observed in SaunaCRMPage and SaunaProductionPage render — non-blocking but should be fixed."]},
+      {"screen": "Balia Zamowienia list", "issues": ["GET orders list returns 500 in Balia orders view (Błąd toast, empty list). Not related to current feature but users can't reach edit mode from UI order list. Edit via direct URL /balia/calculator?edit=<id> works."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_contract_gen_modal.py",
+    "/app/test_reports/pytest/contract_gen_modal.xml"
+  ],
+  "action_items": [
+    "Investigate React key-prop warnings in SaunaCRMPage / SaunaProductionPage render (low priority).",
+    "Investigate 500 error on Balia orders list (Zamówienia) endpoint — blocks reaching Balia edit mode from UI (workaround: URL param ?edit=<orderId>)."
+  ],
+  "critical_code_review_comments": [
+    "contract_template.py get_available_kps + generate_contract_with_kp: correctly wires selected_order_ids and client_overrides; kpAttached flag reflects real state (False on empty selection). No _id leakage observed in JSON response.",
+    "CalculatorPage.jsx buttons at ~L2113: balia-create-new-kp-btn correctly gated by {isEditMode &&}. Non-edit mode shows only balia-save-generate-pdf-btn — verified.",
+    "ContractGenerationModal.jsx correctly disables checkbox for KPs with hasPdf=false (verified: WMS-20-02-2026-105210 rendered but disabled — good UX)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_contract_gen_modal.py (new)"
+  ],
+  "success_rate": {"backend": "100% (4/4)", "frontend": "100% (both flows verified)"},
+  "test_credentials": "admin / admin123",
+  "seed_data_creation": "Used pre-seeded lead CRM-TEST-NOPDF-276A with KPs ALS-TEST-KP-1, ALB-TEST-KP-1. Backend tests updated the lead's clientName to 'QA Client'. Frontend UI further changed clientName to 'QA Client UI Full' and generated 'Umowa QA Client UI Full' contract attached to the lead.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Sauna CRM is accessed via: Landing -> Sauna calculator card -> CRM tab (data-testid=crm-tab-btn) -> Канбан view -> click lead card. Balia edit mode reachable via /balia/calculator?edit=<orderId> (Zamowienia list currently 500). generate-contract-btn opens ContractGenerationModal (data-testid=contract-generation-modal) with contract-client-name/phone/email/address/total/advance and contract-kp-checkbox-{orderId} and contract-modal-generate. Backend endpoints /api/sauna-crm/contract-template/available-kps/{lead_id} and /api/sauna-crm/generate-contract (with/without selectedOrderIds/clientData) all working."
+}

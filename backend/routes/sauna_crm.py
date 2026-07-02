@@ -1780,8 +1780,16 @@ async def generate_contract(request: dict):
     if not lead_id:
         raise HTTPException(status_code=400, detail="leadId is required")
 
+    # Optional: explicit KP selection + client data edits from the contract modal
+    selected_order_ids = request.get("selectedOrderIds")  # None => auto-attach all (legacy)
+    client_data = request.get("clientData")  # None => no edits
+
     try:
-        return await generate_contract_with_kp(lead_id)
+        return await generate_contract_with_kp(
+            lead_id,
+            selected_order_ids=selected_order_ids,
+            client_overrides=client_data,
+        )
     except HTTPException:
         raise
     except Exception as e:
