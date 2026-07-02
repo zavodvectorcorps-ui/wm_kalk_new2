@@ -598,11 +598,30 @@ async def clear_all_images():
 
 @router.post("/orders", response_model=Order)
 async def create_order(order: Order):
-    """Create a new order"""
+    """Create a balia order, or UPDATE the existing one for the same amoCRM
+    client so re-saving from the calculator does not spawn duplicate orders.
+
+    Dedup key: ``amocrm_id`` among calculator-created orders (source != 'amocrm').
+    """
     order_dict = order.model_dump()
-    
-    # Save order first
-    await db.orders.insert_one(order_dict)
+
+    amocrm_id = order_dict.get('amocrm_id')
+    existing = None
+    if amocrm_id:
+        existing = await db.orders.find_one({
+            "amocrm_id": amocrm_id,
+            "source": {"$ne": "amocrm"},
+        })
+
+    if existing:
+        order_dict['id'] = existing['id']
+        order_dict['createdAt'] = existing.get('createdAt', order_dict.get('createdAt'))
+        order_dict['updatedAt'] = datetime.now(timezone.utc).isoformat()
+        await db.orders.update_one({"id": existing['id']}, {"$set": order_dict})
+        order.id = order_dict['id']
+    else:
+        # Save order first
+        await db.orders.insert_one(order_dict)
     
     # Then send Telegram notification with PDF
     pdf_generated = False

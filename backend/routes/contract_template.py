@@ -641,7 +641,7 @@ async def generate_contract_with_kp(lead_id: str) -> dict:
     kp_error = None
     if attach_kp:
         try:
-            kp_url, kp_attached = await _attach_kp_to_doc(doc, lead, calc_order_id)
+            kp_url, kp_attached = await _attach_all_kps_to_doc(doc, lead, calc_order_id, calc_col)
             if not kp_attached:
                 kp_error = f"KP not attached: url={kp_url}, no PDF data available"
         except Exception as e:
@@ -740,6 +740,137 @@ async def generate_contract_with_kp(lead_id: str) -> dict:
         "replacements": replacements
     }
 
+
+
+async def _get_pdf_bytes_for_order(order_id: str, order_doc: dict | None = None) -> bytes | None:
+    """Resolve the KP PDF bytes for a specific calculator order id."""
+    if not order_id:
+        return None
+    try:
+        pdf_doc = await db["calculator_pdfs"].find_one(
+            {"order_id": order_id}, {"pdf_data": 1, "cloudinary_url": 1}
+        )
+        if pdf_doc:
+            if pdf_doc.get("pdf_data"):
+                b = pdf_doc["pdf_data"]
+                return b if isinstance(b, bytes) else bytes(b)
+            if pdf_doc.get("cloudinary_url"):
+                b = await _download_file(pdf_doc["cloudinary_url"])
+                if b:
+                    return b
+    except Exception as e:
+        logger.error(f"_get_pdf_bytes_for_order query failed for {order_id}: {e}")
+    if order_doc and order_doc.get("kpCloudinaryUrl"):
+        b = await _download_file(order_doc["kpCloudinaryUrl"])
+        if b:
+            return b
+    return None
+
+
+def _append_kp_pages(doc, pdf_bytes: bytes, appendix_no: int, label: str) -> int:
+    """Append one KP (all pages, as images) with header 'Załącznik nr N – label'."""
+    from docx.shared import Inches, Emu, Pt
+    from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_BREAK
+
+    kp_images = []
+    if pdf_bytes[:4] == b'%PDF':
+        kp_images = _pdf_to_images(pdf_bytes)
+    elif pdf_bytes[:8] == b'\x89PNG\r\n\x1a\n' or pdf_bytes[:2] == b'\xff\xd8':
+        from PIL import Image
+        img = Image.open(io.BytesIO(pdf_bytes))
+        kp_images = [(pdf_bytes, img.width, img.height)]
+    else:
+        kp_images = _pdf_to_images(pdf_bytes)
+
+    if not kp_images:
+        return 0
+
+    bp = doc.add_paragraph()
+    bp.add_run().add_break(WD_BREAK.PAGE)
+    header_para = doc.add_paragraph()
+    header_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    header_run = header_para.add_run(f"Załącznik nr {appendix_no} – {label}")
+    header_run.bold = True
+    header_run.font.size = Pt(14)
+
+    for img_bytes_data, w, h in kp_images:
+        img_stream = io.BytesIO(img_bytes_data)
+        max_width = Inches(6.5)
+        aspect = h / w if w > 0 else 1
+        img_width = max_width
+        img_height = Emu(int(img_width * aspect))
+        if img_height > Inches(9):
+            img_height = Inches(9)
+            img_width = Emu(int(img_height / aspect)) if aspect > 0 else max_width
+        p = doc.add_paragraph()
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p.add_run().add_picture(img_stream, width=img_width)
+    return len(kp_images)
+
+
+_KP_COLLECTION_LABELS = {
+    "sauna_orders": "Sauna",
+    "orders": "Balia",
+    "balia_orders": "Balia",
+    "greenhouse_orders": "Szklarnia",
+}
+
+
+async def _attach_all_kps_to_doc(doc, lead: dict, calc_order_id: str | None, calc_col: str) -> tuple:
+    """Attach ALL KPs for the same amoCRM client (a client with BOTH a sauna and
+    a balia order gets both КП as separate appendices). Falls back to the legacy
+    single-KP attach when nothing is found by order id."""
+    amocrm_id = lead.get("amocrm_id")
+
+    kp_orders: list = []
+    seen = set()
+
+    def _add(oid, col):
+        if oid and oid not in seen:
+            seen.add(oid)
+            kp_orders.append((oid, col))
+
+    _add(calc_order_id, calc_col or "sauna_orders")
+
+    if amocrm_id:
+        for col in ("sauna_orders", "orders", "balia_orders"):
+            try:
+                async for o in db[col].find(
+                    {"amocrm_id": amocrm_id, "source": {"$ne": "amocrm"}},
+                    {"id": 1},
+                ):
+                    _add(o.get("id"), col)
+            except Exception as e:
+                logger.warning(f"Sibling KP lookup failed in {col}: {e}")
+
+    logger.info(f"KP orders to attach: {kp_orders} (amocrm_id={amocrm_id})")
+
+    attached = 0
+    appendix_no = 0
+    last_ref = None
+    for order_id, col in kp_orders:
+        order_doc = None
+        try:
+            order_doc = await db[col].find_one({"id": order_id}, {"kpCloudinaryUrl": 1})
+        except Exception:
+            pass
+        pdf_bytes = await _get_pdf_bytes_for_order(order_id, order_doc)
+        if not pdf_bytes:
+            logger.warning(f"No KP bytes for order {order_id} ({col}) — skipping")
+            continue
+        appendix_no += 1
+        label = _KP_COLLECTION_LABELS.get(col, "Specyfikacja")
+        n = _append_kp_pages(doc, pdf_bytes, appendix_no, label)
+        if n > 0:
+            attached += 1
+            last_ref = order_id
+            logger.info(f"Attached KP appendix {appendix_no} ({label}, {n} pages) from {order_id}")
+
+    if attached > 0:
+        return last_ref, True
+
+    logger.info("No order-based KP attached, falling back to legacy single-KP attach")
+    return await _attach_kp_to_doc(doc, lead, calc_order_id)
 
 
 async def _attach_kp_to_doc(doc, lead: dict, calc_order_id: str | None) -> tuple:
