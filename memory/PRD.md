@@ -1923,3 +1923,37 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
 - **Verified:** lint OK, endpoint 200 OK.
 - **Action:** деплой → «По обработке» + «По активности» →
   KPI-карточки покажут не только балл и %, но и состав работы.
+
+## Session — Jul 2, 2026 (cont.): Contract Modal + Balia "Update vs New KP"
+
+### 1. Contract Generation Modal (Sauna CRM)
+- `POST /api/sauna-crm/generate-contract` now accepts optional `selectedOrderIds`
+  (list of calculator order ids to attach — only these are appended) and
+  `clientData` (client field edits applied to the lead before generation).
+  Legacy call `{leadId}` still auto-attaches ALL KPs (backward compatible).
+- New `GET /api/sauna-crm/contract-template/available-kps/{lead_id}` — returns
+  client data + every calculator KP for the client (Sauna ALS-…, Balia ALB-…)
+  with `hasPdf` flag (checks calculator_pdfs.pdf_data / cloudinary_url /
+  order.kpCloudinaryUrl). Backend helpers `_gather_kp_orders`,
+  `_attach_kps_by_ids` in `routes/contract_template.py`.
+- Frontend `components/ContractGenerationModal.jsx` (new): editable client
+  fields (contract-client-name/phone/email/address/total/advance) + KP list
+  with checkboxes (contract-kp-checkbox-{id}, disabled when no PDF). Wired into
+  `SaunaCRMPage.jsx` — "Создать договор" (generate-contract-btn) now opens the
+  modal instead of instant generation.
+
+### 2. Balia (Купели) calculator — Update vs Create-New KP (parity with Sauna)
+- `CalculatorPage.jsx handleSaveOrderAndGeneratePdf(forceNew=false)`:
+  isUpdate = editMode && editOrderId && !forceNew → PUT existing; else POST new
+  (fresh `ALB-…` id). Edit-mode shows two buttons:
+  balia-save-generate-pdf-btn («Обновить КП и скачать PDF») +
+  balia-create-new-kp-btn («Создать новое КП»). New balia ids now use ALB- prefix.
+
+### Tested
+- Backend 4/4 pytest (`tests/test_contract_gen_modal.py`): available-kps shape,
+  selective attach, empty selection (no KP), legacy auto-attach. 100%.
+- Frontend both flows verified 100% (modal open/edit/select/generate; Balia dual
+  buttons in edit mode, single in new mode).
+- Note: a transient GET /api/orders 500 during testing was caused by main-agent
+  seed data missing required `phoneNumber` — seed removed, endpoint back to 200.
+- ⚠️ DEPLOY TO PRODUCTION (wm-kalkulator.pl) required for user to see changes.
