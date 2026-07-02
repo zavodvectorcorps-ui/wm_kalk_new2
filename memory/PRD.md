@@ -1991,3 +1991,16 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
   `<PDFTemplateEditor calculatorType="balia"/>` на activeTab='pdf-template'). Вкладка
   «Тексты» даёт редактирование всех реквизитов. Подтверждено скриншотом.
 - ⚠️ DEPLOY TO PRODUCTION (wm-kalkulator.pl).
+
+## Session — Jul 3, 2026: FIX белой страницы в калькуляторе Саун (edit mode)
+- **Баг (прод)**: при открытии заказа Саун на редактирование — белая страница.
+  Консоль прода: `Uncaught ReferenceError: Plus is not defined at
+  SaunaCalculator.jsx:1945`. Иконка `<Plus>` (кнопка «Создать новое КП» из прошлой
+  сессии) использовалась, но НЕ была импортирована из lucide-react.
+- **Фикс**: добавлен `Plus` в импорт lucide-react в `SaunaCalculator.jsx` (строка 15).
+- **Почему не ловилось раньше**: блок с `<Plus>` рендерится только в edit mode КОГДА
+  выбрана модель (карточка summary с кнопками). Прод-сборка компилируется без ошибок
+  (bare identifier падает только в рантайме), поэтому проверка сборки не выявляла.
+- **Проверено**: testing_agent 100% (iteration_110) — edit+модель рендерит 3 кнопки
+  без крэша, консоль чистая; регрессий нет (Balia edit, новый заказ Саун — ОК).
+- ⚠️ Нужно ПЕРЕДЕПЛОИТЬ на прод (Deploy to Production) — фикс во фронтенде.
