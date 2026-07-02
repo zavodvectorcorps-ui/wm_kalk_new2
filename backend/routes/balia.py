@@ -876,7 +876,7 @@ async def generate_pdf_bytes(request: PDFRequest) -> bytes:
     styles = getSampleStyleSheet()
     
     # Generate offer number
-    offer_number = request.orderId if request.orderId else f"WM-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+    offer_number = request.orderId if request.orderId else f"ALB-{datetime.now().strftime('%Y%m%d%H%M%S')}"
     
     # Custom styles
     title_style = ParagraphStyle('Title', fontName='DejaVuSans-Bold', fontSize=22, textColor=BLUE_DARK, alignment=TA_CENTER)
@@ -1154,10 +1154,10 @@ async def generate_pdf(request: PDFRequest):
     valid_until = (datetime.now() + timedelta(days=30)).strftime('%d.%m.%Y')
     
     # Use orderId if provided, otherwise generate new number
-    if request.orderId and request.orderId.startswith('WMB-'):
+    if request.orderId and request.orderId.startswith(('ALB-', 'WMB-')):
         offer_number = request.orderId
     else:
-        offer_number = f"WMB-{datetime.now().strftime('%d-%m-%Y-%H%M%S')}"
+        offer_number = f"ALB-{datetime.now().strftime('%d-%m-%Y-%H%M%S')}"
     currency = request.currency or 'EUR'
     
     # Load model image - first try from request, then fetch from DB based on heaterType
@@ -1980,7 +1980,7 @@ async def transfer_web_order_to_main(order_id: str, updates: dict = None):
         web_order.update(updates)
     
     # Create new order ID for main list
-    new_id = f"WMB-{datetime.now(timezone.utc).strftime('%d-%m-%Y-%H%M%S')}"
+    new_id = f"ALB-{datetime.now(timezone.utc).strftime('%d-%m-%Y-%H%M%S')}"
     
     # Convert to main order format
     main_order = {

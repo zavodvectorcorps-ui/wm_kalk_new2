@@ -640,12 +640,12 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     
     # Use orderId if provided
     order_id = getattr(request, 'orderId', '') or ''
-    if order_id and order_id.startswith('WMS-'):
+    if order_id and order_id.startswith(('ALS-', 'WMS-')):
         offer_number = order_id
     elif order_id:
-        offer_number = f"WMS-{order_id[:8].upper()}"
+        offer_number = f"ALS-{order_id[:8].upper()}"
     else:
-        offer_number = f"WMS-{datetime.now().strftime('%d-%m-%Y-%H%M%S')}"
+        offer_number = f"ALS-{datetime.now().strftime('%d-%m-%Y-%H%M%S')}"
     
     # Get discount info
     discount_percent = getattr(request, 'discountPercent', 0) or 0

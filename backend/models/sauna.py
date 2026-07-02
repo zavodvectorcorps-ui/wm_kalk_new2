@@ -210,7 +210,7 @@ class SaunaPriceData(BaseModel):
 class SaunaOrder(BaseModel):
     model_config = ConfigDict(extra="allow")
     
-    id: Optional[str] = Field(default_factory=lambda: f"WMS-{datetime.now().strftime('%d-%m-%Y-%H%M%S')}")
+    id: Optional[str] = Field(default_factory=lambda: f"ALS-{datetime.now().strftime('%d-%m-%Y-%H%M%S')}")
     fullName: str
     phoneNumber: str
     fullAddress: str = ""  # Made optional with default

@@ -217,7 +217,7 @@ class OrderFeatures(BaseModel):
 class Order(BaseModel):
     model_config = ConfigDict(extra="allow")
     
-    id: str = Field(default_factory=lambda: f"WMB-{datetime.now(timezone.utc).strftime('%d-%m-%Y-%H%M%S')}")
+    id: str = Field(default_factory=lambda: f"ALB-{datetime.now(timezone.utc).strftime('%d-%m-%Y-%H%M%S')}")
     fullName: str
     phoneNumber: str
     fullAddress: str = ""

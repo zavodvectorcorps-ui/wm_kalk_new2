@@ -277,6 +277,18 @@ Completed all three open items from Phase 2:
   The computed **Маржа** (margin) column is displayed in Admin → Заказы **AND**
   in Sauna CRM lead card (since Session 12).
 
+## Session — Jul 2, 2026: order-id prefixes rebranded + PDF logo forced to text
+- Order-id prefixes rebranded: sauna `WMS-` → **`ALS-`**, купели/balia `WMB-` →
+  **`ALB-`**. Changed at generation (`models/sauna.py`, `models/balia.py`) and PDF
+  offer-number logic (`routes/sauna.py`, `routes/balia.py` incl. web→main
+  conversion). PDF offer-number `startswith` accepts BOTH old and new prefixes so
+  existing `WMS-`/`WMB-` orders still render. Order lookups are exact-id (only
+  `AMO-` uses prefix matching), so no lookup breakage. Verified new orders: sauna
+  `ALS-…`, balia `ALB-…`; old-prefix PDFs still work.
+- PDF header logo: removed the image-logo path entirely — header now ALWAYS
+  renders the styled text «ALICOR SPA» (`companyName`), ignoring any uploaded
+  `logoImageId`. Fixes the lingering old logo on production without editor edits.
+
 ## Session — Jun 26, 2026 (later): swatches merged into gallery page
 - Moved the «Warianty malowania» + «Warianty gontu» swatch image OUT of its own
   flow position INTO the gallery block (after the photo rows, before the
