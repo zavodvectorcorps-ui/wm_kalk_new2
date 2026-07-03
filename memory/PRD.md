@@ -2025,3 +2025,16 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
   (модалка показывает 2 документ-КП, генерация с doc-КП прикрепляет, пустой выбор
   без вложений, legacy авто-attach, пустой лид => kps:[] без 504).
 - ⚠️ ПЕРЕДЕПЛОИТЬ на прод: индексы создаются при старте бэкенда после деплоя.
+
+## Session — Jul 3, 2026 (3): Улучшение — «Загрузить КП» в модалке договора
+- Добавлена кнопка «Загрузить КП» прямо в ContractGenerationModal: менеджер грузит
+  PDF/изображение, оно сохраняется (calculator_pdfs, order_id KPU-<uuid>, без
+  зависимости от Cloudinary), регистрируется как 'kp'-документ лида, добавляется
+  первым в список и авто-выбирается, затем прикрепляется к договору.
+- Backend: `POST /api/sauna-crm/contract-template/upload-kp/{lead_id}` (multipart file).
+  Валидация: только .pdf/.png/.jpg (400), несуществующий лид (404).
+- Frontend: handleUploadKp + скрытый input (contract-upload-kp-input) + кнопка
+  (contract-upload-kp-btn).
+- Проверено: testing_agent iteration_112 — backend 4/4, frontend 100% (загрузка,
+  авто-выбор, генерация с приложенным КП).
+- ⚠️ ПЕРЕДЕПЛОИТЬ на прод.
