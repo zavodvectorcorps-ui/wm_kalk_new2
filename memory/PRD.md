@@ -2004,3 +2004,24 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
 - **Проверено**: testing_agent 100% (iteration_110) — edit+модель рендерит 3 кнопки
   без крэша, консоль чистая; регрессий нет (Balia edit, новый заказ Саун — ОК).
 - ⚠️ Нужно ПЕРЕДЕПЛОИТЬ на прод (Deploy to Production) — фикс во фронтенде.
+
+## Session — Jul 3, 2026 (2): FIX модалка договора — «не подтягивает КП» + 504
+- **Баг (прод)**: модалка договора показывала «КП не найдены», хотя у лида есть
+  КП-документы; endpoint available-kps отдавал 504 (таймаут).
+- **Причина**: поиск КП смотрел только на ORDER'ы по amocrm_id (не на lead.documents),
+  и использовал медленный count_documents по бинарю pdf_data + сканы без индексов.
+- **Фикс** (contract_template.py):
+  * `_gather_kps` теперь включает документ-КП из `lead.documents` (первыми), плюс
+    order-КП (calc order + amoCRM siblings) с max_time_ms/limit и try/except (не 504).
+  * `_kp_has_pdf` — дешёвая проверка существования PDF (не читает бинарь).
+  * У каждого КП стабильный `kpId` = `doc:<url>` | `order:<id>`. Attach
+    (`_attach_selected_kps`) резолвит и документ-URL (direct download / proxy
+    /calculator-pdf/{orderId}), и order-id.
+  * `generate_contract_with_kp(selected_kp_ids=...)`; sauna_crm читает `selectedKpIds`.
+  * server.py: индексы amocrm_id/id (orders/sauna_orders/balia_orders) + order_id
+    (calculator_pdfs) — устраняют сканы/таймаут.
+  * Frontend модалка: выбор по kpId, шлёт `selectedKpIds`.
+- **Проверено**: testing_agent iteration_111 — backend 5/5, frontend 100%
+  (модалка показывает 2 документ-КП, генерация с doc-КП прикрепляет, пустой выбор
+  без вложений, legacy авто-attach, пустой лид => kps:[] без 504).
+- ⚠️ ПЕРЕДЕПЛОИТЬ на прод: индексы создаются при старте бэкенда после деплоя.
