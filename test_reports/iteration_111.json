@@ -1,0 +1,19 @@
+{
+  "summary": "Verified the contract-generation KP fix end-to-end. Backend: 5/5 pytest cases passed (available-kps returns 2 doc-KPs quickly with client block; POST generate-contract attaches doc KP + updates clientName; empty selection returns kpAttached=false; legacy no-selection auto-attaches; missing lead returns 200 kps:[] with no 504). Frontend: opened Sauna CRM > Список > lead CRM-DOC-TEST (client 'QA Doc'), clicked Создать договор, the ContractGenerationModal renders WITHOUT 'КП не найдены', lists BOTH doc-KP rows ('КП Сауна+Балия(Оплачено)' and 'КП Damian WMS-14-05-2026-091213') with data-testid contract-kp-checkbox-doc:... both pre-checked. Clicking Сгенерировать договор succeeded — backend returned kpAttached=true, contractUrl (cloudinary .docx), and a new 'Umowa QA Doc' entry was appended to the lead's Документы list. No error toast at any step.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": ["/app/backend/tests/test_contract_kp_iteration111.py", "/app/test_reports/pytest/iteration_111.xml"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Search input in CRM Список view searches only by client name / phone; typing the lead id 'CRM-DOC-TEST' returns 'Нет заказов'. Consider also matching by lead.id so operators can look up leads by CRM ID.",
+    "Kanban board only shows leads whose stage is one of the known columns; the seeded CRM-DOC-TEST lead (no stage) is invisible in Kanban and only appears in Список — worth surfacing an 'Unassigned' column or default stage on creation."
+  ],
+  "updated_files": ["/app/backend/tests/test_contract_kp_iteration111.py"],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "admin / admin123",
+  "seed_data_creation": "None created by testing agent. Used seeded lead CRM-DOC-TEST (client renamed to 'QA Doc' by the doc-KP attach test) and seeded calculator_pdfs order ALS-DOC-1.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Contract-gen KP fix fully verified. Backend endpoints GET /api/sauna-crm/contract-template/available-kps/{leadId} and POST /api/sauna-crm/generate-contract behave as designed. Modal data-testids used: generate-contract-btn, contract-generation-modal, contract-kp-checkbox-doc:<url>, contract-modal-generate. Note the seeded lead CRM-DOC-TEST is only visible in Список view (client 'QA Doc'), not in the Kanban board.",
+  "rca of the issue": "Original 504 was due to _gather_kps() doing an unbounded count_documents scanning the massive pdf_data blob on unindexed fields. Fix documents-first ordering + cheap has-pdf existence + max_time_ms caps + new indexes on amocrm_id/id/order_id. The 'КП не найдены' bug was because only calculator ORDERS were being scanned via amocrm_id, ignoring document-attached KPs on the lead; fix now emits DOCUMENT-based KPs first and uses stable kpId 'doc:<url>' / 'order:<id>' so the modal + backend can round-trip attach either kind."
+}

@@ -542,13 +542,13 @@ CLIENT_OVERRIDE_FIELDS = ("clientName", "phone", "email", "address", "totalAmoun
 
 async def generate_contract_with_kp(
     lead_id: str,
-    selected_order_ids: list | None = None,
+    selected_kp_ids: list | None = None,
     client_overrides: dict | None = None,
 ) -> dict:
     """Generate contract DOCX with dynamic mappings and attached KP PDF pages.
 
-    - selected_order_ids: if provided, attach ONLY these calculator orders (in order).
-      If None → legacy behaviour (auto-attach all KPs for the client).
+    - selected_kp_ids: if provided, attach ONLY these KPs (in order). Each id is
+      'order:<orderId>' or 'doc:<url>'. If None → legacy auto-attach all KPs.
     - client_overrides: if provided, update the lead's client fields before generation.
     """
     import traceback
@@ -557,7 +557,7 @@ async def generate_contract_with_kp(
     from docx.enum.text import WD_ALIGN_PARAGRAPH
     from services.cloudinary_service import is_cloudinary_configured
 
-    logger.info(f"=== CONTRACT GENERATION START for lead_id={lead_id} (selected={selected_order_ids}) ===")
+    logger.info(f"=== CONTRACT GENERATION START for lead_id={lead_id} (selected={selected_kp_ids}) ===")
 
     # Apply client overrides to the lead before loading
     if client_overrides:
@@ -664,10 +664,10 @@ async def generate_contract_with_kp(
     kp_error = None
     if attach_kp:
         try:
-            if selected_order_ids is not None:
-                kp_url, kp_attached = await _attach_kps_by_ids(doc, selected_order_ids)
+            if selected_kp_ids is not None:
+                kp_url, kp_attached = await _attach_selected_kps(doc, selected_kp_ids, lead, calc_order_id)
                 if not kp_attached:
-                    kp_error = f"KP not attached: none of the selected orders had PDF data ({selected_order_ids})"
+                    kp_error = f"KP not attached: none of the selected KPs had PDF data ({selected_kp_ids})"
             else:
                 kp_url, kp_attached = await _attach_all_kps_to_doc(doc, lead, calc_order_id, calc_col)
                 if not kp_attached:
@@ -901,31 +901,99 @@ async def _attach_all_kps_to_doc(doc, lead: dict, calc_order_id: str | None, cal
     return await _attach_kp_to_doc(doc, lead, calc_order_id)
 
 
-async def _gather_kp_orders(lead: dict, calc_order_id: str | None, calc_col: str) -> list:
-    """Return metadata for every calculator order (KP) associated with this client."""
-    amocrm_id = lead.get("amocrm_id")
-    seen = set()
-    candidates: list = []
+async def _get_pdf_bytes_for_url(kp_url: str, calc_order_id: str | None = None) -> bytes | None:
+    """Resolve KP PDF bytes from a document URL (direct Cloudinary/HTTP or proxy /calculator-pdf/{order_id})."""
+    if not kp_url:
+        return None
+    is_proxy = "calculator-pdf/" in kp_url or kp_url.startswith("/api/")
+    if not is_proxy and kp_url.startswith("http"):
+        b = await _download_file(kp_url)
+        if b:
+            return b
+    proxy_order_id = kp_url.rstrip("/").split("/")[-1] if "/" in kp_url else calc_order_id
+    for oid in [proxy_order_id, calc_order_id]:
+        if not oid:
+            continue
+        b = await _get_pdf_bytes_for_order(oid, None)
+        if b:
+            return b
+    return None
 
-    def _add(oid, col):
-        if oid and oid not in seen:
-            seen.add(oid)
+
+async def _kp_has_pdf(order_id: str) -> bool:
+    """Cheap existence check for a calculator PDF (never reads the pdf_data binary)."""
+    if not order_id:
+        return False
+    try:
+        meta = await db["calculator_pdfs"].find_one({"order_id": order_id}, {"_id": 1, "cloudinary_url": 1})
+        if not meta:
+            return False
+        if meta.get("cloudinary_url"):
+            return True
+        has_data = await db["calculator_pdfs"].find_one(
+            {"order_id": order_id, "pdf_data": {"$exists": True}}, {"_id": 1}
+        )
+        return has_data is not None
+    except Exception:
+        return False
+
+
+async def _gather_kps(lead: dict, calc_order_id: str | None, calc_col: str) -> list:
+    """Return every KP available for the lead: document-based (lead.documents) + order-based.
+
+    Document KPs (attached files on the lead) are the primary source and are listed first.
+    Order KP lookups are capped with max_time_ms/limit so the endpoint never times out.
+    """
+    items: list = []
+    seen = set()
+
+    # 1. Document-based KPs (fast, already inside the lead) — primary source
+    kp_types = ("kp", "commercial_proposal", "кп", "kp_pdf")
+    for d in (lead.get("documents", []) or []):
+        dtype = (d.get("type") or "").lower()
+        dname = (d.get("name") or "").lower()
+        if dtype in kp_types or "кп" in dname or "kp" in dname:
+            url = d.get("url")
+            if not url:
+                continue
+            kpid = f"doc:{url}"
+            if kpid in seen:
+                continue
+            seen.add(kpid)
+            items.append({
+                "kpId": kpid, "kind": "document", "url": url, "orderId": None,
+                "collection": "documents", "label": "КП",
+                "name": d.get("name") or "КП", "modelName": d.get("name") or "",
+                "total": None, "createdAt": d.get("uploadedAt") or d.get("createdAt") or "",
+                "hasPdf": True,
+            })
+
+    # 2. Order-based KPs (calc order + amoCRM siblings) — resilient/optimized
+    candidates: list = []
+    cand_seen = set()
+
+    def _addc(oid, col):
+        if oid and oid not in cand_seen:
+            cand_seen.add(oid)
             candidates.append((oid, col))
 
-    _add(calc_order_id, calc_col or "sauna_orders")
+    _addc(calc_order_id, calc_col or "sauna_orders")
+    amocrm_id = lead.get("amocrm_id")
     if amocrm_id:
         for col in ("sauna_orders", "orders", "balia_orders"):
             try:
-                async for o in db[col].find(
-                    {"amocrm_id": amocrm_id, "source": {"$ne": "amocrm"}},
-                    {"id": 1},
-                ):
-                    _add(o.get("id"), col)
+                cur = db[col].find(
+                    {"amocrm_id": amocrm_id, "source": {"$ne": "amocrm"}}, {"id": 1}
+                ).max_time_ms(3000).limit(20)
+                async for o in cur:
+                    _addc(o.get("id"), col)
             except Exception as e:
-                logger.warning(f"KP gather lookup failed in {col}: {e}")
+                logger.warning(f"KP sibling lookup skipped in {col}: {e}")
 
-    result = []
     for oid, col in candidates:
+        kpid = f"order:{oid}"
+        if kpid in seen:
+            continue
         order_doc = None
         try:
             order_doc = await db[col].find_one(
@@ -935,76 +1003,80 @@ async def _gather_kp_orders(lead: dict, calc_order_id: str | None, calc_col: str
             )
         except Exception:
             pass
-        has_pdf = False
-        try:
-            cnt = await db["calculator_pdfs"].count_documents(
-                {"order_id": oid, "pdf_data": {"$exists": True, "$ne": None}}
-            )
-            has_pdf = cnt > 0
-            if not has_pdf:
-                pdf_doc = await db["calculator_pdfs"].find_one(
-                    {"order_id": oid}, {"_id": 0, "cloudinary_url": 1}
-                )
-                has_pdf = bool(pdf_doc and pdf_doc.get("cloudinary_url"))
-        except Exception:
-            pass
+        has_pdf = await _kp_has_pdf(oid)
         if not has_pdf and order_doc and order_doc.get("kpCloudinaryUrl"):
             has_pdf = True
-        result.append({
-            "orderId": oid,
-            "collection": col,
-            "label": _KP_COLLECTION_LABELS.get(col, "Specyfikacja"),
-            "modelName": (order_doc or {}).get("modelName", ""),
+        seen.add(kpid)
+        items.append({
+            "kpId": kpid, "kind": "order", "url": None, "orderId": oid,
+            "collection": col, "label": _KP_COLLECTION_LABELS.get(col, "Specyfikacja"),
+            "name": oid, "modelName": (order_doc or {}).get("modelName", ""),
             "total": (order_doc or {}).get("total") or (order_doc or {}).get("totalAmount"),
-            "clientName": (order_doc or {}).get("fullName", ""),
             "createdAt": (order_doc or {}).get("createdAt", ""),
             "hasPdf": has_pdf,
         })
-    return result
+    return items
 
 
-async def _attach_kps_by_ids(doc, order_ids: list) -> tuple:
-    """Attach the KP PDFs for the given calculator order ids (in order). Returns (last_ref, was_attached)."""
+async def _attach_selected_kps(doc, selected_kp_ids: list, lead: dict, calc_order_id: str | None) -> tuple:
+    """Attach KP PDFs for the selected kpIds ('order:<id>' or 'doc:<url>'), in order."""
     attached = 0
     appendix_no = 0
     last_ref = None
-    for oid in order_ids:
-        if not oid:
+    for kpid in (selected_kp_ids or []):
+        if not kpid:
             continue
-        col_found = None
-        order_doc = None
-        for col in ("sauna_orders", "orders", "balia_orders", "greenhouse_orders"):
-            try:
-                o = await db[col].find_one({"id": oid}, {"_id": 0, "kpCloudinaryUrl": 1})
-            except Exception:
-                o = None
-            if o is not None:
-                col_found = col
-                order_doc = o
-                break
-        pdf_bytes = await _get_pdf_bytes_for_order(oid, order_doc)
+        pdf_bytes = None
+        label = "Specyfikacja"
+        ref = kpid
+        if kpid.startswith("order:"):
+            oid = kpid[len("order:"):]
+            col_found = None
+            order_doc = None
+            for col in ("sauna_orders", "orders", "balia_orders", "greenhouse_orders"):
+                try:
+                    o = await db[col].find_one({"id": oid}, {"_id": 0, "kpCloudinaryUrl": 1})
+                except Exception:
+                    o = None
+                if o is not None:
+                    col_found = col
+                    order_doc = o
+                    break
+            pdf_bytes = await _get_pdf_bytes_for_order(oid, order_doc)
+            label = _KP_COLLECTION_LABELS.get(col_found, "Specyfikacja")
+            ref = oid
+        elif kpid.startswith("doc:"):
+            url = kpid[len("doc:"):]
+            pdf_bytes = await _get_pdf_bytes_for_url(url, calc_order_id)
+            label = "КП"
+            ref = url
+        else:
+            continue
         if not pdf_bytes:
-            logger.warning(f"No KP bytes for selected order {oid} — skipping")
+            logger.warning(f"No KP bytes for selected {kpid} — skipping")
             continue
         appendix_no += 1
-        label = _KP_COLLECTION_LABELS.get(col_found, "Specyfikacja")
         n = _append_kp_pages(doc, pdf_bytes, appendix_no, label)
         if n > 0:
             attached += 1
-            last_ref = oid
-            logger.info(f"Attached selected KP appendix {appendix_no} ({label}, {n} pages) from {oid}")
+            last_ref = ref
+            logger.info(f"Attached selected KP appendix {appendix_no} ({label}, {n} pages) from {ref}")
     return last_ref, attached > 0
 
 
 @router.get("/available-kps/{lead_id}")
 async def get_available_kps(lead_id: str):
-    """List client data + all calculator KPs available for a lead (for the contract modal)."""
+    """List client data + all KPs (documents + orders) available for a lead (contract modal)."""
     lead = await db.sauna_crm_leads.find_one({"id": lead_id}, {"_id": 0})
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")
     calc_order_id = lead.get("calculatorOrderId")
     calc_col = lead.get("calculatorCollection", "sauna_orders")
-    kps = await _gather_kp_orders(lead, calc_order_id, calc_col)
+    try:
+        kps = await _gather_kps(lead, calc_order_id, calc_col)
+    except Exception as e:
+        logger.error(f"available-kps gather failed for {lead_id}: {e}")
+        kps = []
     settings = await _get_settings()
     return {
         "client": {

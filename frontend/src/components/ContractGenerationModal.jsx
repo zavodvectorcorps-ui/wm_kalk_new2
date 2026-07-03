@@ -13,6 +13,7 @@ const COLLECTION_BADGE = {
   orders: 'bg-cyan-100 text-cyan-700',
   balia_orders: 'bg-cyan-100 text-cyan-700',
   greenhouse_orders: 'bg-green-100 text-green-700',
+  documents: 'bg-blue-100 text-blue-700',
 };
 
 export const ContractGenerationModal = ({ open, onOpenChange, leadId, apiUrl, authHeaders, onGenerated }) => {
@@ -46,7 +47,7 @@ export const ContractGenerationModal = ({ open, onOpenChange, leadId, apiUrl, au
         setKps(list);
         // Default: select all KPs that have a PDF
         const initSel = {};
-        list.forEach(k => { initSel[k.orderId] = !!k.hasPdf; });
+        list.forEach(k => { initSel[k.kpId] = !!k.hasPdf; });
         setSelected(initSel);
       } catch (e) {
         toast.error(e.message || 'Ошибка загрузки');
@@ -57,10 +58,10 @@ export const ContractGenerationModal = ({ open, onOpenChange, leadId, apiUrl, au
     return () => { cancelled = true; };
   }, [open, leadId, apiUrl]);
 
-  const toggleKp = (orderId) => setSelected(prev => ({ ...prev, [orderId]: !prev[orderId] }));
+  const toggleKp = (kpId) => setSelected(prev => ({ ...prev, [kpId]: !prev[kpId] }));
 
   const handleGenerate = async () => {
-    const selectedOrderIds = kps.filter(k => selected[k.orderId]).map(k => k.orderId);
+    const selectedKpIds = kps.filter(k => selected[k.kpId]).map(k => k.kpId);
     setGenerating(true);
     try {
       const clientData = {
@@ -74,12 +75,12 @@ export const ContractGenerationModal = ({ open, onOpenChange, leadId, apiUrl, au
       const res = await fetch(`${apiUrl}/api/sauna-crm/generate-contract`, {
         method: 'POST',
         headers: { ...authHeaders, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ leadId, selectedOrderIds, clientData }),
+        body: JSON.stringify({ leadId, selectedKpIds, clientData }),
       });
       if (res.ok) {
         const data = await res.json();
         if (data.kpAttached) {
-          toast.success(`Договор создан (КП приложено: ${selectedOrderIds.length})`);
+          toast.success(`Договор создан (КП приложено: ${selectedKpIds.length})`);
         } else {
           toast.warning(data.kpError ? `Договор создан без КП: ${data.kpError}` : 'Договор создан (без КП)');
         }
@@ -97,8 +98,8 @@ export const ContractGenerationModal = ({ open, onOpenChange, leadId, apiUrl, au
     }
   };
 
-  const selectedCount = kps.filter(k => selected[k.orderId]).length;
-  const selectedTotal = kps.filter(k => selected[k.orderId]).reduce((s, k) => s + (Number(k.total) || 0), 0);
+  const selectedCount = kps.filter(k => selected[k.kpId]).length;
+  const selectedTotal = kps.filter(k => selected[k.kpId]).reduce((s, k) => s + (Number(k.total) || 0), 0);
   const depositAmount = Math.round(selectedTotal * (Number(depositPct) || 0) / 100);
   const budgetMismatch = Number(client.totalAmount) > 0 && Number(client.totalAmount) !== selectedTotal && selectedTotal > 0;
 
@@ -172,23 +173,23 @@ export const ContractGenerationModal = ({ open, onOpenChange, leadId, apiUrl, au
                 <div className="space-y-2">
                   {kps.map(kp => (
                     <label
-                      key={kp.orderId}
-                      className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${selected[kp.orderId] ? 'border-blue-400 bg-blue-50/60' : 'border-gray-200 hover:bg-gray-50'} ${!kp.hasPdf ? 'opacity-60' : ''}`}
-                      data-testid={`contract-kp-row-${kp.orderId}`}
+                      key={kp.kpId}
+                      className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${selected[kp.kpId] ? 'border-blue-400 bg-blue-50/60' : 'border-gray-200 hover:bg-gray-50'} ${!kp.hasPdf ? 'opacity-60' : ''}`}
+                      data-testid={`contract-kp-row-${kp.kpId}`}
                     >
                       <Checkbox
-                        checked={!!selected[kp.orderId]}
-                        onCheckedChange={() => kp.hasPdf && toggleKp(kp.orderId)}
+                        checked={!!selected[kp.kpId]}
+                        onCheckedChange={() => kp.hasPdf && toggleKp(kp.kpId)}
                         disabled={!kp.hasPdf}
-                        data-testid={`contract-kp-checkbox-${kp.orderId}`}
+                        data-testid={`contract-kp-checkbox-${kp.kpId}`}
                       />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <Badge className={`text-xs ${COLLECTION_BADGE[kp.collection] || 'bg-gray-100 text-gray-700'}`}>{kp.label}</Badge>
-                          <span className="text-sm font-medium truncate">{kp.orderId}</span>
+                          <span className="text-sm font-medium truncate">{kp.name || kp.orderId}</span>
                         </div>
                         <div className="text-xs text-gray-500 truncate">
-                          {kp.modelName || '—'}{kp.total ? ` · ${Number(kp.total).toLocaleString('ru-RU')}` : ''}
+                          {kp.kind === 'order' ? (kp.modelName || kp.orderId || '—') : (kp.modelName || 'Документ')}{kp.total ? ` · ${Number(kp.total).toLocaleString('ru-RU')}` : ''}
                         </div>
                       </div>
                       {!kp.hasPdf && (

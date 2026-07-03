@@ -411,6 +411,18 @@ async def create_indexes():
     await db.sauna_orders.create_index("createdAt")
     await db.sauna_orders.create_index("status")
     await db.sauna_orders.create_index([("createdAt", -1)])
+
+    # KP-lookup indexes (contract generation / available-kps) — avoid full-collection scans
+    try:
+        await db.orders.create_index("amocrm_id", sparse=True)
+        await db.sauna_orders.create_index("amocrm_id", sparse=True)
+        await db.balia_orders.create_index("amocrm_id", sparse=True)
+        await db.orders.create_index("id")
+        await db.sauna_orders.create_index("id")
+        await db.balia_orders.create_index("id")
+        await db.calculator_pdfs.create_index("order_id")
+    except Exception as _e:
+        logger.warning(f"KP-lookup index creation skipped: {_e}")
     
     # Users indexes
     await db.users.create_index("username", unique=True)
