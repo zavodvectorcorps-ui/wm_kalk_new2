@@ -1,0 +1,35 @@
+{
+  "summary": "Iteration 112: Verified new 'Загрузить КП' (Upload KP) flow inside ContractGenerationModal — backend endpoint + validation + attach + full frontend UI flow. All backend pytest cases (4/4) pass, and Playwright end-to-end flow verified: file upload via hidden input, KP prepended to list and auto-checked, selected-count increments (3→4), success toast shown, contract successfully generated with new KP attached.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "SaunaCRMPage list render", "issues": ["React warning: 'Each child in a list should have a unique key prop' emitted by SaunaCRMPage — cosmetic, no functional impact."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_contract_upload_kp_iteration112.py",
+    "/app/test_reports/pytest/pytest_iteration112.xml"
+  ],
+  "action_items": [
+    "(Optional) Fix missing React 'key' prop warning in SaunaCRMPage list render (cosmetic)."
+  ],
+  "critical_code_review_comments": [
+    "upload_kp endpoint properly validates lead existence (404) and file extension (400) — good.",
+    "PDF stored in Mongo calculator_pdfs (works without Cloudinary). Consider adding a max-size guard to prevent large file uploads eating DB space.",
+    "Filename-based mime check only (endswith); attackers could name a non-PDF as .pdf. Consider magic-byte sniffing (e.g., check '%PDF' header) for stricter validation. Low priority.",
+    "handleUploadKp in ContractGenerationModal.jsx correctly prepends kp and auto-selects it — matches UX described."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_contract_upload_kp_iteration112.py (new)"
+  ],
+  "success_rate": {"backend": "100% (4/4)", "frontend": "100% (upload + auto-select + attach flow verified)"},
+  "test_credentials": "admin / admin123 (preview)",
+  "seed_data_creation": "Used existing seeded lead CRM-UP-TEST. Test uploads add extra KPU-* PDFs into db.calculator_pdfs and documents entries on that lead — safe to leave; can be cleaned if needed.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Lead CRM-UP-TEST now has multiple test_kp / upload_kp_test docs. Endpoints under /api/sauna-crm/contract-template/upload-kp/{lead_id} and /available-kps/{lead_id}. Modal testids: generate-contract-btn, contract-upload-kp-btn, contract-upload-kp-input, contract-modal-generate. Selected-count reads from title text 'Коммерческие предложения (N выбрано)' — KP checkboxes are custom components, not native input[type=checkbox].",
+  "rca of the issue": "N/A — feature works as designed."
+}

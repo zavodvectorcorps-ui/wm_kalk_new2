@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from './ui/dialog';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Checkbox } from './ui/checkbox';
 import { Badge } from './ui/badge';
-import { Loader2, FileText, AlertTriangle, Package } from 'lucide-react';
+import { Loader2, FileText, AlertTriangle, Package, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 
 const COLLECTION_BADGE = {
@@ -23,6 +23,8 @@ export const ContractGenerationModal = ({ open, onOpenChange, leadId, apiUrl, au
   const [kps, setKps] = useState([]);
   const [selected, setSelected] = useState({});
   const [depositPct, setDepositPct] = useState(30);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (!open || !leadId) return;
@@ -59,6 +61,35 @@ export const ContractGenerationModal = ({ open, onOpenChange, leadId, apiUrl, au
   }, [open, leadId, apiUrl]);
 
   const toggleKp = (kpId) => setSelected(prev => ({ ...prev, [kpId]: !prev[kpId] }));
+
+  const handleUploadKp = async (e) => {
+    const file = e.target.files?.[0];
+    if (e.target) e.target.value = '';
+    if (!file) return;
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch(`${apiUrl}/api/sauna-crm/contract-template/upload-kp/${leadId}`, {
+        method: 'POST',
+        headers: { ...authHeaders },
+        body: fd,
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Ошибка загрузки файла');
+      }
+      const data = await res.json();
+      const kp = data.kp;
+      setKps(prev => [kp, ...prev]);
+      setSelected(prev => ({ ...prev, [kp.kpId]: true }));
+      toast.success('КП загружено и добавлено');
+    } catch (err) {
+      toast.error(err.message || 'Не удалось загрузить КП');
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleGenerate = async () => {
     const selectedKpIds = kps.filter(k => selected[k.kpId]).map(k => k.kpId);
@@ -161,13 +192,35 @@ export const ContractGenerationModal = ({ open, onOpenChange, leadId, apiUrl, au
 
             {/* KP selection */}
             <div className="space-y-2">
-              <Label className="text-sm font-semibold flex items-center gap-2">
-                <Package className="w-4 h-4" /> Коммерческие предложения ({selectedCount} выбрано)
-              </Label>
+              <div className="flex items-center justify-between gap-2">
+                <Label className="text-sm font-semibold flex items-center gap-2">
+                  <Package className="w-4 h-4" /> Коммерческие предложения ({selectedCount} выбрано)
+                </Label>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.png,.jpg,.jpeg"
+                  className="hidden"
+                  onChange={handleUploadKp}
+                  data-testid="contract-upload-kp-input"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 border-blue-400 text-blue-700 hover:bg-blue-50"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  data-testid="contract-upload-kp-btn"
+                >
+                  {uploading ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Upload className="w-3.5 h-3.5 mr-1" />}
+                  Загрузить КП
+                </Button>
+              </div>
               {kps.length === 0 ? (
                 <div className="flex items-center gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md p-3">
                   <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-                  КП не найдены для этого клиента. Договор будет создан без вложений.
+                  КП не найдены для этого клиента. Загрузите КП кнопкой выше или создайте договор без вложений.
                 </div>
               ) : (
                 <div className="space-y-2">

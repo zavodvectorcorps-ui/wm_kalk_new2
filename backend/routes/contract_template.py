@@ -1092,6 +1092,61 @@ async def get_available_kps(lead_id: str):
     }
 
 
+@router.post("/upload-kp/{lead_id}")
+async def upload_kp(lead_id: str, file: UploadFile = File(...)):
+    """Upload a fresh KP file (PDF/image) directly from the contract modal.
+
+    Stores bytes in calculator_pdfs (works without Cloudinary), registers it as a
+    'kp' document on the lead, and returns a ready-to-select KP item (kpId=doc:...).
+    """
+    import uuid
+    lead = await db.sauna_crm_leads.find_one({"id": lead_id}, {"_id": 0})
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+
+    file_bytes = await file.read()
+    if not file_bytes:
+        raise HTTPException(status_code=400, detail="Empty file")
+    filename = file.filename or "kp.pdf"
+    lower = filename.lower()
+    if not (lower.endswith(".pdf") or lower.endswith((".png", ".jpg", ".jpeg"))):
+        raise HTTPException(status_code=400, detail="Only PDF or image files are allowed")
+
+    order_id = f"KPU-{uuid.uuid4().hex[:10]}"
+    now_iso = datetime.now(timezone.utc).isoformat()
+    try:
+        await db["calculator_pdfs"].update_one(
+            {"order_id": order_id},
+            {"$set": {"order_id": order_id, "pdf_data": file_bytes,
+                      "filename": filename, "uploaded_via": "contract_modal", "created_at": now_iso}},
+            upsert=True,
+        )
+    except Exception as e:
+        logger.error(f"upload_kp store failed: {e}")
+        raise HTTPException(status_code=500, detail="Failed to store KP")
+
+    url = f"/api/integrations/amocrm/calculator-pdf/{order_id}"
+    display_name = filename.rsplit(".", 1)[0]
+    doc = {
+        "id": str(uuid.uuid4())[:8],
+        "type": "kp",
+        "name": display_name,
+        "url": url,
+        "filename": filename,
+        "uploadedAt": now_iso,
+    }
+    await db.sauna_crm_leads.update_one({"id": lead_id}, {"$push": {"documents": doc}})
+
+    return {
+        "status": "ok",
+        "kp": {
+            "kpId": f"doc:{url}", "kind": "document", "url": url, "orderId": None,
+            "collection": "documents", "label": "КП", "name": display_name,
+            "modelName": display_name, "total": None, "createdAt": now_iso, "hasPdf": True,
+        },
+    }
+
+
 async def _attach_kp_to_doc(doc, lead: dict, calc_order_id: str | None) -> tuple:
     """Attach KP PDF pages as images to the contract document. Returns (kp_url, was_attached)."""
     from docx import Document
