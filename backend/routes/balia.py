@@ -1613,7 +1613,7 @@ async def generate_pdf(request: PDFRequest):
                 
                 if is_gift:
                     # Show as gift with strikethrough price and ALICOR SPA label
-                    price_text = f"<strike>{price:,.0f} {currency}</strike><br/>🎁 Prezent od ALICOR SPA".replace(',', ' ')
+                    price_text = f"<strike>{price:,.0f} {currency}</strike><br/>🎁 Prezent".replace(',', ' ')
                     price_cell = Paragraph(price_text, gift_price_style)
                     gift_rows.append(idx + 1)  # +1 because of header row
                 elif is_gratis_opt:

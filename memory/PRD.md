@@ -2038,3 +2038,11 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
 - Проверено: testing_agent iteration_112 — backend 4/4, frontend 100% (загрузка,
   авто-выбор, генерация с приложенным КП).
 - ⚠️ ПЕРЕДЕПЛОИТЬ на прод.
+
+## Session — Jul 3, 2026 (4): Убрано "od WM-Group" из PDF (только "Prezent")
+- sauna.py: 4 ярлыка подарка «Prezent od WM-Group» → «Prezent»; дефолтный
+  companySlogan «WM-Group — ...» → «ALICOR SPA — Producent saun i bali na wymiar».
+- balia.py: ярлык подарка → «Prezent» (был «Prezent od ALICOR SPA»).
+- Проверено: sauna generate-pdf HTTP 200, в PDF нет «WM-Group», есть ALICOR.
+- Внутренние Cloudinary-папки «wm-calculator/...» НЕ трогали (не видны в PDF).
+- ⚠️ ПЕРЕДЕПЛОИТЬ на прод.

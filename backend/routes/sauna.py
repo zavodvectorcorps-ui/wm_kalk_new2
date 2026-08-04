@@ -959,7 +959,7 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                 f'<b>{title}</b><br/><br/>'
                 f'{name}<br/>'
                 f'<font color="#888888"><strike>{price_val:,} PLN</strike></font><br/>'
-                f'<font color="#059669"><b>🎁 Prezent od WM-Group</b></font>'
+                f'<font color="#059669"><b>🎁 Prezent</b></font>'
             ).replace(',', ' ')
         else:
             html = (
@@ -1412,7 +1412,7 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
             
             if is_gift:
                 # Show original price crossed out + gift label
-                price_str = f"<strike>{total_price:,}</strike> Prezent od WM-Group".replace(',', ' ')
+                price_str = f"<strike>{total_price:,}</strike> Prezent".replace(',', ' ')
             elif total_price > 0:
                 price_str = f"{total_price:,} PLN".replace(',', ' ')
             else:
@@ -1464,7 +1464,7 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                             is_gift = opt_id in admin_gifts or (cat_id == 'fundament' and 'fundament_gift' in admin_gifts)
 
                             if is_gift:
-                                price_str = f"<strike>{total_price:,}</strike> Prezent od WM-Group".replace(',', ' ')
+                                price_str = f"<strike>{total_price:,}</strike> Prezent".replace(',', ' ')
                             else:
                                 # Don't show price for options with 0 price
                                 price_str = f"{total_price:,} PLN".replace(',', ' ') if total_price > 0 else ''
@@ -1492,7 +1492,7 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                     is_gift = selection in admin_gifts or (cat_id == 'fundament' and 'fundament_gift' in admin_gifts)
                     
                     if is_gift:
-                        price_str = f"<strike>{total_price:,}</strike> Prezent od WM-Group".replace(',', ' ')
+                        price_str = f"<strike>{total_price:,}</strike> Prezent".replace(',', ' ')
                     else:
                         price_str = f"{total_price:,} PLN".replace(',', ' ') if total_price > 0 else '0 PLN'
                     
@@ -2336,7 +2336,7 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                     logger.warning(f"Could not load swatch image: {e}")
         
         # Gallery footer / company slogan from template
-        company_slogan = template_texts.get('companySlogan', 'WM-Group — Producent saun i bali na wymiar')
+        company_slogan = template_texts.get('companySlogan', 'ALICOR SPA — Producent saun i bali na wymiar')
         elements.append(Spacer(1, 15))
         elements.append(Paragraph(company_slogan, 
                                  ParagraphStyle('GalleryFooter', fontName='DejaVuSans', fontSize=10, 
