@@ -2092,3 +2092,14 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
   → сохранение из вкладки «Синхронизация» ЗАТИРАЕТ section_pipelines/stage_sync
   в БД. Это ломает Пункт 3 (нужны section_pipelines) и теряет фильтры воронок.
   ТРЕБУЕТСЯ отдельное разрешение пользователя на фикс (добавить эти 2 поля в GET).
+
+## Session — Jul 3, 2026 (9): FIX (одобрено) — GET /settings no-wipe
+- GET /api/integrations/amocrm/settings теперь возвращает section_pipelines и
+  stage_sync (сохранённые значения). Устранён пред-существующий баг потери данных:
+  сохранение настроек из UI больше НЕ затирает section_pipelines/stage_sync.
+  Логика POST /settings и фильтр pipeline не тронуты.
+- Проверено testing_agent iteration_118: backend 4/4, frontend 100%
+  (GET возвращает → POST обратно → значения целы; UI: pipeline 9999 +
+  cancelled_status_id 55555 переживают перезагрузку). Превью восстановлено (neutral).
+- Итог блока безопасности (пункты 1–4 + no-wipe): все подтверждены testing_agent
+  (iterations 113–118).

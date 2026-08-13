@@ -1019,6 +1019,10 @@ async def get_settings(request: Request):
         "amocrm_token": settings.get("amocrm_token", ""),
         # Configurable cancelled/lost stage id (default preserved)
         "cancelled_status_id": settings.get("cancelled_status_id", "73620210"),
+        # Pipeline filter + stage-sync settings (must be returned so the UI does not
+        # wipe them when re-saving the full settings state).
+        "section_pipelines": settings.get("section_pipelines", {}),
+        "stage_sync": settings.get("stage_sync", {}),
         "status_field_id": settings.get("status_field_id", ""),
         "comment_field_id": settings.get("comment_field_id", ""),
         # Trip sync fields

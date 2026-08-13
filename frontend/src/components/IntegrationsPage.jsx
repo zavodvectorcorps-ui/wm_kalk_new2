@@ -386,6 +386,7 @@ export const IntegrationsPage = () => {
           <Label className="text-sm">ID воронки (фильтр)</Label>
           <div className="flex gap-2">
             <Input
+              data-testid={`amocrm-section-pipeline-${section}-input`}
               value={settings.section_pipelines?.[section] || ''}
               onChange={(e) => setSettings(prev => ({
                 ...prev,

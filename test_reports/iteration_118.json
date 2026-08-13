@@ -1,0 +1,31 @@
+{
+  "summary": "Verified the amoCRM GET /settings no-wipe fix (follow-up to Пункт 4). BACKEND: new pytest file /app/backend/tests/test_amocrm_settings_nowipe_iteration118.py -> 4/4 PASSED. Seeded integration_settings(type=amocrm) with section_pipelines={greenhouse:'',balia:'',sauna:'9999'} and stage_sync={sauna:{pipeline_id:'9999',status_id:'321'}, balia/greenhouse empty}. (1) GET /api/integrations/amocrm/settings returns BOTH section_pipelines (sauna='9999') and stage_sync (sauna pipeline_id='9999', status_id='321'). (2) GET response minus webhook_urls POSTed back -> 200. (3) Re-GET: sauna='9999' and stage_sync.sauna intact — NO WIPE; verified directly in Mongo too. (4) cancelled_status_id present with default '73620210' and updatable ('55555'). FRONTEND: logged in admin/admin123 -> Panel administracyjny -> Integracje; set sauna section_pipelines input to 9999 (Настройки tab), then Синхронизация tab cancelled_status_id 73620210 -> 55555, clicked «Сохранить настройки синхронизации» (toast «Настройки сохранены»), full page RELOAD -> sauna pipeline still 9999 AND cancelled_status_id still 55555. UI round-trip now preserves section_pipelines together with cancelled_status_id. CLEANUP DONE: section_pipelines and stage_sync unset, cancelled_status_id reset to '73620210'; GET now returns {} / {} / 73620210 (neutral original state).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_amocrm_settings_nowipe_iteration118.py"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "GET /settings still uses an explicit response whitelist; any future persisted field in AmoCRMSettings must be added there or the UI save will silently wipe it again (this class of bug has now occurred twice: cancelled_status_id, section_pipelines/stage_sync). Recommend returning the stored doc merged over defaults, minus _id/amocrm_token, instead of hand-listing keys.",
+    "GET/POST /api/integrations/amocrm/settings require NO authentication — settings (incl. amocrm_token) are publicly readable/writable. Should be behind admin auth."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_amocrm_settings_nowipe_iteration118.py",
+    "/app/frontend/src/components/IntegrationsPage.jsx (added data-testid=\"amocrm-section-pipeline-{section}-input\" to the per-section pipeline filter Input only; no logic change)"
+  ],
+  "success_rate": {"backend": "100% (4/4)", "frontend": "100%"},
+  "seed_data_creation": "Temporarily seeded integration_settings.section_pipelines/stage_sync and cancelled_status_id=55555; all reverted/unset after testing.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": false,
+  "test_credentials": "admin/admin123 (preview)",
+  "context_for_next_testing_agent": "GET /api/integrations/amocrm/settings now returns cancelled_status_id, section_pipelines and stage_sync — UI saves no longer wipe them. Preview DB integration_settings(type=amocrm) is back to neutral: section_pipelines/stage_sync unset, cancelled_status_id='73620210'. Reusable regression test: /app/backend/tests/test_amocrm_settings_nowipe_iteration118.py (self-seeding + self-cleaning). New testid available: amocrm-section-pipeline-sauna-input. UI nav: login -> 4th 'Wybierz' (Panel administracyjny) -> tab 'Integracje' -> inner tabs 'Настройки'/'Синхронизация'.",
+  "rca_of_the_issue": "Original data loss: GET /settings whitelisted response keys and omitted section_pipelines/stage_sync, so the frontend state loaded them as undefined and POSTed empty objects back, wiping the DB values (breaking the webhook pipeline filter). Fix adds both keys to the GET response; round-trip verified idempotent at API and UI level."
+}
