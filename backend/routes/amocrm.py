@@ -1219,14 +1219,31 @@ async def receive_webhook_section(
             logger.info(f"Deleted order {order_id} from {section} - moved to cancelled stage in amoCRM")
             return {"status": "ok", "order_id": order_id, "section": section, "action": "deleted", "reason": "Cancelled in amoCRM"}
     
-    # For "update" events - only process if order already exists in this section
-    # This prevents orders from other pipelines being created in wrong sections
+    # For "update" events with no existing order in this section:
+    #  - if this section has a CONFIGURED pipeline (already validated to match above),
+    #    the original "add" webhook was most likely lost/failed -> recover by creating
+    #    the order via the same path as "add" (update-fallback).
+    #  - if NO pipeline is configured for this section, keep the strict skip so we never
+    #    create orders from unknown/foreign pipelines (the pipeline filter above is a no-op
+    #    when expected_pipeline_id is empty, so this skip is the only safeguard then).
     if event_type == "update" and not existing_order:
-        log_entry["status"] = "skipped"
-        log_entry["reason"] = f"Update event for non-existing order in {section} - likely from different pipeline"
-        webhook_logs.insert_one(log_entry)
-        logger.info(f"Skipping update webhook for {section}: order {lead_id} not found in this section")
-        return {"status": "ok", "message": "Order not found in this section, update skipped"}
+        if not expected_pipeline_id:
+            log_entry["status"] = "skipped"
+            log_entry["reason"] = f"Update event for non-existing order in {section} - no pipeline configured, cannot safely recover"
+            webhook_logs.insert_one(log_entry)
+            logger.info(f"Skipping update webhook for {section}: order {lead_id} not found and no pipeline configured")
+            return {"status": "ok", "message": "Order not found in this section, update skipped"}
+        # Do NOT resurrect a deal that is already in the "cancelled" stage:
+        # creating a fresh order for a cancelled lead would pollute logistics.
+        if str(webhook_status_id) == CANCELLED_STATUS_ID:
+            log_entry["status"] = "skipped"
+            log_entry["reason"] = f"Update-fallback skipped: lead {lead_id} is in cancelled stage, not recreating"
+            webhook_logs.insert_one(log_entry)
+            logger.info(f"Update-fallback skipped for {section}: lead {lead_id} in cancelled stage, not recreating")
+            return {"status": "ok", "message": "Cancelled lead, not recreated"}
+        # Pipeline already validated -> safe to recover the missing order via create.
+        log_entry["update_fallback"] = True
+        logger.warning(f"Update-fallback for {section}: order {lead_id} not found — recovering via create (add webhook likely lost)")
     
     # Try to fetch full lead data from amoCRM API
     domain = settings.get("amocrm_domain", "")

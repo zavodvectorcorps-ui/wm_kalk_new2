@@ -1,0 +1,32 @@
+{
+  "summary": "Backend-only formal verification of the amoCRM webhook update-fallback cancelled-lead fix (routes/amocrm.py::receive_webhook_section). New pytest suite (5 tests) covers the fixed edge case plus 4 regression/safety scenarios; also re-ran the iteration_114 suite (6 tests) as regression. Result: 11/11 passed. section_pipelines was temporarily set to {'sauna':'9999'} and restored to ABSENT; all QV*/QAFB* orders and webhook_logs cleaned up (verified 0 docs remaining).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_amocrm_webhook_cancelled_fallback_iteration115.py",
+    "/app/backend/tests/test_amocrm_webhook_update_fallback_iteration114.py",
+    "/app/test_reports/pytest/iteration115_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Fix is correctly placed: the cancelled-status skip is inside the `event_type=='update' and not existing_order` branch AFTER the `not expected_pipeline_id` strict-skip, so it cannot mask the pipeline safeguard; the pre-existing cancel-delete branch (requires existing_order) is untouched.",
+    "CANCELLED_STATUS_ID ('73620210') is still a hardcoded literal inside receive_webhook_section — consider moving it to integration_settings/env so a stage change in amoCRM does not require a code deploy (non-blocking).",
+    "/app/backend/routes/amocrm.py is ~3600 lines — well over the 700-line guideline; receive_webhook_section alone handles filtering, cancellation, fallback, API fetch and create/update. Splitting into webhook_handler/lead_mapper modules would reduce regression risk (non-blocking, pre-existing)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_amocrm_webhook_cancelled_fallback_iteration115.py"
+  ],
+  "success_rate": {"backend": "100% (11/11)", "frontend": "not tested (backend-only request)"},
+  "seed_data_creation": "Temporary: integration_settings.section_pipelines={'sauna':'9999'} (restored to absent), sauna_orders docs amocrm_id=QVDEL1/QVTRIP1 seeded and deleted, webhook-created QVOK1 order deleted, all QV* webhook_logs deleted. DB verified clean.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "amoCRM webhook update-fallback (Пункт 3) is fully verified. Test matrix now covered: (1) update+no order+configured&matching pipeline+status 73620210 => {'message':'Cancelled lead, not recreated'}, no order created, log status='skipped' reason contains 'cancelled stage'; (2) update+no order+status 111 => action 'created' + persisted sauna_orders doc + webhook_log update_fallback=true; (3) unconfigured section (balia) update => 'Order not found in this section, update skipped'; (4) pipeline mismatch => 'Lead from different pipeline, skipped'; (5) EXISTING order + cancelled + no tripId => action 'deleted'; (6) EXISTING order + cancelled + tripId => action 'skipped' reason 'Order in trip, not deleted'; (7) add-then-update no duplicate; (8) repeated fallback no duplicate. Reuse /app/backend/tests/test_amocrm_webhook_cancelled_fallback_iteration115.py — its module fixtures set and restore section_pipelines automatically, so always run the file as a whole (never a single test with -k that skips teardown).",
+  "rca_of_the_issue": "Previously the update-fallback branch fell straight through to the create path once the pipeline matched, so an 'update' webhook carrying the cancelled stage (status_id=73620210) for a lead with no existing order resurrected it as a new order (the cancel-delete branch at ~line 1201 requires existing_order, so it never triggered). The fix adds an explicit cancelled-status guard at ~line 1238 that logs status='skipped' and returns 'Cancelled lead, not recreated'. Reproduced-and-verified fixed: POST /api/integrations/amocrm/webhook/sauna with leads.update[0]={id:'QVCAN1', pipeline_id:'9999', status_id:'73620210'} now returns the skip message and creates no sauna_orders doc."
+}

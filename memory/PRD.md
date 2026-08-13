@@ -2065,3 +2065,17 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
 - Проверено: 0 импортов компонента и 0 чтений ключа 'adminAuth' во всём frontend/src.
   Реальный доступ идёт через useAuth/canEdit. Фронтенд компилируется успешно,
   страница входа грузится (smoke-скрин). Ничего не сломано.
+
+## Session — Jul 3, 2026 (7): SECURITY Пункт 3 — amoCRM update-fallback
+- routes/amocrm.py receive_webhook_section: событие 'update' без существующего
+  заказа больше не пропадает молча. Если у секции НАСТРОЕН pipeline (и он уже
+  совпал с фильтром) → заказ восстанавливается через путь создания ('add'),
+  лог update_fallback=True. Если pipeline НЕ настроен → строгий skip (защита от
+  чужих воронок). Фильтр pipeline НЕ менялся.
+- Guard: если update пришёл со статусом «слетел заказ» (CANCELLED_STATUS_ID
+  73620210) и заказа нет → НЕ создаём (не воскрешаем отменённую сделку).
+  Существующая ветка удаления отменённых (для существующих заказов) не тронута.
+- Проверено testing_agent iterations 114 (6/6) + 115 (11/11): fallback-create,
+  no-pipeline skip, pipeline-mismatch skip, cancelled-not-recreated, add->update
+  без дублей, existing-cancelled-delete. Данные очищены, section_pipelines
+  восстановлен (absent).

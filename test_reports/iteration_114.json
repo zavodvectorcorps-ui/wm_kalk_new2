@@ -1,0 +1,30 @@
+{
+  "summary": "Backend-only verification of amoCRM webhook update-fallback fix (Пункт 3) in /app/backend/routes/amocrm.py::receive_webhook_section. Created pytest suite (6 tests) covering Scenario A (update-fallback create), B (no configured pipeline => strict skip), C (pipeline mismatch => skip), regression add->update (no duplicate), plus 2 extra edge tests (repeated update-fallback idempotency, foreign-pipeline safety). All 6 passed. section_pipelines was temporarily set to {'sauna':'9999'} via Mongo and fully restored (key removed, matching original absent state); all QAFB* test orders and webhook_logs deleted and verified 0 leftovers.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/integrations/amocrm/webhook/{section}", "issue": "Edge case (verified live): an 'update' webhook carrying the cancelled status_id 73620210 for a lead with NO existing order now passes into update-fallback and CREATES a new order with status 'new' (repro: lead QAFBX9, pipeline 9999, status_id 73620210 -> action 'created'). Since the cancel-delete branch requires existing_order, a previously cancelled/deleted deal can be resurrected by any later update webhook. Suggest skipping the fallback create when webhook status_id == CANCELLED_STATUS_ID."},
+      {"endpoint": "routes/amocrm.py", "issue": "File is 3593 lines (>700) and uses synchronous pymongo calls inside async route handlers (blocking event loop). Pre-existing, not caused by this fix."}
+    ]
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_amocrm_webhook_update_fallback_iteration114.py",
+    "/app/test_reports/pytest/pytest_iteration114.xml"
+  ],
+  "action_items": [
+    "Optional hardening: in the update-fallback block, do not create an order when webhook status_id equals CANCELLED_STATUS_ID (73620210) to avoid resurrecting cancelled deals."
+  ],
+  "critical_code_review_comments": [
+    "Pipeline filter (lines 1170-1180) is unchanged and still skips mismatched pipelines before the fallback — verified: foreign pipelines never create orders.",
+    "Strict skip retained when expected_pipeline_id is empty (line 1230) — verified for balia; no doc created in 'orders' collection.",
+    "update_fallback flag is written to webhook_logs only for genuine fallback events (normal updates carry no flag) — verified in DB."
+  ],
+  "updated_files": ["/app/backend/tests/test_amocrm_webhook_update_fallback_iteration114.py"],
+  "success_rate": {"backend": "100% (6/6 tests)", "frontend": "not tested (backend-only request)"},
+  "seed_data_creation": "Temporary sauna_orders/orders/webhook_logs docs with amocrm_id QAFB1..QAFB6, QAFBX9 — all deleted; integration_settings.section_pipelines restored to absent.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Test suite at /app/backend/tests/test_amocrm_webhook_update_fallback_iteration114.py self-manages section_pipelines (sets sauna:9999, restores/unsets) and cleans QAFB* data via module fixtures; safe to re-run. amoCRM domain/token are unset on preview so handler uses webhook-only data. Order ids are deterministic: AMO-SAU-<leadId>.",
+  "rca_of_the_issue": "Original bug: update events for leads with no existing section order returned early and were dropped forever if the 'add' webhook was lost. Fix falls through to the create path only when section_pipelines[section] is configured (and already matched by the unchanged pipeline filter); otherwise the strict skip remains, so foreign-pipeline leads are never materialised. Verified end-to-end against the public preview URL with Mongo assertions."
+}
