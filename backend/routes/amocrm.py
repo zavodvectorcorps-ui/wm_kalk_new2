@@ -108,6 +108,9 @@ class AmoCRMSettings(BaseModel):
     field_mapping: Dict[str, Any] = {}
     # Pipeline IDs for each section (to filter webhooks by pipeline)
     section_pipelines: Dict[str, str] = {}  # e.g., {"greenhouse": "12345", "balia": "67890", "sauna": "11111"}
+    # amoCRM stage id that means the deal was cancelled/lost ("слетел заказ").
+    # Configurable so it can be updated via the UI if the stage is recreated in amoCRM.
+    cancelled_status_id: str = "73620210"
     # amoCRM API credentials for syncing back
     amocrm_domain: str = ""  # e.g., "mycompany.amocrm.ru"
     amocrm_token: str = ""  # Long-lived token
@@ -1014,6 +1017,8 @@ async def get_settings(request: Request):
         # Sync settings (for two-way sync)
         "amocrm_domain": settings.get("amocrm_domain", ""),
         "amocrm_token": settings.get("amocrm_token", ""),
+        # Configurable cancelled/lost stage id (default preserved)
+        "cancelled_status_id": settings.get("cancelled_status_id", "73620210"),
         "status_field_id": settings.get("status_field_id", ""),
         "comment_field_id": settings.get("comment_field_id", ""),
         # Trip sync fields
@@ -1193,9 +1198,10 @@ async def receive_webhook_section(
         existing_order = collection.find_one({"amocrm_id": lead_id})
     
     # === HANDLE CANCELLED ORDERS ===
-    # If lead is moved to "cancelled" stage (status_id=73620210), delete from logistics
-    # But ONLY if order is not already assigned to a trip
-    CANCELLED_STATUS_ID = "73620210"  # "слетел заказ" stage in amoCRM
+    # If lead is moved to "cancelled" stage, delete from logistics
+    # But ONLY if order is not already assigned to a trip.
+    # Stage id is configurable via integration settings (falls back to the historical default).
+    CANCELLED_STATUS_ID = str(settings.get("cancelled_status_id") or "73620210").strip()  # "слетел заказ" stage in amoCRM
     webhook_status_id = basic_lead_data.get("status_id", "")
     
     if str(webhook_status_id) == CANCELLED_STATUS_ID and existing_order:

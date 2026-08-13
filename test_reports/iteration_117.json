@@ -1,0 +1,32 @@
+{
+  "summary": "Retest of Пункт 4 (amoCRM configurable 'cancelled_status_id'). Backend: re-ran /app/backend/tests/test_amocrm_configurable_cancelled_status_iteration116.py -> 7/8 passed (only the known out-of-scope test_h for section_pipelines/stage_sync GET omission fails). GET /api/integrations/amocrm/settings now returns cancelled_status_id (default '73620210'; returns '55555' after POST). Frontend: logged in as admin/admin123, Panel administracyjny -> Integracje -> 'Синхронизация', input data-testid='amocrm-cancelled-status-id-input' initially 73620210, set to 55555, clicked «Сохранить настройки синхронизации», toast «Настройки сохранены» appeared, page RELOADED -> field shows 55555. PREVIOUSLY-FAILING UI ROUND-TRIP NOW PASSES. Cleanup done: cancelled_status_id reset to '73620210' in Mongo and verified via GET.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "GET /api/integrations/amocrm/settings", "issue": "Still omits 'section_pipelines' and 'stage_sync' (pre-existing, out of scope). Confirmed side effect: saving from the UI 'Синхронизация' tab overwrote DB section_pipelines/stage_sync to empty strings because the frontend cannot read them back. Same GET-omission pattern that was just fixed for cancelled_status_id."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_amocrm_configurable_cancelled_status_iteration116.py",
+    "/app/backend/tests/cleanup_iteration117.py"
+  ],
+  "action_items": [
+    "Optional (separate ticket): add 'section_pipelines' and 'stage_sync' to GET /api/integrations/amocrm/settings response so UI saves stop wiping them (they are now empty strings in DB after this test's save)."
+  ],
+  "critical_code_review_comments": [
+    "GET /settings builds its response with an explicit whitelist of keys; any new persisted field must be added there or the UI silently wipes it on save. Consider returning the stored doc (minus _id/secret) merged with defaults to prevent recurrence."
+  ],
+  "updated_files": ["/app/backend/tests/cleanup_iteration117.py"],
+  "success_rate": {"backend": "88% (7/8, 1 known out-of-scope failure)", "frontend": "100%"},
+  "seed_data_creation": "None. Temporarily set cancelled_status_id=55555 via UI; reverted to 73620210.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "admin/admin123 (preview)",
+  "context_for_next_testing_agent": "Пункт 4 fully verified end-to-end (backend + UI reload round-trip). NOTE: integration_settings.section_pipelines and .stage_sync are now empty strings in the preview DB because the UI save wiped them (GET omits these keys). If pipeline-filter tests are needed later, re-seed those values directly in Mongo. UI nav path: login -> service-picker card 'Panel administracyjny' (4th 'Wybierz' button) -> tab 'Integracje' -> inner tab 'Синхронизация'.",
+  "rca_of_the_issue": "Original failure was a response whitelist in GET /settings that omitted cancelled_status_id, so the UI re-rendered the hardcoded default after reload. Fix adds the key with default '73620210'; verified persisted value now survives reload."
+}

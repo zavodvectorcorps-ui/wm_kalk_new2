@@ -2079,3 +2079,16 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
   no-pipeline skip, pipeline-mismatch skip, cancelled-not-recreated, add->update
   без дублей, existing-cancelled-delete. Данные очищены, section_pipelines
   восстановлен (absent).
+
+## Session — Jul 3, 2026 (8): SECURITY Пункт 4 — CANCELLED_STATUS_ID в настройки
+- AmoCRMSettings.cancelled_status_id (default '73620210'); webhook читает
+  settings.get('cancelled_status_id') or '73620210'. UI-поле в IntegrationsPage
+  (data-testid amocrm-cancelled-status-id-input). GET /settings теперь возвращает
+  cancelled_status_id.
+- Проверено testing_agent 116/117: backend 6/6 логики + UI round-trip 100%.
+- ⚠️⚠️ ОБНАРУЖЕН КРИТИЧНЫЙ ПРЕД-СУЩЕСТВУЮЩИЙ БАГ (НЕ мой, НЕ трогал без согласия):
+  GET /api/integrations/amocrm/settings НЕ возвращает `section_pipelines` и
+  `stage_sync`. Фронтенд при сохранении шлёт полное состояние → пустые значения
+  → сохранение из вкладки «Синхронизация» ЗАТИРАЕТ section_pipelines/stage_sync
+  в БД. Это ломает Пункт 3 (нужны section_pipelines) и теряет фильтры воронок.
+  ТРЕБУЕТСЯ отдельное разрешение пользователя на фикс (добавить эти 2 поля в GET).

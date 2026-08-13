@@ -1,0 +1,42 @@
+{
+  "summary": "Tested Пункт 4 (configurable amoCRM cancelled/lost stage id). Backend webhook logic is fully correct (6/6 pytest): default 73620210 still cancels when cancelled_status_id is unset or blank; when settings.cancelled_status_id='88888' the 88888 webhook deletes the order while the old default 73620210 only updates it (order preserved), and the update-fallback guard honours the configured id too. POST /api/integrations/amocrm/settings persists the value in Mongo. FRONTEND FAILS the round-trip: the input saves (toast «Настройки сохранены», DB gets 55555) but after reload the field shows 73620210 again, because GET /api/integrations/amocrm/settings does not return cancelled_status_id. Same omission for section_pipelines and stage_sync => saving from the UI silently WIPES pipeline filters/stage sync (data loss on production).",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "GET /api/integrations/amocrm/settings", "issue": "Response omits cancelled_status_id -> UI shows the hardcoded default 73620210 after reload and re-saving overwrites the admin's configured value back to 73620210 (feature is effectively unusable from UI).", "priority": "HIGH"},
+      {"endpoint": "GET /api/integrations/amocrm/settings + POST /api/integrations/amocrm/settings", "issue": "GET also omits section_pipelines and stage_sync. Frontend POSTs its full state back, so every save from the Integrations page resets section_pipelines to {greenhouse:'',balia:'',sauna:''} and stage_sync to empty. Verified live: after one UI save on preview both keys were written as empty. On production this destroys the amoCRM pipeline filters.", "priority": "CRITICAL"}
+    ],
+    "minor": [
+      {"endpoint": "POST /api/integrations/amocrm/settings", "issue": "No auth dependency on the settings save/read endpoints (anyone can read/overwrite amoCRM domain/token/config)."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "IntegrationsPage (Синхронизация tab)", "issue": "Value entered in «ID стадии «Слетел заказ»» does not persist visually: save succeeds and DB stores 55555, but after page reload the field renders 73620210 (fetchSettings spreads a GET response that lacks the key, so the default state wins).", "selector": "[data-testid=\"amocrm-cancelled-status-id-input\"]", "priority": "HIGH"}
+    ],
+    "integration_issues": [
+      {"flow": "amoCRM settings save/load round-trip", "issue": "GET /settings omits cancelled_status_id / section_pipelines / stage_sync; setSettings(prev => ({...prev, ...data})) therefore keeps stale defaults and the next save writes those defaults to DB.", "affected_selectors": ["[data-testid=\"amocrm-cancelled-status-id-input\"]"]}
+    ],
+    "design_issues": [
+      {"screen": "Admin panel / Integrations", "issues": ["Mixed locale: outer tabs are Polish (Zamówienia, Integracje) while 'Планировки', 'Контент' and the entire Integrations page are Russian", "Only the cancelled-status input has a data-testid in the whole IntegrationsPage; save buttons/tabs lack data-testid, making automation brittle"]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_amocrm_configurable_cancelled_status_iteration116.py", "/app/test_reports/pytest/pytest_iter116.xml"],
+  "action_items": [
+    "Add cancelled_status_id to the GET /api/integrations/amocrm/settings response so the UI input round-trips.",
+    "Also return section_pipelines and stage_sync from GET /settings (or make POST a partial merge) — currently every UI save wipes them; this is a production data-loss bug.",
+    "Consider requiring admin auth on the amoCRM settings GET/POST endpoints."
+  ],
+  "critical_code_review_comments": [
+    "amocrm.py get_settings() hand-builds the response dict and drifts from AmoCRMSettings/save_settings — every new field must be added in two places. Return the persisted doc (minus _id) merged with defaults instead.",
+    "save_settings() does a full $set of the Pydantic dict, so any field the client did not know about is overwritten with its default. Combined with the incomplete GET this is a silent config-reset path.",
+    "amocrm.py is 3606 lines — split into webhook / sync / settings modules."
+  ],
+  "updated_files": ["/app/backend/tests/test_amocrm_configurable_cancelled_status_iteration116.py"],
+  "success_rate": {"backend": "75% (6/8; the 2 failures are the GET /settings omissions)", "frontend": "50% (input present & editable, save OK; reload persistence FAILS)"},
+  "seed_data_creation": "Seeded sauna_orders amocrm_id QC1..QC6 + webhook_logs; all deleted by the test fixture. integration_settings amocrm doc snapshotted and restored; cancelled_status_id and section_pipelines unset again (verified absent, enabled=true). Note: the one UI save added empty section_pipelines/stage_sync keys — section_pipelines was unset again; stage_sync remains with empty values (behaviourally identical to absent).",
+  "should_call_test_agent_after_fix": true,
+  "should_main_agent_self_test": false,
+  "test_credentials": "admin/admin123 (preview)",
+  "context_for_next_testing_agent": "Run pytest tests/test_amocrm_configurable_cancelled_status_iteration116.py — tests a..f must stay green, g/h should turn green once GET /settings returns cancelled_status_id + section_pipelines + stage_sync. Frontend path: login admin/admin123 -> click text 'Panel administracyjny' -> tab 'Integracje' -> inner tab 'Синхронизация' -> input [data-testid=amocrm-cancelled-status-id-input], save button named 'Сохранить настройки синхронизации'.",
+  "rca_of_the_issue": "receive_webhook_section correctly reads settings.get('cancelled_status_id') so the backend behaviour is configurable and backwards compatible. The regression is in GET /api/integrations/amocrm/settings (line ~1007), which returns a hand-written dict that never got the new key; IntegrationsPage.fetchSettings merges that response over its default state (cancelled_status_id:'73620210'), so the saved value is invisible and the next save posts the default back to Mongo. The same hand-written dict already omits section_pipelines and stage_sync, so any save from the Integrations page blanks those persisted values (reproduced live on preview)."
+}

@@ -82,6 +82,8 @@ export const IntegrationsPage = () => {
     // Two-way sync settings
     amocrm_domain: '',
     amocrm_token: '',
+    // amoCRM "cancelled/lost" stage id (default = historical value)
+    cancelled_status_id: '73620210',
     status_field_id: '',
     comment_field_id: '',
     // Stage sync settings - which stages to pull orders from
@@ -1113,6 +1115,18 @@ export const IntegrationsPage = () => {
                       Создайте в amoCRM → Настройки → Интеграции → Собственная интеграция
                     </p>
                   </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>ID стадии «Слетел заказ» (отмена)</Label>
+                  <Input
+                    value={settings.cancelled_status_id || ''}
+                    onChange={(e) => setSettings(prev => ({ ...prev, cancelled_status_id: e.target.value }))}
+                    placeholder="73620210"
+                    data-testid="amocrm-cancelled-status-id-input"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    При переводе сделки в эту стадию заказ удаляется из логистики (если не в рейсе). Обновите, если стадию пересоздали в amoCRM.
+                  </p>
                 </div>
               </div>
 
