@@ -1110,10 +1110,13 @@ export const IntegrationsPage = () => {
                       type="password"
                       value={settings.amocrm_token}
                       onChange={(e) => setSettings(prev => ({ ...prev, amocrm_token: e.target.value }))}
-                      placeholder="Вставьте токен из amoCRM"
+                      placeholder={settings.amocrm_token_set ? `Сохранён: ${settings.amocrm_token_masked} — оставьте пустым, чтобы не менять` : "Вставьте токен из amoCRM"}
+                      data-testid="amocrm-token-input"
                     />
                     <p className="text-xs text-muted-foreground">
-                      Создайте в amoCRM → Настройки → Интеграции → Собственная интеграция
+                      {settings.amocrm_token_set
+                        ? 'Токен сохранён и скрыт. Поле можно оставить пустым — токен не изменится.'
+                        : 'Создайте в amoCRM → Настройки → Интеграции → Собственная интеграция'}
                     </p>
                   </div>
                 </div>

@@ -970,6 +970,16 @@ def get_collection_for_section(section: str):
     return None
 
 
+def _mask_token(tok: str) -> str:
+    """Mask an API token for display (show only last 4 chars)."""
+    if not tok:
+        return ""
+    tok = str(tok)
+    if len(tok) <= 4:
+        return "•" * len(tok)
+    return "••••" + tok[-4:]
+
+
 @router.get("/settings")
 async def get_settings(request: Request):
     """Get amoCRM integration settings."""
@@ -1016,7 +1026,11 @@ async def get_settings(request: Request):
         "field_mapping": field_mapping,
         # Sync settings (for two-way sync)
         "amocrm_domain": settings.get("amocrm_domain", ""),
-        "amocrm_token": settings.get("amocrm_token", ""),
+        # SECURITY: never return the raw API token. Masked for display only;
+        # the real token stays in the DB and POST preserves it when an empty token is sent.
+        "amocrm_token": "",
+        "amocrm_token_masked": _mask_token(settings.get("amocrm_token", "")),
+        "amocrm_token_set": bool(settings.get("amocrm_token")),
         # Configurable cancelled/lost stage id (default preserved)
         "cancelled_status_id": settings.get("cancelled_status_id", "73620210"),
         # Pipeline filter + stage-sync settings (must be returned so the UI does not
@@ -1064,7 +1078,17 @@ async def save_settings(settings: AmoCRMSettings):
     settings_data = settings.dict()
     settings_data["type"] = "amocrm"
     settings_data["updated_at"] = datetime.now(timezone.utc).isoformat()
-    
+
+    # SECURITY: the token is masked in GET responses, so the client sends an empty
+    # (or masked) token when it does not intend to change it. In that case, keep the
+    # existing token instead of wiping it. A real, non-masked token still updates as before.
+    incoming_token = (settings_data.get("amocrm_token") or "").strip()
+    # A real amoCRM token never contains the bullet char used for masking, so treat any
+    # empty / bullet-containing / all-asterisk value as "no change" and keep the stored token.
+    if (not incoming_token) or ("•" in incoming_token) or (set(incoming_token) <= {"*"}):
+        existing = integration_settings.find_one({"type": "amocrm"}) or {}
+        settings_data["amocrm_token"] = existing.get("amocrm_token", "")
+
     integration_settings.update_one(
         {"type": "amocrm"},
         {"$set": settings_data},

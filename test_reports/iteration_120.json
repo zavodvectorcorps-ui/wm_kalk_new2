@@ -1,0 +1,34 @@
+{
+  "summary": "Backend-only re-verification of the amoCRM token-masking P0 fix (follow-up to iteration_119's 5/6). Extended the existing regression suite /app/backend/tests/test_amocrm_token_masking_iteration119.py from 6 to 13 tests -> 13/13 PASSED. (1) FIXED CASE CONFIRMED: with Mongo amocrm_token='SECRETTOKEN123456', POST /api/integrations/amocrm/settings with amocrm_token='••••3456' returns 200 and Mongo STILL holds 'SECRETTOKEN123456' (mask no longer destroys the credential). Same for '••••', '•', '****', '*' and '' (parametrized, all preserve; GET afterwards still reports token_set=true, masked='••••3456', domain wm-kalkulator.pl untouched). (2) REAL TOKEN UPDATES: POST amocrm_token='REALNEW777' -> Mongo becomes 'REALNEW777', GET does not leak it (raw '', masked '••••W777'). Earlier case POST 'NEWTOKEN9999' also updates. (3) NO LEAK regression: GET returns amocrm_token='', amocrm_token_masked='••••3456', amocrm_token_set=true and the raw token string is absent from the whole JSON body; /api/integrations/amocrm/debug-info also does not leak it. (4) SAVE WITHOUT TOKEN (GET body minus webhook_urls POSTed back with amocrm_token='') keeps the stored token. CLEANUP DONE: integration_settings.amocrm_token and amocrm_domain unset again; verified via Mongo (fields absent) and via public GET ('', '', false). Domain wm-kalkulator.pl was only used as a temporary seed value and is no longer stored. No frontend testing performed (backend-only request).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_amocrm_token_masking_iteration119.py",
+    "/app/test_reports/pytest/amocrm_token_iteration120.xml",
+    "/app/tests/verify_amocrm_state.py"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "STILL OPEN (from iteration_119, unrelated to this fix): GET and POST /api/integrations/amocrm/settings are completely UNAUTHENTICATED. Any anonymous caller can overwrite domain/token/field mappings or read the masked config. Put both behind admin auth.",
+    "GET /settings hand-whitelists response keys; any newly persisted field must be added there or a UI round-trip save will silently wipe it (this class of bug already regressed twice).",
+    "Minor: the guard rejects a legitimate token consisting only of '*' characters — acceptable in practice for amoCRM long-lived tokens, but the rule is a heuristic; consider a dedicated boolean flag (e.g. token_changed) from the UI instead of sentinel-string sniffing."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_amocrm_token_masking_iteration119.py",
+    "/app/tests/verify_amocrm_state.py"
+  ],
+  "success_rate": {"backend": "100% (13/13)", "frontend": "not tested (backend-only request)"},
+  "seed_data_creation": "Temporarily seeded integration_settings(type=amocrm).amocrm_token ('SECRETTOKEN123456' / 'NEWTOKEN9999' / 'REALNEW777') and amocrm_domain='wm-kalkulator.pl'; both fields removed after the run (self-cleaning module fixture). enabled=true was already true before this run and is left as-is.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": false,
+  "test_credentials": "admin/admin123 (preview) — not needed, settings endpoints are unauthenticated",
+  "context_for_next_testing_agent": "amoCRM token masking is now fully green: GET never leaks the raw token, POST preserves the stored token for empty / bullet-containing / all-asterisk values, and a real token still updates. Regression suite is self-seeding and self-cleaning: run `cd /app/backend && python -m pytest tests/test_amocrm_token_masking_iteration119.py -q` (13 tests). DB currently has amocrm_token/amocrm_domain UNSET (neutral). Only remaining gap on these endpoints is the missing admin authentication on GET/POST /api/integrations/amocrm/settings.",
+  "rca_of_the_issue": "iteration_119 failure root cause: save_settings() detected masks with `set(incoming_token) <= {'•','*'}`, which is false for the real mask '••••9999' (trailing real chars), so the mask was persisted as the token. Current code treats a token as 'no change' when it is empty, contains '•', or is all '*' — verified working for all mask shapes emitted by _mask_token()."
+}

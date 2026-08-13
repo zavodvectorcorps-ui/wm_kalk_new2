@@ -1,0 +1,34 @@
+{
+  "summary": "P0 security verification of amoCRM API-token masking. BACKEND: new pytest /app/backend/tests/test_amocrm_token_masking_iteration119.py -> 5/6 PASSED. (1) NO LEAK: seeded amocrm_token='SECRETTOKEN123456'; GET /api/integrations/amocrm/settings returns amocrm_token='', amocrm_token_masked='••••3456', amocrm_token_set=true and the raw string does NOT appear anywhere in the response body. (2) SAVE WITHOUT TOKEN: GET body minus webhook_urls POSTed back (amocrm_token='') -> 200, Mongo amocrm_token still 'SECRETTOKEN123456' (not wiped), GET still reports set=true/••••3456. (3) SAVE WITH NEW TOKEN: POST amocrm_token='NEWTOKEN9999' + enabled + domain -> Mongo becomes 'NEWTOKEN9999'; subsequent GET does not leak it (raw '', masked '••••9999', enabled true, domain preserved). (4) MASKED VALUE: POST amocrm_token='••••9999' FAILED — the bullet+last4 mask IS stored as the real token, destroying the credential. All-bullet/all-asterisk ('****') and whitespace-only values are correctly ignored. (5) /api/integrations/amocrm/debug-info does not leak the token. FRONTEND: admin/admin123 -> Panel administracyjny -> Integracje -> inner tab 'Синхронизация': amocrm-token-input is EMPTY on load with placeholder 'Сохранён: ••••3456 — оставьте пустым, чтобы не менять'; raw token absent from DOM and from console ('amocrm_token: ' empty in the 'Fetched settings' log). Clicked «Сохранить настройки синхронизации» WITHOUT typing a token -> toast «Настройки сохранены»; after full reload GET shows amocrm_token_set=true, masked '••••3456', domain wm-kalkulator.pl unchanged -> token NOT wiped by the UI save. CLEANUP DONE: integration_settings.amocrm_token and amocrm_domain unset (GET now returns ''/''/false); no test tokens left.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/integrations/amocrm/settings", "issue": "Masked-token guard is too narrow: `set(incoming_token) <= {'•','*'}` only matches strings made purely of bullets/asterisks. The actual mask emitted by GET is '••••9999' (bullets + last 4 real chars), so posting the masked value back OVERWRITES the stored token with '••••9999' and destroys amoCRM access. Suggested fix: treat as masked when incoming_token.startswith(('•','*')) (or when stripping bullets/asterisks leaves <=4 chars matching the stored token suffix)."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_amocrm_token_masking_iteration119.py"
+  ],
+  "action_items": [
+    "Harden the masked-token detection in POST /settings so 'bullets + last4' values (e.g. '••••9999') are treated as 'unchanged' instead of being saved as the token."
+  ],
+  "critical_code_review_comments": [
+    "GET/POST /api/integrations/amocrm/settings are still completely UNAUTHENTICATED. Masking the token in GET reduces the leak, but any anonymous caller can still POST /settings and overwrite the domain/token/mappings (and, via the mask bug, wipe the real token). This endpoint pair must be behind admin auth.",
+    "GET /settings still hand-whitelists response keys; the newly added masked fields are fine but any future persisted field must be added there or a UI save will silently wipe it (this class of bug already occurred twice)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_amocrm_token_masking_iteration119.py"
+  ],
+  "success_rate": {"backend": "83% (5/6)", "frontend": "100%"},
+  "seed_data_creation": "Temporarily seeded integration_settings(type=amocrm).amocrm_token='SECRETTOKEN123456'/'NEWTOKEN9999' and amocrm_domain='wm-kalkulator.pl'; both fields unset again after testing (neutral preview state).",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "admin/admin123 (preview)",
+  "context_for_next_testing_agent": "Token masking works end-to-end (GET never leaks, empty save preserves, real token updates, UI input empty with masked placeholder). Only open backend gap: POST with the masked value '••••9999' overwrites the real token (guard only handles pure-bullet strings). Regression test is self-seeding/self-cleaning: /app/backend/tests/test_amocrm_token_masking_iteration119.py (re-run after the fix; test_masked_value_not_saved_as_token should then pass). UI nav: login -> 4th 'Wybierz' (Panel administracyjny) -> tab 'Integracje' -> inner tab 'Синхронизация' -> data-testid='amocrm-token-input'. DB currently has amocrm_token/amocrm_domain unset.",
+  "rca_of_the_issue": "GET now returns amocrm_token='' plus amocrm_token_masked/_set, and POST falls back to the stored token when the incoming one is empty — verified at API, Mongo and UI level. The remaining defect is in the mask-detection condition in save_settings(): `set(incoming_token) <= {'•','*'}` is false for '••••9999' because of the trailing digits, so the mask passes through as a legitimate token and is persisted."
+}
