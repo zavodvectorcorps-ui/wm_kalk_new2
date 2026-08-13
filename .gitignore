@@ -108,3 +108,6 @@ credentials.json
 frontend/node_modules/.cache/default-development/23.pack
 frontend/node_modules/.cache/default-development/21.pack
 frontend/node_modules/.cache/default-development/26.pack
+.env
+.env.*
+*.env
