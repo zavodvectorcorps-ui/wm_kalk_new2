@@ -1,0 +1,28 @@
+{
+  "summary": "Regression-tested auth after config.py security hardening (fail-fast _required_env for JWT_SECRET/ADMIN_PASSWORD). Wrote pytest suite (14 tests) against the public preview URL covering main-app login for admin/marketer/kladovshchik, token reuse on protected GETs (/api/auth/me, /api/sauna-crm/leads), tampered/garbage/missing token rejection (401), wrong-password + unknown-user rejection (401), dealer portal login (testdealer) + dealer-protected endpoints (/api/dealer/auth/me, /api/dealer/stats), cross-token isolation (admin token rejected on dealer endpoint), and a subprocess assertion that config import raises 'JWT_SECRET is not set' when the var is absent. All 14 backend tests PASSED. Frontend smoke: UI login as admin/admin123 succeeds and the service-selection dashboard renders (no console errors); dealer portal UI login as testdealer/dealer123 succeeds and loads the dealer calculator. No auth breakage found from the config change.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Dealer portal calculator", "issues": ["'Data zamowienia' uses the native browser date input instead of a shadcn calendar component (pre-existing, unrelated to this change)"]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_auth_config_hardening_iteration113.py",
+    "/app/test_reports/pytest/auth_hardening_113.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "config.py fail-fast is correct and verified; note ADMIN_USERNAME still has a hardcoded default 'admin' (acceptable, non-secret).",
+    "Ensure JWT_SECRET and ADMIN_PASSWORD are present in deployment Secrets before the next production deploy, otherwise the backend will now crash at import instead of silently using a fallback."
+  ],
+  "updated_files": ["/app/backend/tests/test_auth_config_hardening_iteration113.py"],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "seed_data_creation": "None - used existing preview accounts only; no data created or modified",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": false,
+  "test_credentials": "admin/admin123, marketer/marketer123, kladovshchik/kladovshchik123, testdealer/dealer123 (all valid on preview)",
+  "context_for_next_testing_agent": "Auth regression suite lives at /app/backend/tests/test_auth_config_hardening_iteration113.py and can be reused after any auth/config change (runs in ~5s). All roles' tokens verified against /api/auth/me; sauna-crm leads GET returns 200 for admin/marketer/kladovshchik. Dealer JWTs are separate scope: main-app admin token is correctly rejected (401) on /api/dealer/auth/me.",
+  "rca_of_the_issue": "N/A - no defects reproduced. JWT_SECRET value unchanged on preview so previously issued tokens remain valid; verification logic untouched."
+}

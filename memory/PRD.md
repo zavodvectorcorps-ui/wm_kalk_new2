@@ -2046,3 +2046,15 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
 - Проверено: sauna generate-pdf HTTP 200, в PDF нет «WM-Group», есть ALICOR.
 - Внутренние Cloudinary-папки «wm-calculator/...» НЕ трогали (не видны в PDF).
 - ⚠️ ПЕРЕДЕПЛОИТЬ на прод.
+
+## Session — Jul 3, 2026 (5): SECURITY Пункт 1 — fail-fast JWT_SECRET/ADMIN_PASSWORD
+- backend/config.py: убраны захардкоженные фолбэки JWT_SECRET/ADMIN_PASSWORD.
+  Добавлен `_required_env(name)` → RuntimeError "<NAME> is not set" при отсутствии.
+  ROOT_DIR/load_dotenv и прочие строки НЕ трогали. Значение секрета НЕ менялось.
+- Проверено testing_agent iteration_113: 14/14 auth-тестов (admin/marketer/
+  kladovshchik + dealer portal + token reuse + 401 на неверный/битый токен +
+  cross-token isolation + fail-fast import). 100% backend+frontend.
+- ⚠️ ДЕПЛОЙ: JWT_SECRET и ADMIN_PASSWORD ДОЛЖНЫ быть заданы (одинаковый
+  JWT_SECRET) на ВСЕХ прод-инстансах, иначе инстанс намеренно не стартует
+  (это защита, а не баг). Секрет не менять — иначе разлогин всех.
+- NB: в свежей БД админ больше НЕ создаётся с фолбэк-паролем; ADMIN_PASSWORD env обязателен.
