@@ -460,6 +460,7 @@ async def get_prod_telegram_settings():
         "chat_id": chat_id,
         "enabled": enabled,
         "source": source,
+        "ack_reminder_hours": (doc or {}).get("ack_reminder_hours", 3),
     }
 
 
@@ -474,11 +475,26 @@ async def save_prod_telegram_settings(data: dict):
         update["chat_id"] = (data.get("chat_id") or "").strip()
     if "enabled" in data:
         update["enabled"] = bool(data.get("enabled"))
+    if "ack_reminder_hours" in data:
+        try:
+            h = float(data.get("ack_reminder_hours"))
+            if h > 0:
+                update["ack_reminder_hours"] = h
+        except (TypeError, ValueError):
+            pass
     if not update:
         return {"status": "ok", "changed": False}
     update["updatedAt"] = datetime.now(timezone.utc).isoformat()
     await db.telegram_production_settings.update_one({"_id": "config"}, {"$set": update}, upsert=True)
     return {"status": "ok", "changed": True}
+
+
+@router.post("/mark-seen/{order_id}")
+async def mark_production_updates_seen(order_id: str):
+    """Mark that the manager has seen the latest production updates for this order."""
+    now = datetime.now(timezone.utc).isoformat()
+    await db.sauna_crm_leads.update_one({"id": order_id}, {"$set": {"productionUpdatesSeenAt": now}})
+    return {"success": True}
 
 
 @router.post("/test")
@@ -628,7 +644,7 @@ async def _handle_reply(message: dict, cfg: dict):
     else:
         entry = {"text": text, "author": actor, "at": now, "direction": "in", "channel": "telegram"}
         await db.sauna_crm_leads.update_one({"id": order_id}, {
-            "$set": {db_field: text, "updatedAt": now},
+            "$set": {db_field: text, "updatedAt": now, "lastProductionUpdateAt": now},
             "$push": {"productionMessages": entry},
         })
         await send_telegram_message(text=f"✅ Комментарий сохранён (от {actor})", chat_id=chat_id, bot_token=bot, message_thread_id=thread_id)
@@ -679,7 +695,7 @@ async def _handle_photo(message: dict, cfg: dict):
         caption = (message.get("caption") or "").strip()
         entry = {"text": f"📷 Фото готового изделия{': ' + caption if caption else ''}", "author": actor, "at": now, "direction": "in", "channel": "telegram"}
         await db.sauna_crm_leads.update_one({"id": order_id}, {
-            "$push": {"documents": doc, "productionMessages": entry}, "$set": {"updatedAt": now},
+            "$push": {"documents": doc, "productionMessages": entry}, "$set": {"updatedAt": now, "lastProductionUpdateAt": now},
         })
         await send_telegram_message(text=f"✅ Фото сохранено в карточку заказа (от {actor})", chat_id=chat_id, bot_token=bot, message_thread_id=thread_id)
     except Exception as e:

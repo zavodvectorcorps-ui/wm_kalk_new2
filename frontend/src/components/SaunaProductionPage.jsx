@@ -316,7 +316,7 @@ const ProdTelegramSettings = ({ authHeaders }) => {
   const save = async () => {
     setSaving(true);
     try {
-      const body = { chat_id: cfg.chat_id, enabled: cfg.enabled };
+      const body = { chat_id: cfg.chat_id, enabled: cfg.enabled, ack_reminder_hours: cfg.ack_reminder_hours };
       if (newToken.trim()) body.bot_token = newToken.trim();
       const res = await fetch(`${API_URL}/api/integrations/telegram/settings`, {
         method: 'POST', headers: { ...authHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify(body),
@@ -362,6 +362,16 @@ const ProdTelegramSettings = ({ authHeaders }) => {
             data-testid="prod-tg-chatid"
           />
         </div>
+      </div>
+      <div className="mt-3 max-w-[280px]">
+        <Label className="text-xs">Напоминать о приёмке через (часов)</Label>
+        <Input
+          type="number" min="1" step="1"
+          value={cfg.ack_reminder_hours ?? 3}
+          onChange={(e) => setCfg(p => ({ ...p, ack_reminder_hours: e.target.value }))}
+          data-testid="prod-tg-reminder-hours"
+        />
+        <p className="text-[11px] text-muted-foreground mt-1">Если производство не нажало «Принял в работу» за это время — бот пингует тему.</p>
       </div>
       <div className="flex items-center gap-3 mt-3">
         <Button size="sm" onClick={save} disabled={saving} data-testid="prod-tg-save">

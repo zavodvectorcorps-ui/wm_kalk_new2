@@ -2268,3 +2268,17 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
   (direction in). Fallback на Telegram file-URL если Cloudinary недоступен.
 - Проверено live: reminder tick (пинг+флаг), фото (реальный file_id → Cloudinary URL
   в карточке), кнопка канбана (скриншот).
+
+## Session — Aug 14, 2026 (5): часы напоминания в UI + галерея фото + подсветка новинок
+- **Часы напоминания в UI**: поле «Напоминать о приёмке через (часов)» в настройках
+  (data-testid prod-tg-reminder-hours). Backend: `ack_reminder_hours` в GET/POST /settings
+  (валидация >0), планировщик читает из settings (деф. 3).
+- **Галерея фото в карточке**: в CRM-карточке блок «📷 Фото от производства»
+  (data-testid production-photo-gallery / production-photo-{i}) — миниатюры из
+  documents[type=production_photo], клик открывает оригинал. Проверено скриншотом.
+- **Подсветка новинок от производства**: webhook на входящем фото/комментарии ставит
+  `lastProductionUpdateAt`. Канбан CRM показывает «🔔 новое»
+  (data-testid prod-update-badge-{id}) если lastProductionUpdateAt > productionUpdatesSeenAt.
+  При открытии карточки — `POST /api/integrations/telegram/mark-seen/{order_id}` ставит
+  productionUpdatesSeenAt (бейдж гаснет). `hasUnseenProdUpdate(lead)` в SaunaCRMPage.
+- Проверено live: сохранение часов (6), mark-seen; галерея и лента в карточке (скриншот).

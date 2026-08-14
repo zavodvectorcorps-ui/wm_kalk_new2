@@ -312,6 +312,11 @@ const SaunaCRMPage = () => {
     } catch (e) { toast.error('Ошибка синхронизации'); setSyncing(false); }
   };
 
+  const hasUnseenProdUpdate = (lead) => (
+    lead.lastProductionUpdateAt &&
+    (!lead.productionUpdatesSeenAt || new Date(lead.lastProductionUpdateAt) > new Date(lead.productionUpdatesSeenAt))
+  );
+
   const openLead = (lead) => {
     setSelectedLead(lead);
     setEditData({ ...lead });
@@ -319,6 +324,13 @@ const SaunaCRMPage = () => {
     setLinkOrderId('');
     setRelinkMode(false);
     fetchCalculatorOrder(lead);
+    if (hasUnseenProdUpdate(lead)) {
+      const seenAt = new Date().toISOString();
+      fetch(`${API_URL}/api/integrations/telegram/mark-seen/${lead.id}`, { method: 'POST', headers: authHeaders })
+        .then(() => {
+          setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, productionUpdatesSeenAt: seenAt } : l));
+        }).catch(() => {});
+    }
   };
 
   const saveLead = async () => {
@@ -1032,6 +1044,9 @@ const SaunaCRMPage = () => {
                           {lead.productionAckedAt && (
                             <span className="text-[10px] text-emerald-600" title={`Принял: ${lead.productionAckedBy || ''}`}>✅ принят</span>
                           )}
+                          {hasUnseenProdUpdate(lead) && (
+                            <span className="text-[10px] text-rose-600 font-medium animate-pulse" title="Новое фото или комментарий от производства" data-testid={`prod-update-badge-${lead.id}`}>🔔 новое</span>
+                          )}
                         </div>
                       </CardContent>
                     </Card>
@@ -1517,6 +1532,20 @@ const SaunaCRMPage = () => {
                     </div>
                     {selectedLead.productionComment && (
                       <div className="mt-1 text-muted-foreground">Комментарий производства: <span className="text-foreground">{selectedLead.productionComment}</span></div>
+                    )}
+                    {(selectedLead.documents || []).filter(d => d.type === 'production_photo').length > 0 && (
+                      <div className="mt-2" data-testid="production-photo-gallery">
+                        <div className="text-[11px] font-medium text-foreground mb-1">📷 Фото от производства</div>
+                        <div className="flex flex-wrap gap-2">
+                          {(selectedLead.documents || []).filter(d => d.type === 'production_photo').map((d, i) => (
+                            <a key={d.id || i} href={d.url} target="_blank" rel="noopener noreferrer"
+                               className="block w-16 h-16 rounded-md overflow-hidden border hover:ring-2 hover:ring-sky-400 transition"
+                               title={d.name || 'Фото производства'} data-testid={`production-photo-${i}`}>
+                              <img src={d.url} alt={d.name || 'Фото'} className="w-full h-full object-cover" />
+                            </a>
+                          ))}
+                        </div>
+                      </div>
                     )}
                   </div>
                 )}
