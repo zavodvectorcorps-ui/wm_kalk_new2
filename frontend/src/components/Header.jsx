@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { LanguageSwitcher } from './LanguageSwitcher';
@@ -19,6 +19,23 @@ export const Header = ({
   const { t, i18n } = useTranslation();
   const { canViewPricing, hasAccess, isMarketer } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [prodUnseen, setProdUnseen] = useState(0);
+
+  // Live "N новых от производства" badge on the CRM tab (visible from any sauna section)
+  useEffect(() => {
+    const show = calculatorType === 'sauna' && (isAdminAuthenticated || hasAccess('sauna'));
+    if (!show) { setProdUnseen(0); return; }
+    const API = process.env.REACT_APP_BACKEND_URL;
+    const fetchCount = () => fetch(`${API}/api/integrations/telegram/unseen-count`)
+      .then(r => r.json()).then(d => setProdUnseen(d.count || 0)).catch(() => {});
+    fetchCount();
+    let es;
+    try { es = new EventSource(`${API}/api/integrations/telegram/events`); es.onmessage = () => fetchCount(); } catch (e) { /* noop */ }
+    const iv = setInterval(fetchCount, 60000);
+    const onSeen = () => fetchCount();
+    window.addEventListener('prod-updates-seen', onSeen);
+    return () => { if (es) es.close(); clearInterval(iv); window.removeEventListener('prod-updates-seen', onSeen); };
+  }, [calculatorType, isAdminAuthenticated]);
 
   const texts = {
     ru: {
@@ -226,6 +243,11 @@ export const Header = ({
                 >
                   <Briefcase className="h-4 w-4" />
                   CRM
+                  {prodUnseen > 0 && (
+                    <Badge className="ml-1 bg-rose-600 hover:bg-rose-600 text-white text-[10px] px-1.5 py-0 h-5 min-w-[20px] justify-center animate-pulse" data-testid="crm-tab-prod-badge">
+                      {prodUnseen}
+                    </Badge>
+                  )}
                 </Button>
               )}
               {/* Lead Analytics - moved to standalone section on main page */}
@@ -435,6 +457,11 @@ export const Header = ({
                   >
                     <Briefcase className="h-4 w-4" />
                     CRM
+                    {prodUnseen > 0 && (
+                      <Badge className="ml-auto bg-rose-600 hover:bg-rose-600 text-white text-[10px] px-1.5 py-0 h-5 min-w-[20px] justify-center">
+                        {prodUnseen}
+                      </Badge>
+                    )}
                   </Button>
                 )}
                 {/* Lead Analytics - moved to standalone section on main page */}

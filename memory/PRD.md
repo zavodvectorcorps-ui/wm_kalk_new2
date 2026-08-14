@@ -2317,3 +2317,15 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
   (data-testid prod-sound-toggle), хранится в localStorage `prodSoundEnabled`.
   Бип при новом апдейте играет только если включён.
 - Проверено: SSE-событие ack доходит вживую, тумблер звука переключается/сохраняется.
+
+## Session — Aug 14, 2026 (9): окно переписки с поиском + живой бейдж на вкладке CRM
+- **Окно полной переписки**: в CRM-карточке кнопка «Вся переписка (N)»
+  (data-testid open-chat-history-btn) открывает Dialog (chat-history-dialog) со
+  всеми productionMessages и поиском по тексту/автору (chat-history-search),
+  входящие из Telegram подсвечены. Проверено (фильтр «орех» → 1 сообщение).
+- **Живой бейдж на вкладке CRM в шапке**: `GET /api/integrations/telegram/unseen-count`.
+  Header.jsx сам фетчит счётчик + слушает SSE `/events` (рефетч на событие) +
+  safety-poll 60с + слушает window-event `prod-updates-seen` (диспатчится из
+  SaunaCRMPage при mark-seen). Красный бейдж на кнопке CRM (desktop
+  crm-tab-prod-badge + mobile) виден из любого раздела sauna. Проверено скриншотом
+  (CRM ① на вкладке Калькулятор).

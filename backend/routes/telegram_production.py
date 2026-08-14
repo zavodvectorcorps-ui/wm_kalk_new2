@@ -779,6 +779,20 @@ async def webhook_status():
     return {"enabled": bool(doc.get("webhook_enabled"))}
 
 
+@router.get("/unseen-count")
+async def unseen_production_count():
+    """Count of orders with production updates the manager hasn't seen yet."""
+    query = {
+        "lastProductionUpdateAt": {"$exists": True, "$ne": None},
+        "$expr": {"$or": [
+            {"$eq": [{"$ifNull": ["$productionUpdatesSeenAt", None]}, None]},
+            {"$gt": ["$lastProductionUpdateAt", "$productionUpdatesSeenAt"]},
+        ]},
+    }
+    count = await db.sauna_crm_leads.count_documents(query)
+    return {"count": count}
+
+
 @router.get("/events")
 async def sse_events():
     """Server-Sent Events stream of live production updates (photo/comment/ack)."""

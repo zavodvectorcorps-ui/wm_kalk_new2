@@ -116,6 +116,8 @@ const SaunaCRMPage = () => {
   const [soundEnabled, setSoundEnabled] = useState(() => {
     try { return localStorage.getItem('prodSoundEnabled') !== '0'; } catch { return true; }
   });
+  const [chatHistoryOpen, setChatHistoryOpen] = useState(false);
+  const [chatSearch, setChatSearch] = useState('');
   
   // Drag & drop
   const [draggedLead, setDraggedLead] = useState(null);
@@ -335,6 +337,7 @@ const SaunaCRMPage = () => {
       fetch(`${API_URL}/api/integrations/telegram/mark-seen/${lead.id}`, { method: 'POST', headers: authHeaders })
         .then(() => {
           setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, productionUpdatesSeenAt: seenAt } : l));
+          try { window.dispatchEvent(new Event('prod-updates-seen')); } catch {}
         }).catch(() => {});
     }
   };
@@ -807,6 +810,42 @@ const SaunaCRMPage = () => {
           </Button>
         </div>
       </div>
+
+      {/* Full chat history with search */}
+      <Dialog open={chatHistoryOpen} onOpenChange={setChatHistoryOpen}>
+        <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col" data-testid="chat-history-dialog">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Send className="w-5 h-5 text-sky-600" />
+              Переписка по заказу {selectedLead?.id ? `#${selectedLead.id}` : ''}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="relative mb-2">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input placeholder="Поиск по тексту / автору…" value={chatSearch} onChange={(e) => setChatSearch(e.target.value)} className="pl-10" data-testid="chat-history-search" />
+          </div>
+          <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+            {(() => {
+              const q = chatSearch.trim().toLowerCase();
+              const msgs = (selectedLead?.productionMessages || []).filter(m =>
+                !q || (m.text || '').toLowerCase().includes(q) || (m.author || '').toLowerCase().includes(q)
+              );
+              if (msgs.length === 0) {
+                return <p className="text-center text-muted-foreground py-10 text-sm">{q ? 'Ничего не найдено' : 'Сообщений пока нет'}</p>;
+              }
+              return msgs.map((m, i) => (
+                <div key={i} className={`text-sm p-2.5 rounded-lg border ${m.direction === 'in' ? 'bg-sky-50 border-sky-200' : 'bg-muted/30'}`} data-testid={`chat-history-msg-${i}`}>
+                  <div className="flex items-center justify-between text-[11px] text-muted-foreground mb-1">
+                    <span className="font-medium">{m.author || 'Менеджер'}{m.direction === 'in' ? ' · из Telegram' : ''}</span>
+                    <span>{m.at ? new Date(m.at).toLocaleString('ru-RU') : ''}</span>
+                  </div>
+                  <div className="whitespace-pre-wrap">{m.text}</div>
+                </div>
+              ));
+            })()}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Production photo lightbox */}
       {lightbox.open && lightbox.photos.length > 0 && (
@@ -1662,6 +1701,12 @@ const SaunaCRMPage = () => {
                 <div data-testid="prod-messages-section">
                   <Label className="text-sm font-semibold flex items-center gap-2 mb-2">
                     <Send className="w-4 h-4 text-sky-600" />Сообщения производству
+                    {(selectedLead.productionMessages || []).length > 0 && (
+                      <button type="button" onClick={() => { setChatSearch(''); setChatHistoryOpen(true); }}
+                        className="ml-auto text-[11px] font-normal text-sky-600 hover:underline" data-testid="open-chat-history-btn">
+                        Вся переписка ({(selectedLead.productionMessages || []).length})
+                      </button>
+                    )}
                   </Label>
                   {(selectedLead.productionMessages || []).length > 0 && (
                     <div className="space-y-1.5 max-h-40 overflow-y-auto mb-2 pr-1">
