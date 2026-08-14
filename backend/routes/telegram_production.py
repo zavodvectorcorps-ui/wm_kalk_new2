@@ -164,11 +164,13 @@ async def send_to_production(order_id: str):
             )
         raise HTTPException(status_code=502, detail="Тема создана, но сообщение отправить не удалось.")
 
-    # Attach all documents to the topic
+    # Attach all documents to the topic (except the contract — not for production)
     docs = lead.get("documents") or []
     sent_docs = 0
     failed_docs = []
     for doc in docs:
+        if doc.get("type") == "contract":
+            continue
         url = doc.get("url")
         if not url:
             continue
