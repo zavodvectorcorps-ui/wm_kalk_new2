@@ -720,6 +720,27 @@ async def procurement_from_production(_: dict = Depends(get_admin_user)):
             "targets": len(ts),
         })
     result = await _aggregate_targets(targets)
+    # Enrich each component with current stock to produce a "what to buy" shortage report.
+    items = result.get("items") or []
+    cids = [it["componentId"] for it in items if it.get("componentId")]
+    stock_by_id: dict[str, float] = {}
+    if cids:
+        for c in await db.sauna_components.find({"id": {"$in": cids}}, {"_id": 0, "id": 1, "stockCurrent": 1}).to_list(length=5000):
+            stock_by_id[c["id"]] = float(c.get("stockCurrent") or 0)
+    total_to_buy_cost = 0.0
+    shortage_count = 0
+    for it in items:
+        in_stock = stock_by_id.get(it.get("componentId"), 0.0)
+        required = float(it.get("totalQty") or 0)
+        to_buy = max(0.0, round(required - in_stock, 3))
+        it["inStock"] = round(in_stock, 3)
+        it["toBuy"] = to_buy
+        it["buyCost"] = round(to_buy * float(it.get("unitPrice") or 0), 2)
+        if to_buy > 0:
+            shortage_count += 1
+            total_to_buy_cost += it["buyCost"]
+    result["totalToBuyCost"] = round(total_to_buy_cost, 2)
+    result["shortageCount"] = shortage_count
     result["orders"] = by_order
     result["totalOrders"] = len(leads)
     return result

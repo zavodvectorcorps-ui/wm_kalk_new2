@@ -1,0 +1,44 @@
+{
+  "summary": "Verified the new 'Нужно докупить' (shortage) enrichment on GET /api/sauna-production/cost/procurement + the ProcurementForecast UI. Backend: new pytest suite /app/backend/tests/test_procurement_shortage_iteration123.py — 3/3 PASSED against the public URL as admin. Setup chain: QA component (unitPrice=100, stockCurrent=3, unit 'шт') -> model-scope tech-card (qty 5, syncToCostPrice=false so sauna_prices untouched) for real model sauna_kwadro_beczka_235x200_cm (chosen because it had no existing tech card) -> QA CRM lead with calculatorData.modelId + inProduction=true (flipped via PUT to avoid the /to-production stock deduction so arithmetic stays deterministic). ARITHMETIC verified exactly: totalQty=5, inStock=3, toBuy=2, buyCost=200, shortageCount=1, totalToBuyCost=200; also asserted globally that totalToBuyCost == sum(buyCost where toBuy>0) and shortageCount == count(toBuy>0), and that every item carries inStock/toBuy/buyCost with toBuy>=0. NO-SHORTAGE case verified: stock-adjust type=set qty=10 -> item inStock=10, toBuy=0, buyCost=0, excluded from shortageCount and totalToBuyCost (both dropped to 0 exactly by the previous buyCost). Unauthenticated GET /procurement -> 403. FRONTEND (Playwright, admin/admin123, Производство саун -> Закупка -> По активным заказам): shortage state renders data-testid='procurement-shortage' with header count (1), row shortage-row-<id> showing 5 шт / 3 шт / 2 шт / 200 zł, footer 'Итого к закупке 200 zł', summary stat 'Нужно докупить 200 zł'; 'Экспорт CSV' button clickable and actually downloads nuzhno-dokupit-2026-08-14.csv. No-shortage state renders 'Всего хватает на складе — докупать ничего не нужно' with the CSV button correctly disabled and stat 0 zł. No console errors. ALL QA data cleaned up and verified in Mongo (0 QA components/cards/leads/movements; target model costPrice 8000 / retailExtraCost 0 unchanged).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/sauna-crm/leads", "issue": "Known pre-existing bug (out of scope, confirmed again): creating a lead without amocrm_id returns 500 'E11000 duplicate key error ... index: amocrm_id_1 dup key: {amocrm_id: null}' — the unique index is not sparse/partial. Test worked around it by passing a unique amocrm_id."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "ProcurementForecast / shortage table + CSV", "issue": "Category label bug: code reads CAT_BY_ID[it.category]?.label but COMPONENT_CATEGORIES entries define `name` (not `label`), so the row subtitle and the CSV 'Категория' column fall back to the raw id ('wood' instead of 'Дерево'). Lines 72 and 114 of ProcurementForecast.jsx.", "selector": "[data-testid^='shortage-row-']", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Закупка -> По активным заказам", "issues": ["Shortage table has no supplier column although the code appends `it.supplier` to the subtitle — the /procurement aggregation does not return `supplier`, so it is always absent (CSV also omits it). Consider adding supplier to the aggregated item so buyers know where to order."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_procurement_shortage_iteration123.py",
+    "/app/backend/tests/qa_shortage_fixture.py",
+    "/app/test_reports/pytest/iteration123_procurement.xml"
+  ],
+  "action_items": [
+    "Fix CAT_BY_ID[...]?.label -> ?.name in ProcurementForecast.jsx (2 places: CSV export row + shortage row subtitle) so the category shows 'Дерево' instead of 'wood'.",
+    "Optional: include `supplier` in the /procurement aggregated items (shortage row/CSV already reference it) so the buy-list is actionable.",
+    "Housekeeping (not mine): 2 leftover QA leads are still inProduction=true on the board — CRM-2164B233 'Test Direct URL' and CRM-TEST-NOPDF-276A 'QA Client UI Full' (both with 0 targets)."
+  ],
+  "critical_code_review_comments": [
+    "/procurement enrichment is correct and O(1) extra query ($in on componentIds, _id excluded). Rounding of toBuy (3 dp) and buyCost (2 dp) is consistent; totalToBuyCost is the sum of the rounded per-item buyCosts, which matches what the UI footer displays.",
+    "Items whose componentId is missing from sauna_components (free-form BOM rows) get inStock=0 and are therefore reported as full shortages — acceptable, but worth flagging in the UI if such rows can exist.",
+    "sauna_tech_cards.py is >1000 lines — consider splitting components / tech-cards / procurement / stock into separate modules."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_procurement_shortage_iteration123.py (new)",
+    "/app/backend/tests/qa_shortage_fixture.py (new helper for UI-state setup/teardown)"
+  ],
+  "success_rate": {"backend": "100% (3/3)", "frontend": "100% (both shortage and no-shortage states)"},
+  "seed_data_creation": "Temporary QA component + model tech-card + in-production lead; all deleted and verified removed. No sauna_prices / stock changes persisted.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "admin/admin123",
+  "context_for_next_testing_agent": "Re-run: pytest /app/backend/tests/test_procurement_shortage_iteration123.py -p no:xdist (expect 3/3). Use /app/backend/tests/qa_shortage_fixture.py setup|teardown to make a deterministic shortage visible in the UI (creates component stock=3 / tech-card qty=5 / in-production lead; state in /tmp/qa_shortage_state.json). Leads still must be created with a non-null unique amocrm_id because of the non-sparse amocrm_id_1 unique index. UI path: landing -> [data-testid='sauna-production-card'] -> [data-testid='prod-view-procurement'] -> [data-testid='procurement-mode-prod'].",
+  "rca_of_the_issue": "No defect in the new procurement shortage logic. The only new-code bug is a property-name mismatch (label vs name) in the category lookup inside ProcurementForecast.jsx, causing raw category ids to render in the shortage table and CSV."
+}

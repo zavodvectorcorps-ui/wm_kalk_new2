@@ -60,7 +60,78 @@ function ProductionList() {
         <Stat label="Сопоставлено с тех.картой" value={data.matchedTargets} />
         <Stat label="Не найдено тех.карт" value={(data.unmatched || []).length} warn={(data.unmatched || []).length > 0} />
         <Stat label="Итого материалов" value={fmtMoney(data.totalMaterials)} highlight />
+        <Stat label="Нужно докупить" value={fmtMoney(data.totalToBuyCost)} warn={(data.totalToBuyCost || 0) > 0} />
       </div>
+
+      {/* "Нужно докупить" — shortage report */}
+      {(() => {
+        const shortages = (data.items || []).filter(it => (it.toBuy || 0) > 0);
+        const exportCsv = () => {
+          const rows = [['Компонент', 'Категория', 'Ед.', 'Нужно', 'На складе', 'Докупить', 'Цена', 'Сумма']];
+          shortages.forEach(it => rows.push([
+            it.name, CAT_BY_ID[it.category]?.name || it.category, it.unit || '',
+            it.totalQty, it.inStock, it.toBuy, it.unitPrice, it.buyCost,
+          ]));
+          const csv = rows.map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(';')).join('\n');
+          const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = `nuzhno-dokupit-${new Date().toISOString().slice(0, 10)}.csv`;
+          a.click();
+        };
+        return (
+          <div className="border rounded-lg bg-card overflow-hidden" data-testid="procurement-shortage">
+            <div className="flex items-center justify-between px-4 py-2.5 border-b bg-muted/40">
+              <div className="flex items-center gap-2 font-medium text-sm">
+                <ShoppingCart className="w-4 h-4 text-orange-500" />
+                Нужно докупить {shortages.length > 0 && <span className="text-muted-foreground">({shortages.length})</span>}
+              </div>
+              <Button size="sm" variant="outline" onClick={exportCsv} disabled={shortages.length === 0} data-testid="procurement-shortage-export">
+                <Printer className="w-4 h-4 mr-1" /> Экспорт CSV
+              </Button>
+            </div>
+            {shortages.length === 0 ? (
+              <div className="px-4 py-6 text-sm text-muted-foreground text-center">
+                Всего хватает на складе — докупать ничего не нужно ✔️
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/30 text-xs text-muted-foreground">
+                    <tr>
+                      <th className="text-left px-3 py-2">Компонент</th>
+                      <th className="text-right px-3 py-2">Нужно</th>
+                      <th className="text-right px-3 py-2">На складе</th>
+                      <th className="text-right px-3 py-2">Докупить</th>
+                      <th className="text-right px-3 py-2">Сумма</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {shortages.map(it => (
+                      <tr key={it.componentId} className="border-t" data-testid={`shortage-row-${it.componentId}`}>
+                        <td className="px-3 py-2">
+                          <div className="font-medium">{it.name}</div>
+                          <div className="text-xs text-muted-foreground">{CAT_BY_ID[it.category]?.name || it.category}{it.supplier ? ` · ${it.supplier}` : ''}</div>
+                        </td>
+                        <td className="text-right px-3 py-2">{fmtNumber(it.totalQty)} {it.unit}</td>
+                        <td className="text-right px-3 py-2">{fmtNumber(it.inStock)} {it.unit}</td>
+                        <td className="text-right px-3 py-2 font-semibold text-orange-600">{fmtNumber(it.toBuy)} {it.unit}</td>
+                        <td className="text-right px-3 py-2 font-medium">{fmtMoney(it.buyCost)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="border-t bg-muted/30 font-semibold">
+                      <td className="px-3 py-2" colSpan={4}>Итого к закупке</td>
+                      <td className="text-right px-3 py-2">{fmtMoney(data.totalToBuyCost)}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {(data.unmatched || []).length > 0 && (
         <div className="flex items-start gap-2 px-3 py-2 rounded-md border border-amber-300 bg-amber-50 text-amber-800 text-xs">

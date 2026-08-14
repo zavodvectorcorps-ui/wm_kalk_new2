@@ -2126,3 +2126,15 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
   amocrm_id_1 (unique+sparse не пропускает явный null; CRMLead всегда шлёт
   amocrm_id=None) → ручное создание лида в CRM сломано. Безопасный фикс: не писать
   amocrm_id при None (exclude_none) ИЛИ partialFilterExpression. Ждёт решения юзера.
+
+## Session — Jul 3, 2026 (12): Отчёт «Нужно докупить» + разбор бага amoCRM-лида
+- GET /api/sauna-production/cost/procurement обогащён: по каждому компоненту
+  inStock, toBuy=max(0,required-inStock), buyCost; + totalToBuyCost, shortageCount.
+- Frontend ProcurementForecast «По активным заказам»: блок «Нужно докупить»
+  (только дефицит) с итогом + экспорт CSV. Фикс: категория читалась как .label,
+  а поле — .name (исправлено).
+- Проверено testing_agent iteration_123: backend 3/3 (toBuy=2, buyCost=200), frontend 100%.
+- CRITICAL (подтверждён повторно, ждёт решения): POST /api/sauna-crm/leads 500 —
+  индекс amocrm_id_1 (unique+sparse) не пропускает явный null; CRMLead шлёт
+  amocrm_id=None. Ручное создание лида в CRM сломано. Безопасный фикс: exclude_none
+  при вставке (не писать amocrm_id=None) — индексы не трогать.
