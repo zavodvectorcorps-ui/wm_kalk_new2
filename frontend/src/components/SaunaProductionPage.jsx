@@ -13,7 +13,7 @@ import {
   RefreshCw, Settings, FileText, FileDown, Trash2,
   Phone, Clock, User, ExternalLink, Loader2, Plus, X, Search,
   Package, Wrench, Download, Eye, List, MessageSquare, Save, Pencil, ArrowUpDown,
-  Calculator, Layers, ShoppingCart, LineChart, Grid3x3, Users
+  Calculator, Layers, ShoppingCart, LineChart, Grid3x3, Users, Send
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getApiUrl } from '../utils/api';
@@ -261,6 +261,7 @@ const SaunaProductionPage = ({ onBack }) => {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [editData, setEditData] = useState({});
   const [saving, setSaving] = useState(false);
+  const [sendingToTelegram, setSendingToTelegram] = useState(false);
 
   // Settings
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -373,6 +374,32 @@ const SaunaProductionPage = ({ onBack }) => {
       }
     } catch (e) { toast.error('Ошибка'); }
     setSaving(false);
+  };
+
+  const sendToTelegramProduction = async () => {
+    if (!selectedOrder) return;
+    setSendingToTelegram(true);
+    try {
+      const res = await fetch(`${API_URL}/api/integrations/telegram/send-to-production/${selectedOrder.id}`, {
+        method: 'POST',
+        headers: { ...authHeaders, 'Content-Type': 'application/json' },
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        let msg = data.isUpdate ? 'Обновление отправлено в тему Telegram' : 'Тема создана, заказ отправлен в Telegram';
+        if (data.documentsSent) msg += ` · документов: ${data.documentsSent}`;
+        toast.success(msg);
+        if ((data.documentsFailed || []).length > 0) {
+          toast.warning(`Не удалось приложить файлы: ${data.documentsFailed.join(', ')}`);
+        }
+        if (!data.isUpdate) {
+          setSelectedOrder(prev => ({ ...prev, telegram_topic_id: data.topicId }));
+        }
+      } else {
+        toast.error(data.detail || 'Ошибка отправки в Telegram');
+      }
+    } catch (e) { toast.error('Ошибка сети'); }
+    setSendingToTelegram(false);
   };
 
   const handleDownloadPDF = async (order) => {
@@ -916,7 +943,23 @@ const SaunaProductionPage = ({ onBack }) => {
                 <Button size="sm" variant="outline" onClick={() => handleDownloadTechSpec(selectedOrder)} data-testid="prod-download-techspec-btn">
                   <Wrench className="w-4 h-4 mr-1" />Скачать тех. задание
                 </Button>
+                <Button
+                  size="sm"
+                  className="bg-sky-600 hover:bg-sky-700 text-white"
+                  onClick={sendToTelegramProduction}
+                  disabled={sendingToTelegram}
+                  data-testid="send-to-telegram-btn"
+                >
+                  {sendingToTelegram ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Send className="w-4 h-4 mr-1" />}
+                  {selectedOrder.telegram_topic_id ? 'Обновить в Telegram' : 'Отправить в Telegram'}
+                </Button>
               </div>
+              {selectedOrder.telegram_topic_id && (
+                <p className="text-[11px] text-sky-700 -mt-3 flex items-center gap-1" data-testid="telegram-topic-status">
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-sky-500" />
+                  Тема в Telegram создана · спецификация и документы уходят в неё
+                </p>
+              )}
 
               {/* Documents */}
               {(selectedOrder.documents || []).length > 0 && (

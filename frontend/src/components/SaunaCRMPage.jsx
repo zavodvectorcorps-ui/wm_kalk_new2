@@ -107,6 +107,7 @@ const SaunaCRMPage = () => {
   const [relinkMode, setRelinkMode] = useState(false);
   const [linkingOrder, setLinkingOrder] = useState(false);
   const [pushingToProduction, setPushingToProduction] = useState(false);
+  const [sendingToTelegram, setSendingToTelegram] = useState(false);
   
   // Drag & drop
   const [draggedLead, setDraggedLead] = useState(null);
@@ -558,6 +559,33 @@ const SaunaCRMPage = () => {
       }
     } catch (e) { toast.error('Ошибка'); }
     setPushingToProduction(false);
+  };
+
+  const sendToTelegramProduction = async () => {
+    if (!selectedLead) return;
+    setSendingToTelegram(true);
+    try {
+      const res = await fetch(`${API_URL}/api/integrations/telegram/send-to-production/${selectedLead.id}`, {
+        method: 'POST',
+        headers: { ...authHeaders, 'Content-Type': 'application/json' },
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        let msg = data.isUpdate ? 'Обновление отправлено в тему Telegram' : 'Тема создана, заказ отправлен в Telegram';
+        if (data.documentsSent) msg += ` · документов: ${data.documentsSent}`;
+        toast.success(msg);
+        if ((data.documentsFailed || []).length > 0) {
+          toast.warning(`Не удалось приложить файлы: ${data.documentsFailed.join(', ')}`);
+        }
+        if (!data.isUpdate) {
+          setSelectedLead(prev => ({ ...prev, telegram_topic_id: data.topicId }));
+          setEditData(prev => ({ ...prev, telegram_topic_id: data.topicId }));
+        }
+      } else {
+        toast.error(data.detail || 'Ошибка отправки в Telegram');
+      }
+    } catch (e) { toast.error('Ошибка сети'); }
+    setSendingToTelegram(false);
   };
 
   // ---- Calendar Logic ----
@@ -1389,6 +1417,26 @@ const SaunaCRMPage = () => {
                   {generatingContract ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <FileText className="w-4 h-4 mr-2" />}
                   Создать договор
                 </Button>
+              </div>
+
+              {/* Send to Telegram Production */}
+              <div>
+                <Button
+                  size="sm"
+                  className="w-full bg-sky-600 hover:bg-sky-700 text-white"
+                  onClick={sendToTelegramProduction}
+                  disabled={sendingToTelegram}
+                  data-testid="send-to-telegram-btn"
+                >
+                  {sendingToTelegram ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Send className="w-4 h-4 mr-2" />}
+                  {selectedLead.telegram_topic_id ? 'Отправить обновление в Telegram' : 'Отправить в Telegram (производство)'}
+                </Button>
+                {selectedLead.telegram_topic_id && (
+                  <p className="text-[11px] text-sky-700 mt-1 flex items-center gap-1" data-testid="telegram-topic-status">
+                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-sky-500" />
+                    Тема в Telegram создана · спецификация и документы уходят в неё
+                  </p>
+                )}
               </div>
 
               {/* Documents Section */}

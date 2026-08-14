@@ -29,6 +29,7 @@ from routes.notifications import router as notifications_router
 from routes.warehouse import router as warehouse_router
 from routes.dovoz import router as dovoz_router
 from routes.sauna_crm import router as sauna_crm_router
+from routes.telegram_production import router as telegram_production_router
 from routes.sauna_production import router as sauna_production_router
 from routes.faq import router as faq_router
 from routes.sales import router as sales_router
@@ -93,6 +94,7 @@ app.include_router(notifications_router)
 app.include_router(warehouse_router, prefix="/api")
 app.include_router(dovoz_router, prefix="/api")
 app.include_router(sauna_crm_router, prefix="/api")
+app.include_router(telegram_production_router)
 app.include_router(contract_template_router, prefix="/api")
 
 # Static files for contracts and uploads
