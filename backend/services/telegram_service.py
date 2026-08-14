@@ -89,8 +89,12 @@ async def create_forum_topic(
         logger.error(f"Failed to create forum topic: {e}")
         return {"success": False, "error": str(e)}
 
-async def send_telegram_message(text: str, chat_id: str = None, bot_token: str = None) -> bool:
-    """Send a message to Telegram chat."""
+async def send_telegram_message(text: str, chat_id: str = None, bot_token: str = None, message_thread_id: int = None) -> bool:
+    """Send a message to Telegram chat.
+
+    If message_thread_id is provided, the message is posted into that forum
+    topic (Topic). When omitted, behaviour is unchanged (backward compatible).
+    """
     config = get_telegram_config()
     
     token = bot_token or config['bot_token']
@@ -110,14 +114,18 @@ async def send_telegram_message(text: str, chat_id: str = None, bot_token: str =
     
     url = f"https://api.telegram.org/bot{token}/sendMessage"
     
+    payload = {
+        "chat_id": target_chat_id,
+        "text": text,
+        "parse_mode": "HTML",
+        "disable_web_page_preview": True
+    }
+    if message_thread_id is not None:
+        payload["message_thread_id"] = message_thread_id
+
     try:
         async with httpx.AsyncClient() as client:
-            response = await client.post(url, json={
-                "chat_id": target_chat_id,
-                "text": text,
-                "parse_mode": "HTML",
-                "disable_web_page_preview": True
-            }, timeout=10.0)
+            response = await client.post(url, json=payload, timeout=10.0)
             
             if response.status_code == 200:
                 logger.info(f"Telegram notification sent successfully")
@@ -327,7 +335,8 @@ async def send_telegram_file(
     filename: str, 
     caption: str = "", 
     chat_id: str = None, 
-    bot_token: str = None
+    bot_token: str = None,
+    message_thread_id: int = None
 ) -> Dict[str, Any]:
     """Send a file to Telegram chat.
     
@@ -337,6 +346,7 @@ async def send_telegram_file(
         caption: Optional caption for the file
         chat_id: Target chat ID (uses backup_chat_id from config if not provided)
         bot_token: Bot token (uses config if not provided)
+        message_thread_id: Optional forum topic id to post the file into
     
     Returns:
         Dict with success status and details
@@ -365,6 +375,8 @@ async def send_telegram_file(
                 'caption': caption,
                 'parse_mode': 'HTML'
             }
+            if message_thread_id is not None:
+                data['message_thread_id'] = message_thread_id
             
             response = await client.post(url, files=files, data=data)
             
