@@ -16,6 +16,79 @@ def get_telegram_config():
         'enabled': os.environ.get('TELEGRAM_NOTIFICATIONS_ENABLED', 'true').lower() == 'true'
     }
 
+
+def get_production_telegram_config():
+    """Get Telegram configuration for the SEPARATE production/forum bot.
+
+    Uses a dedicated bot + supergroup (with Topics enabled) so it never
+    interferes with the order-notification / backup bot above.
+    """
+    return {
+        'bot_token': os.environ.get('TELEGRAM_PRODUCTION_BOT_TOKEN', ''),
+        'chat_id': os.environ.get('TELEGRAM_PRODUCTION_CHAT_ID', ''),
+    }
+
+
+async def create_forum_topic(
+    name: str,
+    chat_id: str = None,
+    bot_token: str = None,
+    icon_color: int = None,
+) -> Dict[str, Any]:
+    """Create a forum topic (Topic) in a Telegram supergroup.
+
+    Calls Bot API `createForumTopic`. The supergroup must have Topics/Forum
+    enabled and the bot must be an admin with `can_manage_topics` rights.
+
+    Args:
+        name: Topic name (1-128 chars), e.g. "#1234 Kowalski — Sauna Kwadro 4m"
+        chat_id: Target supergroup chat id (defaults to production chat)
+        bot_token: Bot token (defaults to production bot)
+        icon_color: Optional topic icon color (RGB int accepted by Telegram)
+
+    Returns:
+        Dict with success status. On success includes `message_thread_id`.
+    """
+    config = get_production_telegram_config()
+
+    token = bot_token or config['bot_token']
+    target_chat_id = chat_id or config['chat_id']
+
+    if not token:
+        return {"success": False, "error": "TELEGRAM_PRODUCTION_BOT_TOKEN not configured"}
+
+    if not target_chat_id:
+        return {"success": False, "error": "TELEGRAM_PRODUCTION_CHAT_ID not configured"}
+
+    url = f"https://api.telegram.org/bot{token}/createForumTopic"
+
+    payload = {
+        "chat_id": target_chat_id,
+        "name": name[:128],
+    }
+    if icon_color is not None:
+        payload["icon_color"] = icon_color
+
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(url, json=payload, timeout=15.0)
+
+            data = response.json()
+            if response.status_code == 200 and data.get('ok'):
+                result = data.get('result', {})
+                return {
+                    "success": True,
+                    "message_thread_id": result.get('message_thread_id'),
+                    "name": result.get('name', name),
+                }
+            else:
+                error_desc = data.get('description', f"HTTP {response.status_code}")
+                logger.error(f"Telegram createForumTopic error: {error_desc}")
+                return {"success": False, "error": error_desc}
+    except Exception as e:
+        logger.error(f"Failed to create forum topic: {e}")
+        return {"success": False, "error": str(e)}
+
 async def send_telegram_message(text: str, chat_id: str = None, bot_token: str = None) -> bool:
     """Send a message to Telegram chat."""
     config = get_telegram_config()
