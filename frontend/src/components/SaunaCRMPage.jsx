@@ -110,6 +110,7 @@ const SaunaCRMPage = () => {
   const [sendingToTelegram, setSendingToTelegram] = useState(false);
   const [prodMsgText, setProdMsgText] = useState('');
   const [sendingProdMsg, setSendingProdMsg] = useState(false);
+  const [sendingLeadTgId, setSendingLeadTgId] = useState(null);
   
   // Drag & drop
   const [draggedLead, setDraggedLead] = useState(null);
@@ -614,6 +615,24 @@ const SaunaCRMPage = () => {
     setSendingProdMsg(false);
   };
 
+  const sendLeadToTelegram = async (lead, e) => {
+    if (e) e.stopPropagation();
+    setSendingLeadTgId(lead.id);
+    try {
+      const res = await fetch(`${API_URL}/api/integrations/telegram/send-to-production/${lead.id}`, {
+        method: 'POST', headers: { ...authHeaders, 'Content-Type': 'application/json' },
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        toast.success(data.isUpdate ? 'Обновление отправлено в Telegram' : 'Заказ отправлен в Telegram');
+        fetchLeads();
+      } else {
+        toast.error(data.detail || 'Ошибка отправки');
+      }
+    } catch (err) { toast.error('Ошибка сети'); }
+    setSendingLeadTgId(null);
+  };
+
   // ---- Calendar Logic ----
   const year = calendarDate.getFullYear();
   const month = calendarDate.getMonth();
@@ -996,6 +1015,24 @@ const SaunaCRMPage = () => {
                             ))}
                           </div>
                         )}
+                        <div className="mt-1.5 flex items-center gap-2">
+                          <Button
+                            size="sm" variant="ghost"
+                            className="h-6 px-2 text-[11px] text-sky-600 hover:text-sky-700 hover:bg-sky-50"
+                            onClick={(e) => sendLeadToTelegram(lead, e)}
+                            disabled={sendingLeadTgId === lead.id}
+                            data-testid={`kanban-telegram-${lead.id}`}
+                          >
+                            {sendingLeadTgId === lead.id ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Send className="w-3 h-3 mr-1" />}
+                            {lead.telegram_topic_id ? 'Обновить в TG' : 'В Telegram'}
+                          </Button>
+                          {lead.telegram_topic_id && !lead.productionAckedAt && (
+                            <span className="text-[10px] text-amber-600" title="Ожидает подтверждения производства">⏳ не принят</span>
+                          )}
+                          {lead.productionAckedAt && (
+                            <span className="text-[10px] text-emerald-600" title={`Принял: ${lead.productionAckedBy || ''}`}>✅ принят</span>
+                          )}
+                        </div>
                       </CardContent>
                     </Card>
                     );

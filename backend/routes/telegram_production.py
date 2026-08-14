@@ -192,7 +192,7 @@ async def send_to_production(order_id: str):
         topic_id = created["message_thread_id"]
         await db.sauna_crm_leads.update_one(
             {"id": order_id},
-            {"$set": {"telegram_topic_id": topic_id, "updatedAt": datetime.now(timezone.utc).isoformat()}},
+            {"$set": {"telegram_topic_id": topic_id, "telegram_topic_created_at": datetime.now(timezone.utc).isoformat(), "updatedAt": datetime.now(timezone.utc).isoformat()}},
         )
 
     # Post the message (start message carries the control buttons)
@@ -636,6 +636,56 @@ async def _handle_reply(message: dict, cfg: dict):
     await db.telegram_pending_inputs.delete_one({"_id": f"{chat_id}:{pmid}"})
 
 
+async def _handle_photo(message: dict, cfg: dict):
+    """A photo posted in an order topic -> attach to the order card (documents)."""
+    thread_id = message.get("message_thread_id")
+    chat_id = str((message.get("chat") or {}).get("id", ""))
+    if not thread_id:
+        return
+    lead = await db.sauna_crm_leads.find_one({"telegram_topic_id": thread_id}, {"_id": 0, "id": 1})
+    if not lead:
+        return
+    order_id = lead["id"]
+    bot = cfg["bot_token"]
+    photos = message.get("photo") or []
+    if not photos:
+        return
+    file_id = photos[-1].get("file_id")  # largest size
+    actor = _actor_name(message.get("from"))
+    now = datetime.now(timezone.utc).isoformat()
+    try:
+        gf = await _tg_call("getFile", {"file_id": file_id}, bot)
+        if not gf.get("ok"):
+            return
+        file_path = gf["result"]["file_path"]
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            fr = await client.get(f"https://api.telegram.org/file/bot{bot}/{file_path}")
+            if fr.status_code != 200:
+                return
+            img_bytes = fr.content
+        url = None
+        try:
+            from services.cloudinary_service import upload_image, is_cloudinary_configured
+            if is_cloudinary_configured():
+                res = await upload_image(img_bytes, f"prod_{order_id}_{file_id[:8]}.jpg", folder="wm-calculator/production-photos")
+                url = (res or {}).get("url")
+        except Exception as e:
+            logger.error(f"Cloudinary upload (photo) failed: {e}")
+        if not url:
+            # fallback: Telegram file link (expires, but better than nothing)
+            url = f"https://api.telegram.org/file/bot{bot}/{file_path}"
+        doc = {"id": file_id[:8], "type": "production_photo", "name": f"Фото производства ({actor})",
+               "url": url, "filename": f"prod_{order_id}.jpg", "uploadedAt": now, "from": actor}
+        caption = (message.get("caption") or "").strip()
+        entry = {"text": f"📷 Фото готового изделия{': ' + caption if caption else ''}", "author": actor, "at": now, "direction": "in", "channel": "telegram"}
+        await db.sauna_crm_leads.update_one({"id": order_id}, {
+            "$push": {"documents": doc, "productionMessages": entry}, "$set": {"updatedAt": now},
+        })
+        await send_telegram_message(text=f"✅ Фото сохранено в карточку заказа (от {actor})", chat_id=chat_id, bot_token=bot, message_thread_id=thread_id)
+    except Exception as e:
+        logger.error(f"_handle_photo failed for {order_id}: {e}")
+
+
 @router.post("/webhook/{secret}")
 async def telegram_webhook(secret: str, update: dict):
     """Receive updates from the production bot (callback buttons + replies)."""
@@ -648,8 +698,12 @@ async def telegram_webhook(secret: str, update: dict):
     try:
         if "callback_query" in update:
             await _handle_callback(update["callback_query"], cfg)
-        elif "message" in update and (update["message"].get("reply_to_message")):
-            await _handle_reply(update["message"], cfg)
+        elif "message" in update:
+            msg = update["message"]
+            if msg.get("reply_to_message"):
+                await _handle_reply(msg, cfg)
+            elif msg.get("photo"):
+                await _handle_photo(msg, cfg)
     except Exception as e:
         logger.error(f"webhook handler error: {e}")
     return {"ok": True}
@@ -690,4 +744,57 @@ async def disable_webhook():
 async def webhook_status():
     doc = await db.telegram_production_settings.find_one({"_id": "config"}, {"_id": 0, "webhook_enabled": 1}) or {}
     return {"enabled": bool(doc.get("webhook_enabled"))}
+
+
+
+# ============== ACK REMINDER SCHEDULER ==============
+
+import asyncio as _asyncio
+
+
+async def _ack_reminder_tick():
+    cfg = await _resolve_prod_config()
+    if not cfg["bot_token"] or not cfg["chat_id"]:
+        return
+    doc = await db.telegram_production_settings.find_one({"_id": "config"}, {"_id": 0, "ack_reminder_hours": 1}) or {}
+    hours = float(doc.get("ack_reminder_hours") or 3)
+    now = datetime.now(timezone.utc)
+    cutoff = (now.timestamp() - hours * 3600)
+
+    def _older(ts_str):
+        if not ts_str:
+            return True
+        try:
+            return datetime.fromisoformat(ts_str.replace("Z", "+00:00")).timestamp() <= cutoff
+        except Exception:
+            return True
+
+    query = {"inProduction": True, "telegram_topic_id": {"$ne": None},
+             "$or": [{"productionAckedAt": {"$exists": False}}, {"productionAckedAt": None}]}
+    async for lead in db.sauna_crm_leads.find(query, {"_id": 0, "id": 1, "telegram_topic_id": 1, "telegram_topic_created_at": 1, "telegram_ack_reminder_at": 1, "clientName": 1}):
+        # only remind if topic old enough AND last reminder old enough
+        if not _older(lead.get("telegram_topic_created_at")):
+            continue
+        if lead.get("telegram_ack_reminder_at") and not _older(lead.get("telegram_ack_reminder_at")):
+            continue
+        try:
+            await send_telegram_message(
+                text=f"⏰ <b>Напоминание:</b> заказ ещё не принят в работу. Нажмите «✅ Принял в работу» в этой теме.",
+                chat_id=cfg["chat_id"], bot_token=cfg["bot_token"], message_thread_id=lead["telegram_topic_id"],
+            )
+            await db.sauna_crm_leads.update_one({"id": lead["id"]}, {"$set": {"telegram_ack_reminder_at": now.isoformat()}})
+        except Exception as e:
+            logger.error(f"ack reminder failed for {lead.get('id')}: {e}")
+    await refresh_production_summary()
+
+
+async def ack_reminder_scheduler():
+    """Periodic loop: ping unacknowledged production topics."""
+    await _asyncio.sleep(120)
+    while True:
+        try:
+            await _ack_reminder_tick()
+        except Exception as e:
+            logger.error(f"ack_reminder_scheduler error: {e}")
+        await _asyncio.sleep(1800)  # every 30 min
 

@@ -2251,3 +2251,20 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
   telegram_production_settings (+ webhook_secret/webhook_enabled/summary_message_id).
 - ⚠️ Webhook сейчас указывает на PREVIEW-URL. После деплоя на прод нажать
   «Включить приём из Telegram» ещё раз (перепропишет на боевой адрес).
+
+## Session — Aug 14, 2026 (4): кнопка в канбане + напоминание о приёмке + фото из темы
+- **Кнопка «В Telegram» в CRM-канбане** (SaunaCRMPage): на каждой карточке лида
+  (data-testid `kanban-telegram-{id}`) + бейджи «⏳ не принят» / «✅ принят».
+  Handler `sendLeadToTelegram(lead)`.
+- **Напоминание о приёмке**: планировщик `ack_reminder_scheduler` (старт в server.py,
+  каждые 30 мин). `_ack_reminder_tick`: для лидов inProduction с темой, без
+  productionAckedAt, чья тема старше N часов (settings `ack_reminder_hours`, деф. 3) и
+  последнее напоминание старше N часов → пинг «⏰ Напоминание…» в тему +
+  `telegram_ack_reminder_at`. Плюс счётчик «не подтверждено» в закреплённой сводке.
+  Поле `telegram_topic_created_at` ставится при создании темы.
+- **Фото из темы → карточка**: webhook ловит `message.photo` в теме заказа
+  (`_handle_photo`): getFile → download → Cloudinary (folder production-photos) →
+  документ `type=production_photo` в lead.documents + запись в productionMessages
+  (direction in). Fallback на Telegram file-URL если Cloudinary недоступен.
+- Проверено live: reminder tick (пинг+флаг), фото (реальный file_id → Cloudinary URL
+  в карточке), кнопка канбана (скриншот).

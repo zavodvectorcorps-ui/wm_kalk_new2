@@ -565,6 +565,11 @@ async def startup_event():
     manager_analytics_daily_task = asyncio.create_task(manager_analytics_daily_scheduler())
     logger.info("Manager-analytics daily scheduler task started")
 
+    # Start Telegram production ack-reminder scheduler
+    from routes.telegram_production import ack_reminder_scheduler
+    asyncio.create_task(ack_reminder_scheduler())
+    logger.info("Telegram ack-reminder scheduler started")
+
 
 @app.on_event("shutdown")
 async def shutdown_event():
