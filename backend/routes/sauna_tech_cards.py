@@ -866,6 +866,15 @@ async def manual_deduct_production_stock(lead_id: str, user: dict = Depends(get_
         )
     try:
         summary = await deduct_production_stock(lead, direction=-1, actor=user)
+        # If nothing was actually deducted (no model/tech-card resolved yet),
+        # release the claim so a later retry works once a tech card exists.
+        if not summary.get("applied"):
+            await db.sauna_crm_leads.update_one(
+                {"id": lead_id},
+                {"$set": {"productionStockDeducted": False}},
+            )
+            return {"ok": False, "summary": summary,
+                    "message": "Списание не выполнено: нет сопоставленной тех.карты/компонентов. Флаг снят, можно повторить позже."}
         await db.sauna_crm_leads.update_one(
             {"id": lead_id},
             {"$set": {"productionStockSummary": summary,

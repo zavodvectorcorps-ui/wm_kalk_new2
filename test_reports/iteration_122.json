@@ -1,0 +1,34 @@
+{
+  "summary": "Backend-only verification of the production-stock deduct flag-release fix (bug from iteration_121). Wrote 7 new pytest cases (/app/backend/tests/test_production_stock_flag_release_iteration122.py) against the public URL as admin — 7/7 PASSED. VERIFIED: (1) deduct on a lead with NO resolvable model/tech-card now returns 200 {ok:false, summary.applied:0, message:'...Флаг снят, можно повторить позже.'} and the lead's productionStockDeducted is False in Mongo afterwards (checked directly) — a second deduct call returns 200 again, NOT 409. (2) The real point of the fix: after an empty deduct, adding a resolvable model to the same lead and retrying now actually deducts (ok:true, applied=2, stock -3 / -2.5) and sets the flag True. (3) Regression deduct/revert intact: preview alreadyDeducted=false, deduct ok:true applied>=2 with exact stock reduction, repeat deduct -> 409 with stock untouched, revert -> 200 restoring exact original stock and flag=False, double revert -> 409, missing lead -> 404, unauthenticated -> 403. (4) Cost chain regression intact: components -> model-scope tech card (materialsCost 384.83, totalCost=exp) with syncToCostPrice=true writes totalCost + retailExtraCost=250 into sauna_prices for the target model. Also re-ran the full iteration_121 audit suite: now 25/27 passing (was 24/27) — the previously failing flag test test_deduct_lead_without_bom_should_not_claim_flag now PASSES. The 2 remaining failures are the two known, explicitly out-of-scope bugs (see minor list). ALL QA data cleaned up and verified in Mongo (0 QA components / leads / tech cards / movements; target model costPrice/retailExtraCost restored to 8000/0).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/sauna-crm/leads", "issue": "STILL BROKEN (out of scope for this run, handled separately): 500 E11000 duplicate key on index amocrm_id_1 dup key {amocrm_id: null} — unique+sparse index does not skip explicit nulls, so only one manually created lead can exist. Test leads still had to be inserted via pymongo as a workaround."},
+      {"endpoint": "POST /api/sauna-production/cost/procurement/forecast", "issue": "Still no stockCurrent/stockMin/shortage in forecast rows (keys: category, componentId, lineTotal, name, sources, supplier, totalQty, unit, unitPrice) — pre-existing gap from iteration_121, not re-fixed."}
+    ]
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_production_stock_flag_release_iteration122.py",
+    "/app/test_reports/pytest/iteration122_flag_release.xml",
+    "/app/backend/tests/test_techcards_audit_iteration121.py"
+  ],
+  "action_items": [
+    "Nothing to fix for the deduct flag-release bug — the fix is correct and verified.",
+    "Consider surfacing the new {ok:false, message} response in the CRM/production UI so the operator sees WHY nothing was deducted (currently the frontend may treat any 200 as success and show a positive toast — not verified this run, frontend testing was out of scope).",
+    "Still open from iteration_121: amocrm_id unique+sparse index (manual lead creation 500s) and procurement forecast shortage fields."
+  ],
+  "critical_code_review_comments": [
+    "manual_deduct_production_stock: the empty-BOM path releases the flag but leaves any pre-existing productionStockSummary/productionStockDeductedAt from an earlier cycle in place; consider $unset-ing them together with the flag so stale summaries can't be shown as current.",
+    "The empty-BOM path returns HTTP 200 with ok:false — a semantically 'nothing happened' outcome. Fine for compatibility, but every client must check `ok`, not just the status code; document it or use 409/422 consistently.",
+    "routes/sauna_tech_cards.py remains >1100 lines (still violates the 700-line guideline) — unchanged from iteration_121."
+  ],
+  "updated_files": ["/app/backend/tests/test_production_stock_flag_release_iteration122.py"],
+  "success_rate": {"backend": "100% (7/7 new fix-verification tests); iteration_121 suite 25/27 (2 failures are known out-of-scope bugs)", "frontend": "not tested (backend-only request)"},
+  "seed_data_creation": "Temporary only: 2 QA122 components, 1 model-scope tech card on sauna_kwadro_beczka_235x200_cm, 3 QA leads, QA stock movements. ALL deleted and verified gone in Mongo; target model costPrice/retailExtraCost restored to original 8000/0.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "admin/admin123 (from /app/memory/test_credentials.md) — worked",
+  "context_for_next_testing_agent": "Fix verified — no retest needed for this bug. Re-run: pytest /app/backend/tests/test_production_stock_flag_release_iteration122.py -p no:xdist (expect 7/7) and tests/test_techcards_audit_iteration121.py (expect 25/27; the 2 failures are the amocrm_id null-dup index bug and the missing procurement shortage fields). Endpoints live under /api/sauna-production/cost/*. Leads must still be inserted via pymongo until the amocrm_id index is fixed.",
+  "rca_of_the_issue": "Root cause (now fixed): manual_deduct_production_stock claimed the productionStockDeducted idempotency flag with a conditional update BEFORE calling deduct_production_stock, so a lead whose BOM aggregation yielded applied==0 (no resolvable model/tech-card) was still marked deducted, and every later retry hit the 409 branch. The fix inspects summary['applied'] and, when falsy, sets productionStockDeducted back to False and returns {ok:false, message}; only applied>0 keeps the flag and persists productionStockSummary/productionStockDeductedAt. Verified end-to-end including the retry-after-model-added scenario."
+}

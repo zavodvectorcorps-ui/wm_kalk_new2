@@ -2114,3 +2114,15 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
   ужесточения guard). Утечки нет, debug-info тоже не отдаёт токен. Превью очищено.
 - Блок безопасности: пункты 1–5 + no-wipe + token-masking — все зелёные (113–120).
 - НЕ задеплоено на прод — только код превью; ждёт ручной проверки и «ок, деплой».
+
+## Session — Jul 3, 2026 (11): АУДИТ производства саун + фикс склада
+- Аудит (iteration_121, 24/27): ЯДРО ВЕРНО — materials=Σ(unitPrice*qty), overhead,
+  totalCost, retailNetto=brutto/1.23, marginAmount/pct, retailMargin; syncToCostPrice
+  пишет costPrice в sauna_prices; маржа заказов берёт эту costPrice (проверено e2e);
+  склад (adjust/deduct/revert/movements/forecast) ОК; фронт 100% без ошибок.
+- FIX (iteration_122, 7/7): production-stock deduct больше не «залипает» флагом при
+  applied=0 — снимает флаг, повтор возможен после добавления тех.карты.
+- ⚠️ CRITICAL (вне scope, НЕ трогал): POST /api/sauna-crm/leads → 500 E11000
+  amocrm_id_1 (unique+sparse не пропускает явный null; CRMLead всегда шлёт
+  amocrm_id=None) → ручное создание лида в CRM сломано. Безопасный фикс: не писать
+  amocrm_id при None (exclude_none) ИЛИ partialFilterExpression. Ждёт решения юзера.

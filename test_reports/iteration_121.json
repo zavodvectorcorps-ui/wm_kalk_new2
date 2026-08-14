@@ -1,0 +1,50 @@
+{
+  "summary": "AUDIT of the sauna cost-price chain (components -> tech-cards -> totalCost -> sauna_prices.costPrice -> order margin) + warehouse/stock module. Wrote 27 pytest cases (/app/backend/tests/test_techcards_audit_iteration121.py) against the public URL as admin: 24 passed, 3 failed (all 3 are real product bugs/gaps, not test issues). Core arithmetic and the critical sync linkage are CORRECT: materialsCost = sum(unitPrice*qty), overhead = materials*pct/100, totalCost = materials+labor+overhead+manual, retailNetto = round(brutto/1.23), marginAmount = netto-total, marginPct, retailMarginAmount = margin-retailExtraCost — all verified numerically; syncToCostPrice writes totalCost + retailExtraCost into sauna_prices (model scope verified), component unitPrice change auto-recomputes affected cards AND re-syncs costPrice, recompute-all works, deleted-component 'missing' flag works, component DELETE blocked (400) while used. Order margin linkage VERIFIED end-to-end: created a sauna order, ran POST /api/sauna/orders/recompute-margins, order.totalCost == synced costPrice and order.margin == round(total/1.23 - costPrice - retailExtraCost). Warehouse: stock-adjust in/out/set + validation + movements log OK; production-stock preview/deduct/revert verified (deduct -3 / -2.5, repeat deduct correctly 409, revert restores exact original stock, double revert 409). Dashboard OK. Frontend smoke (admin, 1920x1080): production page, Тех.карты, Комплектующие (71 rows), Закупка (both sub-tabs), tech-card editor live math (labor 1234 -> Себестоимость 1 234 zł, netto 21 764, margin 20 530 / 94.3% — matches backend formula), stock dialog with history — all render with ZERO console errors. All QA data cleaned up; target model costPrice/retailExtraCost restored to original (8000 / 0).",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "POST /api/sauna-crm/leads", "issue": "Returns 500 'E11000 duplicate key error ... index: amocrm_id_1 dup key: { amocrm_id: null }'. CRMLead always serialises amocrm_id=None, and the index created in server.py:447 is unique+SPARSE (sparse only skips MISSING fields, not explicit nulls) — so only ONE manually created lead (without amoCRM id) can ever exist in the DB. Manual lead creation from the CRM UI is broken. Fix: use a partialFilterExpression ({amocrm_id: {$type: 'string'}}) or omit the field (exclude_none) when it is None.", "priority": "CRITICAL"}
+    ],
+    "minor": [
+      {"endpoint": "POST /api/sauna-production/cost/production-stock/deduct/{lead_id}", "issue": "For a lead with no resolvable model/tech-card the endpoint claims the productionStockDeducted flag BEFORE aggregating the BOM and returns 200 with applied=0. The lead is then permanently marked as deducted — the later real deduction (after the model is set) is rejected with 409. Should not set the flag when applied==0 (or should return a warning)."},
+      {"endpoint": "POST /api/sauna-production/cost/procurement/forecast", "issue": "Response rows contain only componentId/name/category/unit/unitPrice/totalQty/lineTotal/sources — NO stockCurrent / stockMin / shortage. The requested 'required vs current stock (shortages)' capability does not exist in the backend, and ProcurementForecast.jsx does not compute it client-side either. Purchasing cannot see deficits."},
+      {"endpoint": "GET /api/sauna-production/cost/procurement", "issue": "Leads in production whose model cannot be resolved produce ZERO targets, so they are counted neither in matchedTargets nor in unmatched. UI therefore shows 'Не найдено тех.карт: 0' and 0 positions for 2 active orders — silently misleading (verified in the Закупка tab screenshot)."},
+      {"endpoint": "POST /api/sauna-production/cost/components/{id}/stock-adjust", "issue": "Non-atomic read-then-$set (concurrent adjustments can be lost; deduct uses $inc correctly) and 'out' may drive stockCurrent negative with no warning/guard."},
+      {"endpoint": "PUT /api/sauna-production/cost/components/{id}", "issue": "Returns only {ok, affectedCards, priceChanged} — not the updated component; clients must refetch. Also no validation that unitPrice >= 0."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Производство саун → Комплектующие", "issues": ["60 of 71 components have Остаток 0 and Мин. 0, so the stock column carries no signal and no low-stock highlighting is visible — data readiness issue for the warehouse module (informational)."]},
+      {"screen": "Производство саун → Закупка (по активным заказам)", "issues": ["Shows '0 позиций' / '0 zł' with model column '—' for 2 in-production orders without any hint that the leads have no linked model/tech-card (see backend issue above)."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_techcards_audit_iteration121.py",
+    "/app/test_reports/pytest/iteration121_techcards.xml"
+  ],
+  "action_items": [
+    "CRITICAL: fix the sauna_crm_leads amocrm_id unique index (partialFilterExpression on string type) or stop persisting amocrm_id=null — manual lead creation currently 500s.",
+    "Do not set productionStockDeducted when the BOM aggregation yields applied==0 (currently blocks the real deduction forever with 409).",
+    "Add stockCurrent/stockMin + shortage (required - stock) to /procurement/forecast and /procurement responses and surface deficits in ProcurementForecast.jsx.",
+    "Count leads with no resolvable model as 'unmatched' in /procurement so the UI can warn instead of silently showing 0 positions.",
+    "Data readiness for the owner: the DB currently contains 0 tech-cards, while only 2/13 models and 1/12 variants have costPrice>0 (values came from Excel/manual, not from tech-cards). Margins shown in orders/dashboard are therefore mostly based on empty or non-BOM-backed cost prices."
+  ],
+  "critical_code_review_comments": [
+    "VAT 0.23 is hardcoded in three places (sauna_tech_cards._compute_totals, sauna_orders.VAT_RATE, TechCardEditor.jsx) — extract to one shared config value to avoid divergence.",
+    "routes/sauna_tech_cards.py is 1156 lines with two stacked module docstrings — split into components/tech-cards/stock/procurement/export modules (>700-line rule).",
+    "Two different margin definitions coexist: tech-card marginAmount/dashboard avgMarginPct EXCLUDE retailExtraCost while order margin SUBTRACTS it. Label them explicitly (dealer vs retail) in the dashboard, otherwise the owner compares incomparable numbers.",
+    "_compute_totals returns margin=0 when retailNetto==0, masking a real negative margin for entities without a retail price; prefer None.",
+    "_sync_cost_price_to_sauna_prices always $sets models+categories+options; if the prices doc lacks 'options'/'categories' they get created as [] — harmless today but a silent schema mutation.",
+    "For scope='option' the retail baseline is o.price only; open-price / per-m2 options will produce a meaningless margin (no guard or flag)."
+  ],
+  "updated_files": ["/app/backend/tests/test_techcards_audit_iteration121.py"],
+  "success_rate": {"backend": "89% (24/27 — 3 failures are genuine product bugs)", "frontend": "100% (all audited views render, live math correct, no console errors)"},
+  "seed_data_creation": "Temporary only: 2 QA-COMP-* components, 1 model-scope + 1 variant-scope tech card on sauna_kwadro_beczka_235x200_cm, 2 QA leads, 1 QA sauna order, QA stock movements. ALL deleted; sauna_prices costPrice/retailExtraCost for the target model restored to the original 8000/0 (verified in Mongo after the run).",
+  "should_call_test_agent_after_fix": true,
+  "should_main_agent_self_test": false,
+  "test_credentials": "admin/admin123 (from /app/memory/test_credentials.md) — worked",
+  "context_for_next_testing_agent": "Endpoints live under /api/sauna-production/cost/* (NOT /api/sauna-tech-cards/*). Order margin recompute is POST /api/sauna/orders/recompute-margins (GET /api/sauna/orders returns a plain array). CRM lead creation via API is broken (amocrm_id null dup key) — the audit test inserts test leads directly via pymongo as a workaround; remove that workaround once the index is fixed. Re-run: pytest /app/backend/tests/test_techcards_audit_iteration121.py -p no:xdist. Expected after fixes: 27/27.",
+  "rca_of_the_issue": "1) sauna_crm_leads index: server.py creates create_index('amocrm_id', unique=True, sparse=True); sparse excludes only documents MISSING the key, but the CRMLead pydantic model always emits amocrm_id=None, so every manual lead is indexed with value null → the second one violates uniqueness → 500. 2) production-stock deduct: manual_deduct_production_stock claims the idempotency flag with a conditional update BEFORE calling deduct_production_stock, so an empty BOM (no targets extracted from the lead) still marks the lead deducted. 3) procurement forecast: _aggregate_targets never reads sauna_components.stockCurrent into its output rows, so no shortage math exists anywhere in the chain."
+}
