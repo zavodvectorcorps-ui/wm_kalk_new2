@@ -105,6 +105,7 @@ class CRMLead(BaseModel):
     amoComment: str = ""
     notes: str = ""
     isImportant: bool = False
+    telegram_topic_id: Optional[int] = None  # id темы (Topic) в Telegram-группе производства
 
 
 # ============== DEFAULT SETTINGS ==============
