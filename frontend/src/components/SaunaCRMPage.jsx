@@ -108,6 +108,8 @@ const SaunaCRMPage = () => {
   const [linkingOrder, setLinkingOrder] = useState(false);
   const [pushingToProduction, setPushingToProduction] = useState(false);
   const [sendingToTelegram, setSendingToTelegram] = useState(false);
+  const [prodMsgText, setProdMsgText] = useState('');
+  const [sendingProdMsg, setSendingProdMsg] = useState(false);
   
   // Drag & drop
   const [draggedLead, setDraggedLead] = useState(null);
@@ -586,6 +588,30 @@ const SaunaCRMPage = () => {
       }
     } catch (e) { toast.error('Ошибка сети'); }
     setSendingToTelegram(false);
+  };
+
+  const sendProdMessage = async () => {
+    if (!selectedLead || !prodMsgText.trim()) return;
+    let author = 'Менеджер';
+    try { author = (JSON.parse(localStorage.getItem('authUser') || '{}').username) || 'Менеджер'; } catch {}
+    setSendingProdMsg(true);
+    try {
+      const res = await fetch(`${API_URL}/api/integrations/telegram/send-message/${selectedLead.id}`, {
+        method: 'POST', headers: { ...authHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: prodMsgText.trim(), author }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        toast.success('Сообщение отправлено в тему');
+        const msgs = [...(selectedLead.productionMessages || []), data.entry];
+        setSelectedLead(prev => ({ ...prev, productionMessages: msgs }));
+        setEditData(prev => ({ ...prev, productionMessages: msgs }));
+        setProdMsgText('');
+      } else {
+        toast.error(data.detail || 'Ошибка отправки');
+      }
+    } catch (e) { toast.error('Ошибка сети'); }
+    setSendingProdMsg(false);
   };
 
   // ---- Calendar Logic ----
@@ -1437,7 +1463,62 @@ const SaunaCRMPage = () => {
                     Тема в Telegram создана · спецификация и документы уходят в неё
                   </p>
                 )}
+                {selectedLead.telegram_topic_id && (
+                  <div className="mt-2 text-xs" data-testid="prod-ack-status">
+                    {selectedLead.productionAckedAt ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        ✅ Производство приняло: <b>{selectedLead.productionAckedBy || '—'}</b> · {new Date(selectedLead.productionAckedAt).toLocaleString('ru-RU')}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-amber-50 text-amber-700 border border-amber-200">
+                        ⏳ Ожидает подтверждения производства
+                      </span>
+                    )}
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-muted-foreground">
+                      {selectedLead.plannedStartDate && <span>Плановый старт: <b>{new Date(selectedLead.plannedStartDate).toLocaleDateString('ru-RU')}</b></span>}
+                      {selectedLead.productionDate && <span>Дата производства: <b>{new Date(selectedLead.productionDate).toLocaleDateString('ru-RU')}</b></span>}
+                    </div>
+                    {selectedLead.productionComment && (
+                      <div className="mt-1 text-muted-foreground">Комментарий производства: <span className="text-foreground">{selectedLead.productionComment}</span></div>
+                    )}
+                  </div>
+                )}
               </div>
+
+              {/* Production Messages (chat with topic) */}
+              {selectedLead.telegram_topic_id && (
+                <div data-testid="prod-messages-section">
+                  <Label className="text-sm font-semibold flex items-center gap-2 mb-2">
+                    <Send className="w-4 h-4 text-sky-600" />Сообщения производству
+                  </Label>
+                  {(selectedLead.productionMessages || []).length > 0 && (
+                    <div className="space-y-1.5 max-h-40 overflow-y-auto mb-2 pr-1">
+                      {(selectedLead.productionMessages || []).map((m, i) => (
+                        <div key={i} className="text-xs p-2 rounded-lg border bg-muted/30">
+                          <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-0.5">
+                            <span className="font-medium">{m.author || 'Менеджер'}{m.direction === 'in' ? ' · из Telegram' : ''}</span>
+                            <span>{m.at ? new Date(m.at).toLocaleString('ru-RU') : ''}</span>
+                          </div>
+                          <div className="whitespace-pre-wrap">{m.text}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex gap-2 items-end">
+                    <Textarea
+                      value={prodMsgText}
+                      onChange={(e) => setProdMsgText(e.target.value)}
+                      placeholder="Написать в тему производства…"
+                      rows={2}
+                      className="text-sm"
+                      data-testid="prod-message-input"
+                    />
+                    <Button size="sm" onClick={sendProdMessage} disabled={sendingProdMsg || !prodMsgText.trim()} data-testid="prod-message-send">
+                      {sendingProdMsg ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                    </Button>
+                  </div>
+                </div>
+              )}
 
               {/* Documents Section */}
               <div>

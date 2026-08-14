@@ -145,11 +145,12 @@ async def reopen_forum_topic(message_thread_id: int, chat_id: str = None, bot_to
     payload = {"chat_id": chat_id or config['chat_id'], "message_thread_id": message_thread_id}
     return await _forum_topic_action("reopenForumTopic", payload, bot_token)
 
-async def send_telegram_message(text: str, chat_id: str = None, bot_token: str = None, message_thread_id: int = None) -> bool:
+async def send_telegram_message(text: str, chat_id: str = None, bot_token: str = None, message_thread_id: int = None, reply_markup: dict = None) -> bool:
     """Send a message to Telegram chat.
 
     If message_thread_id is provided, the message is posted into that forum
     topic (Topic). When omitted, behaviour is unchanged (backward compatible).
+    reply_markup (optional) attaches an inline keyboard.
     """
     config = get_telegram_config()
     
@@ -178,6 +179,8 @@ async def send_telegram_message(text: str, chat_id: str = None, bot_token: str =
     }
     if message_thread_id is not None:
         payload["message_thread_id"] = message_thread_id
+    if reply_markup is not None:
+        payload["reply_markup"] = reply_markup
 
     try:
         async with httpx.AsyncClient() as client:

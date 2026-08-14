@@ -2219,3 +2219,35 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
 - (C) Двусторонняя связь из Telegram: inline-кнопки «Планируемая дата старта»,
   «Дата производства», «Комментарий производства» → запись обратно в карточку.
   ТРЕБУЕТ webhook/polling для production-бота (сейчас бот только исходящий).
+
+## Session — Aug 14, 2026 (3): сообщения из карточки (B) + сводка (A) + webhook/кнопки (C) + приёмка
+Реализовано и протестировано live (curl → реальный Telegram + симуляция webhook-апдейтов):
+- **(B) Сообщения из карточки** → `POST /api/integrations/telegram/send-message/{order_id}`
+  (text, author). Пишет в тему + логирует в `lead.productionMessages`
+  (direction out/in). UI: секция «Сообщения производству» в CRM-карточке
+  (data-testid prod-messages-section / prod-message-input / prod-message-send).
+- **(A) Закреплённая сводка** → `refresh_production_summary()` + `POST /refresh-summary`.
+  Считает по этапам (⏳ очередь / 🏭 в работе / 🛍 готово), всего, и «⚠️ Не подтверждено
+  производством: N». Отправляет+пинит сообщение (summary_message_id в settings),
+  далее editMessageText. Авто-вызов при send-to-production и смене этапа.
+- **(C) Webhook + кнопки** (двусторонняя связь):
+  - Кнопки в стартовом сообщении темы: [✅ Принял в работу] [📅 Дата старта]
+    [🏭 Дата производства] [💬 Комментарий] (`_order_keyboard`).
+  - `POST /webhook/{secret}` — обрабатывает callback_query и reply-сообщения.
+    - ack:{id} → пишет productionAckedBy/productionAckedAt, отвечает в тему, refresh summary.
+    - set:{field}:{id} → бот шлёт force_reply-подсказку, pending в
+      `telegram_pending_inputs`; ответ парсится (_parse_date ДД.ММ.ГГГГ→ISO) и пишется
+      в lead: plannedStartDate / productionDate / productionComment (+лог в productionMessages).
+  - `POST /enable-webhook` (setWebhook на API_BASE_URL + secret, allowed_updates),
+    `POST /disable-webhook`, `GET /webhook-status`.
+  - send_telegram_message получил параметр `reply_markup`.
+- **Настройки UI** (ProdTelegramSettings в SaunaProductionPage): кнопка
+  «Включить/Выключить приём из Telegram (webhook)» + статус (data-testid prod-tg-webhook).
+- **CRM-карточка**: бейдж приёмки «✅ Производство приняло: X · дата» либо
+  «⏳ Ожидает подтверждения производства» + плановый старт/дата производства/комментарий
+  (data-testid prod-ack-status).
+- Новые поля лида: productionAckedBy, productionAckedAt, plannedStartDate,
+  productionComment, productionMessages[]. Коллекции: telegram_pending_inputs,
+  telegram_production_settings (+ webhook_secret/webhook_enabled/summary_message_id).
+- ⚠️ Webhook сейчас указывает на PREVIEW-URL. После деплоя на прод нажать
+  «Включить приём из Telegram» ещё раз (перепропишет на боевой адрес).

@@ -286,14 +286,32 @@ const ProdTelegramSettings = ({ authHeaders }) => {
   const [newToken, setNewToken] = useState('');
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [webhookOn, setWebhookOn] = useState(false);
+  const [webhookBusy, setWebhookBusy] = useState(false);
 
   const load = async () => {
     try {
       const res = await fetch(`${API_URL}/api/integrations/telegram/settings`, { headers: authHeaders });
       if (res.ok) setCfg(await res.json());
+      const wr = await fetch(`${API_URL}/api/integrations/telegram/webhook-status`, { headers: authHeaders });
+      if (wr.ok) setWebhookOn((await wr.json()).enabled);
     } catch { /* noop */ }
   };
   useEffect(() => { load(); }, []);
+
+  const toggleWebhook = async () => {
+    setWebhookBusy(true);
+    try {
+      const path = webhookOn ? 'disable-webhook' : 'enable-webhook';
+      const res = await fetch(`${API_URL}/api/integrations/telegram/${path}`, { method: 'POST', headers: authHeaders });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        toast.success(webhookOn ? 'Приём из Telegram выключен' : 'Приём из Telegram включён (кнопки в теме работают)');
+        setWebhookOn(!webhookOn);
+      } else toast.error(data.detail || 'Ошибка');
+    } catch { toast.error('Ошибка сети'); }
+    setWebhookBusy(false);
+  };
 
   const save = async () => {
     setSaving(true);
@@ -354,6 +372,16 @@ const ProdTelegramSettings = ({ authHeaders }) => {
         </Button>
         {cfg.bot_token_set && <span className="text-xs text-emerald-600">● настроен ({cfg.source})</span>}
       </div>
+      <div className="flex items-center gap-3 mt-3 pt-3 border-t">
+        <Button size="sm" variant={webhookOn ? 'outline' : 'default'} onClick={toggleWebhook} disabled={webhookBusy} data-testid="prod-tg-webhook">
+          {webhookBusy ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
+          {webhookOn ? 'Выключить приём из Telegram' : 'Включить приём из Telegram (кнопки)'}
+        </Button>
+        <span className={`text-xs ${webhookOn ? 'text-emerald-600' : 'text-muted-foreground'}`}>
+          {webhookOn ? '● кнопки в теме активны (приёмка, даты, комментарий)' : '○ кнопки в теме не работают'}
+        </span>
+      </div>
+      <p className="text-[11px] text-muted-foreground mt-1">После деплоя на прод нажмите «Включить приём из Telegram» ещё раз, чтобы webhook указывал на боевой адрес.</p>
     </div>
   );
 };

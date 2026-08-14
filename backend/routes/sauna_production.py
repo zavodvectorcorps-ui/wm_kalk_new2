@@ -108,10 +108,11 @@ async def change_production_stage(order_id: str, stage_id: str = Query(...)):
 
     # Best-effort: reflect the stage on the Telegram topic (prefix + icon, close on final)
     try:
-        from routes.telegram_production import sync_topic_for_stage
+        from routes.telegram_production import sync_topic_for_stage, refresh_production_summary
         settings = await db.sauna_production_settings.find_one({}, {"_id": 0}) or {}
         stage_name = next((s.get("name", "") for s in settings.get("stages", []) if s.get("id") == stage_id), "")
         await sync_topic_for_stage(order_id, stage_id, stage_name)
+        await refresh_production_summary()
     except Exception as e:
         logger.error(f"Telegram topic stage-sync failed for {order_id}: {e}")
 
@@ -147,10 +148,11 @@ async def update_production_order(order_id: str, data: dict):
     # If the production stage changed here, sync the Telegram topic too
     if "productionStageId" in update and update["productionStageId"] != existing.get("productionStageId"):
         try:
-            from routes.telegram_production import sync_topic_for_stage
+            from routes.telegram_production import sync_topic_for_stage, refresh_production_summary
             settings = await db.sauna_production_settings.find_one({}, {"_id": 0}) or {}
             stage_name = next((s.get("name", "") for s in settings.get("stages", []) if s.get("id") == update["productionStageId"]), "")
             await sync_topic_for_stage(order_id, update["productionStageId"], stage_name)
+            await refresh_production_summary()
         except Exception as e:
             logger.error(f"Telegram topic stage-sync (PUT) failed for {order_id}: {e}")
 
