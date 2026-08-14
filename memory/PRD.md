@@ -2329,3 +2329,16 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
   SaunaCRMPage при mark-seen). Красный бейдж на кнопке CRM (desktop
   crm-tab-prod-badge + mobile) виден из любого раздела sauna. Проверено скриншотом
   (CRM ① на вкладке Калькулятор).
+
+## Session — Aug 14, 2026 (10): экспорт переписки (PDF/TXT) + быстрый ответ из окна
+- **Экспорт переписки**: `GET /api/integrations/telegram/export-chat/{order_id}?format=pdf|txt`.
+  TXT — PlainTextResponse (UTF-8, attachment). PDF — ReportLab (SimpleDocTemplate,
+  шрифт DejaVuSans через ensure_pdf_fonts, кириллица ок), входящие/исходящие
+  подписаны автором/временем/направлением. UI: кнопки «PDF»/«TXT» в шапке окна
+  переписки (export-chat-pdf-btn / export-chat-txt-btn), window.open → download.
+  Проверено curl (TXT кириллица, PDF 47КБ application/pdf).
+- **Быстрый ответ из окна переписки**: composer внизу chat-history-dialog
+  (chat-history-reply-input / chat-history-reply-send), переиспользует
+  sendProdMessage (prodMsgText) — сообщение уходит в тему и добавляется в ленту
+  без закрытия окна. Показывается только при наличии telegram_topic_id.
+  Проверено скриншотом.

@@ -818,6 +818,18 @@ const SaunaCRMPage = () => {
             <DialogTitle className="flex items-center gap-2">
               <Send className="w-5 h-5 text-sky-600" />
               Переписка по заказу {selectedLead?.id ? `#${selectedLead.id}` : ''}
+              <div className="ml-auto flex gap-2">
+                <Button variant="outline" size="sm" className="h-7 text-xs"
+                  onClick={() => window.open(`${API_URL}/api/integrations/telegram/export-chat/${selectedLead.id}?format=pdf`, '_blank')}
+                  data-testid="export-chat-pdf-btn">
+                  <FileText className="w-3.5 h-3.5 mr-1" />PDF
+                </Button>
+                <Button variant="outline" size="sm" className="h-7 text-xs"
+                  onClick={() => window.open(`${API_URL}/api/integrations/telegram/export-chat/${selectedLead.id}?format=txt`, '_blank')}
+                  data-testid="export-chat-txt-btn">
+                  <File className="w-3.5 h-3.5 mr-1" />TXT
+                </Button>
+              </div>
             </DialogTitle>
           </DialogHeader>
           <div className="relative mb-2">
@@ -844,6 +856,21 @@ const SaunaCRMPage = () => {
               ));
             })()}
           </div>
+          {selectedLead?.telegram_topic_id && (
+            <div className="flex gap-2 items-end pt-2 border-t mt-2">
+              <Textarea
+                value={prodMsgText}
+                onChange={(e) => setProdMsgText(e.target.value)}
+                placeholder="Быстрый ответ в тему производства…"
+                rows={2}
+                className="text-sm"
+                data-testid="chat-history-reply-input"
+              />
+              <Button size="sm" onClick={sendProdMessage} disabled={sendingProdMsg || !prodMsgText.trim()} data-testid="chat-history-reply-send">
+                {sendingProdMsg ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+              </Button>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 

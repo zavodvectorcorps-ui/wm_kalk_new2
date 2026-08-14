@@ -6,13 +6,14 @@ TELEGRAM_PRODUCTION_CHAT_ID). Telegram here is only a communication + files
 channel for the production team; the order status still lives only in CRM.
 """
 from fastapi import APIRouter, HTTPException
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, Response, PlainTextResponse
 from datetime import datetime, timezone
 import logging
 import httpx
 import os
 import json
 import asyncio
+import io
 
 from database import db
 from services.telegram_service import (
@@ -509,6 +510,76 @@ async def mark_production_updates_seen(order_id: str):
     now = datetime.now(timezone.utc).isoformat()
     await db.sauna_crm_leads.update_one({"id": order_id}, {"$set": {"productionUpdatesSeenAt": now}})
     return {"success": True}
+
+
+def _fmt_dt(s):
+    if not s:
+        return ""
+    try:
+        return datetime.fromisoformat(s.replace("Z", "+00:00")).strftime("%d.%m.%Y %H:%M")
+    except Exception:
+        return str(s)[:16]
+
+
+@router.get("/export-chat/{order_id}")
+async def export_chat(order_id: str, format: str = "pdf"):
+    """Export the order's production chat as PDF or plain text (for archive/disputes)."""
+    lead = await db.sauna_crm_leads.find_one({"id": order_id}, {"_id": 0})
+    if not lead:
+        raise HTTPException(status_code=404, detail="Заказ не найден")
+    client = lead.get("clientName") or "—"
+    model = lead.get("modelName") or lead.get("field_1") or "—"
+    msgs = lead.get("productionMessages") or []
+    header_title = f"Переписка по заказу #{order_id}"
+    subtitle = f"Клиент: {client} · Модель: {model}"
+
+    if format == "txt":
+        lines = [header_title, subtitle, "=" * 50, ""]
+        for m in msgs:
+            who = m.get("author") or "Менеджер"
+            direction = "из Telegram" if m.get("direction") == "in" else "менеджер"
+            lines.append(f"[{_fmt_dt(m.get('at'))}] {who} ({direction}):")
+            lines.append(m.get("text") or "")
+            lines.append("")
+        content = "\n".join(lines)
+        return PlainTextResponse(content, headers={
+            "Content-Disposition": f'attachment; filename="chat_{order_id}.txt"'
+        }, media_type="text/plain; charset=utf-8")
+
+    # PDF via ReportLab
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import mm
+    from reportlab.lib import colors
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from services.pdf_fonts import ensure_pdf_fonts
+
+    ensure_pdf_fonts()
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=A4, leftMargin=18*mm, rightMargin=18*mm, topMargin=18*mm, bottomMargin=18*mm)
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle('t', parent=styles['Title'], fontName='DejaVuSans-Bold', fontSize=15)
+    sub_style = ParagraphStyle('s', parent=styles['Normal'], fontName='DejaVuSans', fontSize=10, textColor=colors.grey)
+    meta_style = ParagraphStyle('m', parent=styles['Normal'], fontName='DejaVuSans', fontSize=8, textColor=colors.HexColor('#0369a1'))
+    body_style = ParagraphStyle('b', parent=styles['Normal'], fontName='DejaVuSans', fontSize=10, leading=14)
+
+    def esc(s):
+        return (s or "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+    story = [Paragraph(esc(header_title), title_style), Paragraph(esc(subtitle), sub_style), Spacer(1, 8*mm)]
+    if not msgs:
+        story.append(Paragraph("Сообщений нет.", body_style))
+    for m in msgs:
+        who = esc(m.get("author") or "Менеджер")
+        direction = "из Telegram" if m.get("direction") == "in" else "менеджер"
+        story.append(Paragraph(f"[{_fmt_dt(m.get('at'))}] <b>{who}</b> · {direction}", meta_style))
+        story.append(Paragraph(esc(m.get("text") or ""), body_style))
+        story.append(Spacer(1, 4*mm))
+    doc.build(story)
+    buf.seek(0)
+    return Response(content=buf.read(), media_type="application/pdf", headers={
+        "Content-Disposition": f'attachment; filename="chat_{order_id}.pdf"'
+    })
 
 
 @router.post("/test")
