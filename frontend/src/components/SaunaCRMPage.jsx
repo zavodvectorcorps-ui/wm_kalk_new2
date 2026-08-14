@@ -227,6 +227,7 @@ const SaunaCRMPage = () => {
   // Sync progress
   const [syncProgress, setSyncProgress] = useState(null);
   const syncPollRef = React.useRef(null);
+  const prevUnseenRef = React.useRef(null);
 
   const pollSyncStatus = useCallback(async () => {
     try {
@@ -710,6 +711,37 @@ const SaunaCRMPage = () => {
   stages.forEach(s => { leadsByStage[s.id] = []; });
   kanbanLeads.forEach(l => { if (leadsByStage[l.stageId]) leadsByStage[l.stageId].push(l); });
 
+  // Real-time signal: poll leads and alert when new production updates arrive
+  useEffect(() => {
+    const id = setInterval(() => { fetchLeads(); }, 45000);
+    return () => clearInterval(id);
+  }, [fetchLeads]);
+
+  useEffect(() => {
+    if (prevUnseenRef.current === null) { prevUnseenRef.current = unseenProdCount; return; }
+    if (unseenProdCount > prevUnseenRef.current) {
+      try {
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        if (Ctx) {
+          const ctx = new Ctx();
+          const o = ctx.createOscillator();
+          const g = ctx.createGain();
+          o.connect(g); g.connect(ctx.destination);
+          o.type = 'sine'; o.frequency.value = 880;
+          g.gain.setValueAtTime(0.0001, ctx.currentTime);
+          g.gain.exponentialRampToValueAtTime(0.15, ctx.currentTime + 0.02);
+          g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.35);
+          o.start(); o.stop(ctx.currentTime + 0.37);
+        }
+      } catch (e) { /* noop */ }
+      const orig = document.title;
+      document.title = `🔔 Новое от производства (${unseenProdCount})`;
+      setTimeout(() => { document.title = orig; }, 4000);
+      toast.info('🔔 Новое сообщение/фото от производства');
+    }
+    prevUnseenRef.current = unseenProdCount;
+  }, [unseenProdCount]);
+
   // ---- Render ----
   if (loading) {
     return <div className="flex items-center justify-center min-h-[400px]"><RefreshCw className="w-8 h-8 animate-spin text-muted-foreground" /></div>;
@@ -1131,12 +1163,21 @@ const SaunaCRMPage = () => {
             <Button variant={sortDateOrder ? 'secondary' : 'ghost'} size="sm" onClick={toggleSort} data-testid="list-sort-date-btn">
               {sortDateOrder === 'asc' ? 'Дата ↑' : sortDateOrder === 'desc' ? 'Дата ↓' : 'Дата'}
             </Button>
+            <Button
+              variant={showOnlyUnacked ? 'default' : 'outline'}
+              size="sm"
+              className={showOnlyUnacked ? 'bg-amber-500 hover:bg-amber-600 text-white' : 'text-amber-700 border-amber-300'}
+              onClick={() => setShowOnlyUnacked(v => !v)}
+              data-testid="list-filter-awaiting-ack-btn"
+            >
+              ⏳ Ждут приёмки{showOnlyUnacked ? ' ✓' : ''}
+            </Button>
             {hasActiveFilters && (
               <Button variant="ghost" size="sm" onClick={clearFilters}><X className="w-4 h-4 mr-1" />Сбросить</Button>
             )}
           </div>
           <div className="space-y-2">
-            {sortLeadsByDate(filteredLeads, sortDateOrder).map(lead => {
+            {sortLeadsByDate(kanbanLeads, sortDateOrder).map(lead => {
               const stage = stages.find(s => s.id === lead.stageId);
               return (
                 <Card key={lead.id} className={`cursor-pointer hover:shadow-md transition-shadow ${lead.hasUnreviewedChanges ? 'ring-2 ring-amber-400 ring-offset-1' : ''}`} onClick={() => openLead(lead)} data-testid={`list-lead-${lead.id}`}>
@@ -1166,7 +1207,7 @@ const SaunaCRMPage = () => {
                 </Card>
               );
             })}
-            {filteredLeads.length === 0 && <p className="text-center text-muted-foreground py-12">Нет заказов</p>}
+            {kanbanLeads.length === 0 && <p className="text-center text-muted-foreground py-12">Нет заказов</p>}
           </div>
         </TabsContent>
       </Tabs>

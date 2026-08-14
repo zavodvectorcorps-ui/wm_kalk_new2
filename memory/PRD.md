@@ -2295,3 +2295,13 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
   без productionAckedAt (`showOnlyUnacked` → kanbanLeads).
 - Проверено скриншотом: бейдж «🔔 1 новых», кнопка фильтра, бейджи на карточке
   «⏳ не принят / 🔔 новое». Компиляция чистая.
+
+## Session — Aug 14, 2026 (7): фильтр «ждут приёмки» в списке + сигнал в реальном времени
+- **Фильтр «Ждут приёмки» во вкладке «Список»**: кнопка
+  (data-testid list-filter-awaiting-ack-btn), общий стейт `showOnlyUnacked` →
+  список рендерит `kanbanLeads` (тот же ack-фильтр). Проверено скриншотом.
+- **Сигнал в реальном времени**: SaunaCRMPage опрашивает лиды каждые 45с
+  (setInterval → fetchLeads, без спиннера). При росте `unseenProdCount`
+  (`prevUnseenRef`): короткий WebAudio-бип + мигание title вкладки
+  «🔔 Новое от производства (N)» на 4с + toast. Первый рендер не пищит (guard null).
+  Компиляция чистая (звук/таб не проверяемы скриншотом, логика стандартная).
