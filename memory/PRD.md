@@ -2305,3 +2305,15 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
   (`prevUnseenRef`): короткий WebAudio-бип + мигание title вкладки
   «🔔 Новое от производства (N)» на 4с + toast. Первый рендер не пищит (guard null).
   Компиляция чистая (звук/таб не проверяемы скриншотом, логика стандартная).
+
+## Session — Aug 14, 2026 (8): живые обновления (SSE) + настройка звука
+- **SSE вместо опроса**: `GET /api/integrations/telegram/events` (StreamingResponse,
+  text/event-stream). In-memory pub/sub `_sse_subscribers` + `_publish_update()`
+  вызывается в webhook на photo/comment/ack. Важно: ingress буферизует SSE —
+  добавлен паддинг-прелюдия ~2КБ + заголовки no-transform/identity/X-Accel-Buffering,
+  после чего поток флашится сразу (проверено через внешний URL и из браузера — 200 OK).
+  Фронтенд: EventSource (авто-реконнект) вместо setInterval(45s); onmessage → fetchLeads.
+- **Настройка звука**: тумблер «🔊 Звук: вкл/выкл» в шапке CRM
+  (data-testid prod-sound-toggle), хранится в localStorage `prodSoundEnabled`.
+  Бип при новом апдейте играет только если включён.
+- Проверено: SSE-событие ack доходит вживую, тумблер звука переключается/сохраняется.

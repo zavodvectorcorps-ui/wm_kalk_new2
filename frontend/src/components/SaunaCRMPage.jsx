@@ -16,7 +16,7 @@ import {
   ExternalLink, Send, Loader2, Plus, X, Search,
   ChevronDown, ChevronUp, Package, Star, StarOff,
   Wrench, Calculator, Link2, Unlink, Hammer, AlertTriangle, ArrowUpDown,
-  MessageSquare, Eye, Users
+  MessageSquare, Eye, Users, Volume2, VolumeX
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getApiUrl } from '../utils/api';
@@ -113,6 +113,9 @@ const SaunaCRMPage = () => {
   const [sendingLeadTgId, setSendingLeadTgId] = useState(null);
   const [showOnlyUnacked, setShowOnlyUnacked] = useState(false);
   const [lightbox, setLightbox] = useState({ open: false, photos: [], index: 0 });
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    try { return localStorage.getItem('prodSoundEnabled') !== '0'; } catch { return true; }
+  });
   
   // Drag & drop
   const [draggedLead, setDraggedLead] = useState(null);
@@ -711,36 +714,43 @@ const SaunaCRMPage = () => {
   stages.forEach(s => { leadsByStage[s.id] = []; });
   kanbanLeads.forEach(l => { if (leadsByStage[l.stageId]) leadsByStage[l.stageId].push(l); });
 
-  // Real-time signal: poll leads and alert when new production updates arrive
+  // Real-time signal: live SSE stream instead of polling
   useEffect(() => {
-    const id = setInterval(() => { fetchLeads(); }, 45000);
-    return () => clearInterval(id);
+    let es;
+    try {
+      es = new EventSource(`${API_URL}/api/integrations/telegram/events`);
+      es.onmessage = () => { fetchLeads(); };
+      // EventSource auto-reconnects on error; refresh on (re)connect handled by onmessage
+    } catch (e) { /* noop */ }
+    return () => { if (es) es.close(); };
   }, [fetchLeads]);
 
   useEffect(() => {
     if (prevUnseenRef.current === null) { prevUnseenRef.current = unseenProdCount; return; }
     if (unseenProdCount > prevUnseenRef.current) {
-      try {
-        const Ctx = window.AudioContext || window.webkitAudioContext;
-        if (Ctx) {
-          const ctx = new Ctx();
-          const o = ctx.createOscillator();
-          const g = ctx.createGain();
-          o.connect(g); g.connect(ctx.destination);
-          o.type = 'sine'; o.frequency.value = 880;
-          g.gain.setValueAtTime(0.0001, ctx.currentTime);
-          g.gain.exponentialRampToValueAtTime(0.15, ctx.currentTime + 0.02);
-          g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.35);
-          o.start(); o.stop(ctx.currentTime + 0.37);
-        }
-      } catch (e) { /* noop */ }
+      if (soundEnabled) {
+        try {
+          const Ctx = window.AudioContext || window.webkitAudioContext;
+          if (Ctx) {
+            const ctx = new Ctx();
+            const o = ctx.createOscillator();
+            const g = ctx.createGain();
+            o.connect(g); g.connect(ctx.destination);
+            o.type = 'sine'; o.frequency.value = 880;
+            g.gain.setValueAtTime(0.0001, ctx.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.15, ctx.currentTime + 0.02);
+            g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.35);
+            o.start(); o.stop(ctx.currentTime + 0.37);
+          }
+        } catch (e) { /* noop */ }
+      }
       const orig = document.title;
       document.title = `🔔 Новое от производства (${unseenProdCount})`;
       setTimeout(() => { document.title = orig; }, 4000);
       toast.info('🔔 Новое сообщение/фото от производства');
     }
     prevUnseenRef.current = unseenProdCount;
-  }, [unseenProdCount]);
+  }, [unseenProdCount, soundEnabled]);
 
   // ---- Render ----
   if (loading) {
@@ -765,6 +775,15 @@ const SaunaCRMPage = () => {
           </p>
         </div>
         <div className="flex gap-2">
+          <Button
+            variant="outline" size="sm"
+            onClick={() => setSoundEnabled(v => { const nv = !v; try { localStorage.setItem('prodSoundEnabled', nv ? '1' : '0'); } catch {} return nv; })}
+            title={soundEnabled ? 'Звук новых апдейтов включён' : 'Звук новых апдейтов выключен'}
+            data-testid="prod-sound-toggle"
+          >
+            {soundEnabled ? <Volume2 className="w-4 h-4 mr-2 text-emerald-600" /> : <VolumeX className="w-4 h-4 mr-2 text-muted-foreground" />}
+            Звук: {soundEnabled ? 'вкл' : 'выкл'}
+          </Button>
           <Button variant="outline" size="sm" onClick={syncFromAmoCRM} disabled={syncing} data-testid="crm-sync-btn">
             {syncing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <RefreshCw className="w-4 h-4 mr-2" />}
             Синхронизировать

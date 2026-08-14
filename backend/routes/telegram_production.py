@@ -6,10 +6,13 @@ TELEGRAM_PRODUCTION_CHAT_ID). Telegram here is only a communication + files
 channel for the production team; the order status still lives only in CRM.
 """
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
 from datetime import datetime, timezone
 import logging
 import httpx
 import os
+import json
+import asyncio
 
 from database import db
 from services.telegram_service import (
@@ -26,6 +29,17 @@ router = APIRouter(prefix="/api/integrations/telegram", tags=["telegram-producti
 logger = logging.getLogger(__name__)
 
 _MASK = "••••••••"
+
+# In-memory SSE pub/sub (single-process). Pushes live production updates to CRM.
+_sse_subscribers: set = set()
+
+
+def _publish_update(payload: dict):
+    for q in list(_sse_subscribers):
+        try:
+            q.put_nowait(payload)
+        except Exception:
+            pass
 
 
 async def _resolve_prod_config() -> dict:
@@ -584,6 +598,7 @@ async def _handle_callback(cbq: dict, cfg: dict):
         ts = datetime.now(timezone.utc).strftime("%d.%m.%Y %H:%M")
         await send_telegram_message(text=f"✅ <b>{actor}</b> принял заказ в работу ({ts} UTC)",
                                     chat_id=chat_id, bot_token=bot, message_thread_id=thread_id)
+        _publish_update({"type": "production_update", "kind": "ack", "order_id": order_id, "at": now})
         await refresh_production_summary()
         return
 
@@ -647,6 +662,7 @@ async def _handle_reply(message: dict, cfg: dict):
             "$set": {db_field: text, "updatedAt": now, "lastProductionUpdateAt": now},
             "$push": {"productionMessages": entry},
         })
+        _publish_update({"type": "production_update", "kind": "comment", "order_id": order_id, "at": now})
         await send_telegram_message(text=f"✅ Комментарий сохранён (от {actor})", chat_id=chat_id, bot_token=bot, message_thread_id=thread_id)
 
     await db.telegram_pending_inputs.delete_one({"_id": f"{chat_id}:{pmid}"})
@@ -697,6 +713,7 @@ async def _handle_photo(message: dict, cfg: dict):
         await db.sauna_crm_leads.update_one({"id": order_id}, {
             "$push": {"documents": doc, "productionMessages": entry}, "$set": {"updatedAt": now, "lastProductionUpdateAt": now},
         })
+        _publish_update({"type": "production_update", "kind": "photo", "order_id": order_id, "at": now})
         await send_telegram_message(text=f"✅ Фото сохранено в карточку заказа (от {actor})", chat_id=chat_id, bot_token=bot, message_thread_id=thread_id)
     except Exception as e:
         logger.error(f"_handle_photo failed for {order_id}: {e}")
@@ -760,6 +777,34 @@ async def disable_webhook():
 async def webhook_status():
     doc = await db.telegram_production_settings.find_one({"_id": "config"}, {"_id": 0, "webhook_enabled": 1}) or {}
     return {"enabled": bool(doc.get("webhook_enabled"))}
+
+
+@router.get("/events")
+async def sse_events():
+    """Server-Sent Events stream of live production updates (photo/comment/ack)."""
+    async def gen():
+        q = asyncio.Queue()
+        _sse_subscribers.add(q)
+        try:
+            # Padding prelude (~2KB) to force proxies to flush the stream immediately
+            yield (":" + " " * 2048 + "\n\n")
+            yield "retry: 5000\n\n"
+            yield "event: ready\ndata: {}\n\n"
+            while True:
+                try:
+                    payload = await asyncio.wait_for(q.get(), timeout=25)
+                    yield f"data: {json.dumps(payload)}\n\n"
+                except asyncio.TimeoutError:
+                    yield ": keepalive\n\n"
+        finally:
+            _sse_subscribers.discard(q)
+
+    return StreamingResponse(gen(), media_type="text/event-stream", headers={
+        "Cache-Control": "no-cache, no-transform",
+        "Connection": "keep-alive",
+        "X-Accel-Buffering": "no",
+        "Content-Encoding": "identity",
+    })
 
 
 
