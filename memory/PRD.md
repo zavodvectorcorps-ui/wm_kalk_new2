@@ -2138,3 +2138,56 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
   индекс amocrm_id_1 (unique+sparse) не пропускает явный null; CRMLead шлёт
   amocrm_id=None. Ручное создание лида в CRM сломано. Безопасный фикс: exclude_none
   при вставке (не писать amocrm_id=None) — индексы не трогать.
+
+
+## Session — Aug 14, 2026: Telegram Forum Topics для производства (Шаги 2–6 + иконки/этапы)
+Отдельный бот/группа для производства — канал коммуникации + файлы, статус живёт
+только в CRM. НЕ трогает существующий нотификатор заказов/бэкапов.
+
+### Переменные окружения (backend/.env) — НОВЫЕ, отдельные
+- `TELEGRAM_PRODUCTION_BOT_TOKEN`, `TELEGRAM_PRODUCTION_CHAT_ID`.
+- ⚠️ Сейчас указывают на ТЕСТОВУЮ группу («Сауна Контроль», chat=-1004462186584,
+  бот @Sauna_Production_Bot). Для ПРОДА заменить на боевые значения.
+
+### Backend
+- `services/telegram_service.py`:
+  - `get_production_telegram_config()` — читает новые env.
+  - `create_forum_topic(name, chat_id, bot_token, icon_color)` → createForumTopic.
+  - `edit_forum_topic` / `close_forum_topic` / `reopen_forum_topic` (+ `_forum_topic_action`).
+  - `send_telegram_message` / `send_telegram_file` — добавлен опциональный
+    `message_thread_id` (обратная совместимость сохранена).
+- `models` CRMLead (в routes/sauna_crm.py): новые поля `telegram_topic_id: Optional[int]`,
+  плюс служебный `telegram_topic_closed` (пишется напрямую $set).
+- `routes/telegram_production.py` (NEW, prefix `/api/integrations/telegram`):
+  - `POST /send-to-production/{order_id}`: 1-й вызов — создаёт тему
+    `{emoji} #<id> <клиент> — <модель>` + icon_color по этапу, стартовое сообщение
+    (модель, ПОЛНЫЙ список опций-спецификация, пожелания из notes/amoComment,
+    срок готовности, ссылка на amoCRM — БЕЗ аванса/остатка), прикрепляет все
+    документы КРОМЕ `type=contract`. Повтор — «🔄 ОБНОВЛЕНИЕ» в ту же тему.
+    Ошибки не проглатываются (`documentsFailed`, понятные detail).
+  - `sync_topic_for_stage(order_id, stage_id, stage_name)` — best-effort:
+    обновляет префикс+цвет темы по этапу, закрывает на финальном, переоткрывает
+    при возврате (по флагу telegram_topic_closed). No-op если темы нет.
+  - Маппинг: accepted/очередь→⏳ синий, in_production→🏭 оранж, ready→📦 жёлт,
+    shipped→✅ зелёный (+ закрытие темы).
+- `routes/sauna_production.py::change_production_stage` — вызывает
+  `sync_topic_for_stage` после смены этапа.
+- `server.py` — подключён telegram_production_router (без доп. префикса).
+
+### Frontend
+- Кнопка «Отправить в Telegram» (data-testid `send-to-telegram-btn`) в обеих
+  одинаковых карточках: `SaunaCRMPage.jsx` и `SaunaProductionPage.jsx`.
+  Меняет текст на «Обновить в Telegram» + бейдж-статус, если тема создана.
+  Тосты успех/ошибка/непрошедшие файлы.
+
+### Ограничение Telegram (ответ на вопрос про подгруппы)
+- Вложенных подгрупп/папок в темах НЕТ (плоская структура). Эмуляция этапов —
+  через emoji-префикс в названии + цвет иконки (реализовано).
+
+### Проверено вживую (curl → реальный Telegram)
+- Создание темы, повтор=обновление (та же тема, id сохранён), исключение договора,
+  битые URL → documentsFailed. Смена этапов: editForumTopic 200, close на shipped,
+  reopen при возврате 200. Кнопка рендерится (скриншот).
+
+### Осталось (для юзера)
+- Заменить TELEGRAM_PRODUCTION_* на боевые значения + задеплоить на прод.

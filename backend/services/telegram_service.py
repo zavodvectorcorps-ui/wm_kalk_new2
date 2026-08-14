@@ -89,6 +89,51 @@ async def create_forum_topic(
         logger.error(f"Failed to create forum topic: {e}")
         return {"success": False, "error": str(e)}
 
+
+async def _forum_topic_action(method: str, payload: dict, bot_token: str = None) -> Dict[str, Any]:
+    """Generic Bot API call for forum-topic management (edit/close/reopen)."""
+    config = get_production_telegram_config()
+    token = bot_token or config['bot_token']
+    if not token:
+        return {"success": False, "error": "TELEGRAM_PRODUCTION_BOT_TOKEN not configured"}
+    url = f"https://api.telegram.org/bot{token}/{method}"
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(url, json=payload, timeout=15.0)
+            data = response.json()
+            if response.status_code == 200 and data.get('ok'):
+                return {"success": True}
+            return {"success": False, "error": data.get('description', f"HTTP {response.status_code}")}
+    except Exception as e:
+        logger.error(f"Telegram {method} failed: {e}")
+        return {"success": False, "error": str(e)}
+
+
+async def edit_forum_topic(message_thread_id: int, name: str = None, icon_color: int = None,
+                           chat_id: str = None, bot_token: str = None) -> Dict[str, Any]:
+    """Edit a forum topic name / icon color (Bot API editForumTopic)."""
+    config = get_production_telegram_config()
+    payload = {"chat_id": chat_id or config['chat_id'], "message_thread_id": message_thread_id}
+    if name is not None:
+        payload["name"] = name[:128]
+    if icon_color is not None:
+        payload["icon_color"] = icon_color
+    return await _forum_topic_action("editForumTopic", payload, bot_token)
+
+
+async def close_forum_topic(message_thread_id: int, chat_id: str = None, bot_token: str = None) -> Dict[str, Any]:
+    """Close (not delete) a forum topic — history stays (Bot API closeForumTopic)."""
+    config = get_production_telegram_config()
+    payload = {"chat_id": chat_id or config['chat_id'], "message_thread_id": message_thread_id}
+    return await _forum_topic_action("closeForumTopic", payload, bot_token)
+
+
+async def reopen_forum_topic(message_thread_id: int, chat_id: str = None, bot_token: str = None) -> Dict[str, Any]:
+    """Reopen a previously closed forum topic (Bot API reopenForumTopic)."""
+    config = get_production_telegram_config()
+    payload = {"chat_id": chat_id or config['chat_id'], "message_thread_id": message_thread_id}
+    return await _forum_topic_action("reopenForumTopic", payload, bot_token)
+
 async def send_telegram_message(text: str, chat_id: str = None, bot_token: str = None, message_thread_id: int = None) -> bool:
     """Send a message to Telegram chat.
 

@@ -105,6 +105,16 @@ async def change_production_stage(order_id: str, stage_id: str = Query(...)):
             "updatedAt": now,
         }}
     )
+
+    # Best-effort: reflect the stage on the Telegram topic (prefix + icon, close on final)
+    try:
+        from routes.telegram_production import sync_topic_for_stage
+        settings = await db.sauna_production_settings.find_one({}, {"_id": 0}) or {}
+        stage_name = next((s.get("name", "") for s in settings.get("stages", []) if s.get("id") == stage_id), "")
+        await sync_topic_for_stage(order_id, stage_id, stage_name)
+    except Exception as e:
+        logger.error(f"Telegram topic stage-sync failed for {order_id}: {e}")
+
     updated = await db.sauna_crm_leads.find_one({"id": order_id}, {"_id": 0})
     return updated
 

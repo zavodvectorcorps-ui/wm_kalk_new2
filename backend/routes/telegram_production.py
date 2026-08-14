@@ -15,11 +15,40 @@ from services.telegram_service import (
     create_forum_topic,
     send_telegram_message,
     send_telegram_file,
+    edit_forum_topic,
+    close_forum_topic,
+    reopen_forum_topic,
     get_production_telegram_config,
 )
 
 router = APIRouter(prefix="/api/integrations/telegram", tags=["telegram-production"])
 logger = logging.getLogger(__name__)
+
+# Telegram-allowed forum icon colors
+_C_BLUE = 7322096      # 0x6FB9F0
+_C_YELLOW = 16766590   # 0xFFD67E
+_C_GREEN = 9367192     # 0x8EEE98
+_C_ORANGE = 16478047   # 0xFB6F5F
+
+# Production stage -> (emoji prefix, icon color, is_final)
+def _stage_visual(stage_id: str, stage_name: str = ""):
+    sid = (stage_id or "").lower()
+    name = (stage_name or "").lower()
+    if sid in ("shipped", "delivered", "done") or "отгруж" in name or "доставлен" in name:
+        return "✅", _C_GREEN, True
+    if sid == "ready" or "готов" in name:
+        return "📦", _C_YELLOW, False
+    if sid in ("in_production", "production") or "производ" in name:
+        return "🏭", _C_ORANGE, False
+    # accepted / queue / default
+    return "⏳", _C_BLUE, False
+
+
+def _base_topic_name(lead: dict, order: dict) -> str:
+    order_id = lead.get("id", "")
+    client = lead.get("clientName") or "—"
+    model = lead.get("modelName") or lead.get("field_1") or (order or {}).get("modelName") or "—"
+    return f"#{order_id} {client} — {model}"
 
 
 async def _get_calc_order(lead: dict):
@@ -135,10 +164,9 @@ async def send_to_production(order_id: str):
 
     # Create a new topic on first send
     if not is_update:
-        client = lead.get("clientName") or "—"
-        model = lead.get("modelName") or lead.get("field_1") or (order or {}).get("modelName") or "—"
-        topic_name = f"#{order_id} {client} — {model}"
-        created = await create_forum_topic(name=topic_name)
+        emoji, color, _ = _stage_visual(lead.get("productionStageId"), "")
+        topic_name = f"{emoji} {_base_topic_name(lead, order)}"
+        created = await create_forum_topic(name=topic_name, icon_color=color)
         if not created.get("success"):
             raise HTTPException(status_code=502, detail=f"Не удалось создать тему в Telegram: {created.get('error')}")
         topic_id = created["message_thread_id"]
@@ -206,3 +234,39 @@ async def send_to_production(order_id: str):
         "documentsFailed": failed_docs,
         "message": ("Обновление отправлено в тему" if is_update else "Тема создана, заказ отправлен в производство"),
     }
+
+
+
+async def sync_topic_for_stage(order_id: str, stage_id: str, stage_name: str = ""):
+    """Update the Telegram topic (name prefix + icon color) to reflect the
+    production stage, and close it on the final stage. No-op if the order has
+    no topic yet (i.e. "Отправить в Telegram" was never pressed). Best-effort:
+    failures are logged, never raised.
+    """
+    try:
+        cfg = get_production_telegram_config()
+        if not cfg["bot_token"] or not cfg["chat_id"]:
+            return
+        lead = await db.sauna_crm_leads.find_one({"id": order_id}, {"_id": 0})
+        if not lead or not lead.get("telegram_topic_id"):
+            return
+        topic_id = lead["telegram_topic_id"]
+
+        order = await _get_calc_order(lead)
+        emoji, color, is_final = _stage_visual(stage_id, stage_name)
+        new_name = f"{emoji} {_base_topic_name(lead, order)}"
+
+        await edit_forum_topic(message_thread_id=topic_id, name=new_name, icon_color=color)
+
+        was_closed = bool(lead.get("telegram_topic_closed"))
+        if is_final:
+            if not was_closed:
+                await close_forum_topic(message_thread_id=topic_id)
+                await db.sauna_crm_leads.update_one({"id": order_id}, {"$set": {"telegram_topic_closed": True}})
+        else:
+            # Reopen only if it was actually closed (moved back from final)
+            if was_closed:
+                await reopen_forum_topic(message_thread_id=topic_id)
+                await db.sauna_crm_leads.update_one({"id": order_id}, {"$set": {"telegram_topic_closed": False}})
+    except Exception as e:
+        logger.error(f"sync_topic_for_stage failed for {order_id}: {e}")
