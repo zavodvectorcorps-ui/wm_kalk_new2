@@ -2282,3 +2282,16 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
   При открытии карточки — `POST /api/integrations/telegram/mark-seen/{order_id}` ставит
   productionUpdatesSeenAt (бейдж гаснет). `hasUnseenProdUpdate(lead)` в SaunaCRMPage.
 - Проверено live: сохранение часов (6), mark-seen; галерея и лента в карточке (скриншот).
+
+## Session — Aug 14, 2026 (6): бейдж новинок в шапке + лайтбокс фото + фильтр «ждут приёмки»
+- **Бейдж новинок в шапке CRM**: рядом с «Производство» показывается
+  «🔔 N новых от производства» (data-testid prod-updates-header-badge), N =
+  число лидов с непросмотренными апдейтами (`unseenProdCount`).
+- **Лайтбокс фото**: клик по миниатюре в галерее открывает полноэкранный
+  просмотрщик (data-testid photo-lightbox) со стрелками ◄►
+  (lightbox-prev/next/close), счётчик N/M. Заменил открытие в новой вкладке.
+- **Фильтр «ждут приёмки»**: кнопка в тулбаре канбана
+  (data-testid filter-awaiting-ack-btn) — показывает только заказы с темой и
+  без productionAckedAt (`showOnlyUnacked` → kanbanLeads).
+- Проверено скриншотом: бейдж «🔔 1 новых», кнопка фильтра, бейджи на карточке
+  «⏳ не принят / 🔔 новое». Компиляция чистая.

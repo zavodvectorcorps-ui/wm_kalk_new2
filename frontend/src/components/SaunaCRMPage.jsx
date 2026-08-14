@@ -111,6 +111,8 @@ const SaunaCRMPage = () => {
   const [prodMsgText, setProdMsgText] = useState('');
   const [sendingProdMsg, setSendingProdMsg] = useState(false);
   const [sendingLeadTgId, setSendingLeadTgId] = useState(null);
+  const [showOnlyUnacked, setShowOnlyUnacked] = useState(false);
+  const [lightbox, setLightbox] = useState({ open: false, photos: [], index: 0 });
   
   // Drag & drop
   const [draggedLead, setDraggedLead] = useState(null);
@@ -700,9 +702,13 @@ const SaunaCRMPage = () => {
   const clearFilters = () => { setFilterManager(''); setFilterDateFrom(''); setFilterDateTo(''); setSearchTerm(''); setColumnSort({}); };
 
   const stages = settings?.stages || [];
+  const unseenProdCount = leads.filter(hasUnseenProdUpdate).length;
+  const kanbanLeads = showOnlyUnacked
+    ? filteredLeads.filter(l => l.telegram_topic_id && !l.productionAckedAt)
+    : filteredLeads;
   const leadsByStage = {};
   stages.forEach(s => { leadsByStage[s.id] = []; });
-  filteredLeads.forEach(l => { if (leadsByStage[l.stageId]) leadsByStage[l.stageId].push(l); });
+  kanbanLeads.forEach(l => { if (leadsByStage[l.stageId]) leadsByStage[l.stageId].push(l); });
 
   // ---- Render ----
   if (loading) {
@@ -716,6 +722,11 @@ const SaunaCRMPage = () => {
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <Briefcase className="w-6 h-6 text-blue-600" />Производство
+            {unseenProdCount > 0 && (
+              <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full bg-rose-100 text-rose-700 animate-pulse" data-testid="prod-updates-header-badge">
+                🔔 {unseenProdCount} новых от производства
+              </span>
+            )}
           </h1>
           <p className="text-muted-foreground text-sm">
             {settings?.lastSyncAt ? `Синхронизация: ${new Date(settings.lastSyncAt).toLocaleString('ru-RU')}` : 'Не синхронизировано'}
@@ -745,6 +756,31 @@ const SaunaCRMPage = () => {
           </Button>
         </div>
       </div>
+
+      {/* Production photo lightbox */}
+      {lightbox.open && lightbox.photos.length > 0 && (
+        <div className="fixed inset-0 z-[100] bg-black/85 flex items-center justify-center" onClick={() => setLightbox(p => ({ ...p, open: false }))} data-testid="photo-lightbox">
+          <button className="absolute top-4 right-4 text-white/90 hover:text-white p-2" onClick={(e) => { e.stopPropagation(); setLightbox(p => ({ ...p, open: false })); }} data-testid="lightbox-close">
+            <X className="w-7 h-7" />
+          </button>
+          {lightbox.photos.length > 1 && (
+            <button className="absolute left-4 text-white/90 hover:text-white p-2" onClick={(e) => { e.stopPropagation(); setLightbox(p => ({ ...p, index: (p.index - 1 + p.photos.length) % p.photos.length })); }} data-testid="lightbox-prev">
+              <ChevronLeft className="w-10 h-10" />
+            </button>
+          )}
+          <div className="max-w-[85vw] max-h-[85vh] flex flex-col items-center" onClick={(e) => e.stopPropagation()}>
+            <img src={lightbox.photos[lightbox.index]?.url} alt="Фото производства" className="max-w-[85vw] max-h-[78vh] object-contain rounded-lg" />
+            <div className="text-white/80 text-xs mt-2">
+              {lightbox.photos[lightbox.index]?.name || 'Фото производства'} · {lightbox.index + 1}/{lightbox.photos.length}
+            </div>
+          </div>
+          {lightbox.photos.length > 1 && (
+            <button className="absolute right-4 text-white/90 hover:text-white p-2" onClick={(e) => { e.stopPropagation(); setLightbox(p => ({ ...p, index: (p.index + 1) % p.photos.length })); }} data-testid="lightbox-next">
+              <ChevronRight className="w-10 h-10" />
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Sync Progress Indicator */}
       {syncProgress && syncProgress.status !== 'idle' && (
@@ -909,6 +945,15 @@ const SaunaCRMPage = () => {
             {hasActiveFilters && (
               <Button variant="ghost" size="sm" onClick={clearFilters} data-testid="clear-filters-btn"><X className="w-4 h-4 mr-1" />Сбросить</Button>
             )}
+            <Button
+              variant={showOnlyUnacked ? 'default' : 'outline'}
+              size="sm"
+              className={showOnlyUnacked ? 'bg-amber-500 hover:bg-amber-600 text-white' : 'text-amber-700 border-amber-300'}
+              onClick={() => setShowOnlyUnacked(v => !v)}
+              data-testid="filter-awaiting-ack-btn"
+            >
+              ⏳ Ждут приёмки{showOnlyUnacked ? ' ✓' : ''}
+            </Button>
           </div>
           <div className="flex gap-4 overflow-x-auto pb-2">
             {stages.map(stage => {
@@ -1537,12 +1582,13 @@ const SaunaCRMPage = () => {
                       <div className="mt-2" data-testid="production-photo-gallery">
                         <div className="text-[11px] font-medium text-foreground mb-1">📷 Фото от производства</div>
                         <div className="flex flex-wrap gap-2">
-                          {(selectedLead.documents || []).filter(d => d.type === 'production_photo').map((d, i) => (
-                            <a key={d.id || i} href={d.url} target="_blank" rel="noopener noreferrer"
+                          {(selectedLead.documents || []).filter(d => d.type === 'production_photo').map((d, i, arr) => (
+                            <button key={d.id || i} type="button"
+                               onClick={() => setLightbox({ open: true, photos: arr, index: i })}
                                className="block w-16 h-16 rounded-md overflow-hidden border hover:ring-2 hover:ring-sky-400 transition"
                                title={d.name || 'Фото производства'} data-testid={`production-photo-${i}`}>
                               <img src={d.url} alt={d.name || 'Фото'} className="w-full h-full object-cover" />
-                            </a>
+                            </button>
                           ))}
                         </div>
                       </div>
