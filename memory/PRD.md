@@ -2342,3 +2342,11 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
   sendProdMessage (prodMsgText) — сообщение уходит в тему и добавляется в ленту
   без закрытия окна. Показывается только при наличии telegram_topic_id.
   Проверено скриншотом.
+
+## Session — Aug 14, 2026 (11): фото в PDF-экспорт
+- В `export-chat` (format=pdf) после ленты сообщений добавлена секция «Фото от
+  производства»: скачивает каждое фото (documents[type=production_photo], Cloudinary)
+  через httpx и встраивает миниатюрой (ReportLab Image, ширина 60мм, сохранение
+  пропорций через ImageReader.getSize). Ошибки скачивания — пропуск.
+  Проверено: PDF содержит image XObject, размер 47КБ→69КБ. Только бэкенд, кнопка
+  «PDF» уже использует эндпоинт.

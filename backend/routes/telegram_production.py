@@ -550,7 +550,8 @@ async def export_chat(order_id: str, format: str = "pdf"):
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.units import mm
     from reportlab.lib import colors
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image as RLImage
+    from reportlab.lib.utils import ImageReader
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from services.pdf_fonts import ensure_pdf_fonts
 
@@ -562,6 +563,7 @@ async def export_chat(order_id: str, format: str = "pdf"):
     sub_style = ParagraphStyle('s', parent=styles['Normal'], fontName='DejaVuSans', fontSize=10, textColor=colors.grey)
     meta_style = ParagraphStyle('m', parent=styles['Normal'], fontName='DejaVuSans', fontSize=8, textColor=colors.HexColor('#0369a1'))
     body_style = ParagraphStyle('b', parent=styles['Normal'], fontName='DejaVuSans', fontSize=10, leading=14)
+    section_style = ParagraphStyle('sec', parent=styles['Normal'], fontName='DejaVuSans-Bold', fontSize=12)
 
     def esc(s):
         return (s or "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
@@ -575,6 +577,33 @@ async def export_chat(order_id: str, format: str = "pdf"):
         story.append(Paragraph(f"[{_fmt_dt(m.get('at'))}] <b>{who}</b> · {direction}", meta_style))
         story.append(Paragraph(esc(m.get("text") or ""), body_style))
         story.append(Spacer(1, 4*mm))
+
+    # Photo thumbnails from production
+    photos = [d for d in (lead.get("documents") or []) if d.get("type") == "production_photo" and d.get("url")]
+    if photos:
+        story.append(Spacer(1, 6*mm))
+        story.append(Paragraph("Фото от производства", section_style))
+        story.append(Spacer(1, 3*mm))
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            for ph in photos:
+                try:
+                    r = await client.get(ph["url"])
+                    if r.status_code != 200:
+                        continue
+                    img_bytes = r.content
+                    ir = ImageReader(io.BytesIO(img_bytes))
+                    iw, ih = ir.getSize()
+                    max_w = 60 * mm
+                    w = min(max_w, iw)
+                    h = w * (ih / iw) if iw else 45 * mm
+                    story.append(RLImage(io.BytesIO(img_bytes), width=w, height=h))
+                    cap = ph.get("name") or "Фото производства"
+                    story.append(Paragraph(esc(cap), meta_style))
+                    story.append(Spacer(1, 4*mm))
+                except Exception as e:
+                    logger.error(f"PDF photo embed failed: {e}")
+                    continue
+
     doc.build(story)
     buf.seek(0)
     return Response(content=buf.read(), media_type="application/pdf", headers={
