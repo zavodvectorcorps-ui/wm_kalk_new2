@@ -24,24 +24,40 @@ from services.telegram_service import (
 router = APIRouter(prefix="/api/integrations/telegram", tags=["telegram-production"])
 logger = logging.getLogger(__name__)
 
-# Telegram-allowed forum icon colors
-_C_BLUE = 7322096      # 0x6FB9F0
-_C_YELLOW = 16766590   # 0xFFD67E
-_C_GREEN = 9367192     # 0x8EEE98
-_C_ORANGE = 16478047   # 0xFB6F5F
+_MASK = "••••••••"
 
-# Production stage -> (emoji prefix, icon color, is_final)
+
+async def _resolve_prod_config() -> dict:
+    """Resolve production Telegram config: DB settings first, env fallback.
+
+    Lets the bot/group be configured via UI (no new deploy secrets needed).
+    """
+    doc = await db.telegram_production_settings.find_one({"_id": "config"}, {"_id": 0})
+    env = get_production_telegram_config()
+    bot_token = (doc or {}).get("bot_token") or env.get("bot_token") or ""
+    chat_id = (doc or {}).get("chat_id") or env.get("chat_id") or ""
+    enabled = (doc or {}).get("enabled", True)
+    return {"bot_token": bot_token, "chat_id": chat_id, "enabled": enabled}
+
+
+# Telegram custom-emoji icon ids for production stages (from getForumTopicIconStickers)
+_EMOJI_ACCEPTED = "5373251851074415873"      # 📝 заявка принята
+_EMOJI_IN_PRODUCTION = "5312016608254762256"  # ⚡️ в работе
+_EMOJI_READY = "5350699789551935589"          # 🛍 готово к отгрузке
+_EMOJI_SHIPPED = "5237699328843200968"        # ✅ отгружено
+
+# Production stage -> (name emoji prefix, custom-emoji icon id, is_final)
 def _stage_visual(stage_id: str, stage_name: str = ""):
     sid = (stage_id or "").lower()
     name = (stage_name or "").lower()
     if sid in ("shipped", "delivered", "done") or "отгруж" in name or "доставлен" in name:
-        return "✅", _C_GREEN, True
+        return "✅", _EMOJI_SHIPPED, True
     if sid == "ready" or "готов" in name:
-        return "📦", _C_YELLOW, False
+        return "📦", _EMOJI_READY, False
     if sid in ("in_production", "production") or "производ" in name:
-        return "🏭", _C_ORANGE, False
+        return "🏭", _EMOJI_IN_PRODUCTION, False
     # accepted / queue / default
-    return "⏳", _C_BLUE, False
+    return "⏳", _EMOJI_ACCEPTED, False
 
 
 def _base_topic_name(lead: dict, order: dict) -> str:
@@ -148,7 +164,7 @@ async def send_to_production(order_id: str):
     Repeat call: posts an "Обновление" message into the SAME topic (no new topic).
     Attaches all lead documents to the topic.
     """
-    cfg = get_production_telegram_config()
+    cfg = await _resolve_prod_config()
     if not cfg["bot_token"] or not cfg["chat_id"]:
         raise HTTPException(status_code=400, detail="Telegram производства не настроен (нет бота/чата)")
 
@@ -164,9 +180,12 @@ async def send_to_production(order_id: str):
 
     # Create a new topic on first send
     if not is_update:
-        emoji, color, _ = _stage_visual(lead.get("productionStageId"), "")
+        emoji, icon_emoji_id, _ = _stage_visual(lead.get("productionStageId"), "")
         topic_name = f"{emoji} {_base_topic_name(lead, order)}"
-        created = await create_forum_topic(name=topic_name, icon_color=color)
+        created = await create_forum_topic(
+            name=topic_name, icon_custom_emoji_id=icon_emoji_id,
+            chat_id=cfg["chat_id"], bot_token=cfg["bot_token"],
+        )
         if not created.get("success"):
             raise HTTPException(status_code=502, detail=f"Не удалось создать тему в Telegram: {created.get('error')}")
         topic_id = created["message_thread_id"]
@@ -244,7 +263,7 @@ async def sync_topic_for_stage(order_id: str, stage_id: str, stage_name: str = "
     failures are logged, never raised.
     """
     try:
-        cfg = get_production_telegram_config()
+        cfg = await _resolve_prod_config()
         if not cfg["bot_token"] or not cfg["chat_id"]:
             return
         lead = await db.sauna_crm_leads.find_one({"id": order_id}, {"_id": 0})
@@ -253,20 +272,92 @@ async def sync_topic_for_stage(order_id: str, stage_id: str, stage_name: str = "
         topic_id = lead["telegram_topic_id"]
 
         order = await _get_calc_order(lead)
-        emoji, color, is_final = _stage_visual(stage_id, stage_name)
+        emoji, icon_emoji_id, is_final = _stage_visual(stage_id, stage_name)
         new_name = f"{emoji} {_base_topic_name(lead, order)}"
 
-        await edit_forum_topic(message_thread_id=topic_id, name=new_name, icon_color=color)
+        await edit_forum_topic(message_thread_id=topic_id, name=new_name,
+                               icon_custom_emoji_id=icon_emoji_id,
+                               chat_id=cfg["chat_id"], bot_token=cfg["bot_token"])
 
         was_closed = bool(lead.get("telegram_topic_closed"))
         if is_final:
             if not was_closed:
-                await close_forum_topic(message_thread_id=topic_id)
+                await close_forum_topic(message_thread_id=topic_id, chat_id=cfg["chat_id"], bot_token=cfg["bot_token"])
                 await db.sauna_crm_leads.update_one({"id": order_id}, {"$set": {"telegram_topic_closed": True}})
         else:
             # Reopen only if it was actually closed (moved back from final)
             if was_closed:
-                await reopen_forum_topic(message_thread_id=topic_id)
+                await reopen_forum_topic(message_thread_id=topic_id, chat_id=cfg["chat_id"], bot_token=cfg["bot_token"])
                 await db.sauna_crm_leads.update_one({"id": order_id}, {"$set": {"telegram_topic_closed": False}})
     except Exception as e:
         logger.error(f"sync_topic_for_stage failed for {order_id}: {e}")
+
+
+
+# ============== SETTINGS (DB-backed, editable via UI) ==============
+
+@router.get("/settings")
+async def get_prod_telegram_settings():
+    """Return current production-Telegram config. Bot token is masked."""
+    doc = await db.telegram_production_settings.find_one({"_id": "config"}, {"_id": 0})
+    env = get_production_telegram_config()
+    token = (doc or {}).get("bot_token") or ""
+    chat_id = (doc or {}).get("chat_id") or ""
+    enabled = (doc or {}).get("enabled", True)
+    # env fallback (so UI shows "configured" even before first DB save)
+    source = "db" if (doc and token) else ("env" if env.get("bot_token") else "none")
+    if not token and env.get("bot_token"):
+        chat_id = chat_id or env.get("chat_id", "")
+    token_set = bool(token or env.get("bot_token"))
+    return {
+        "bot_token_set": token_set,
+        "bot_token_masked": _MASK if token_set else "",
+        "chat_id": chat_id,
+        "enabled": enabled,
+        "source": source,
+    }
+
+
+@router.post("/settings")
+async def save_prod_telegram_settings(data: dict):
+    """Save production-Telegram config to DB. Sending the mask keeps the token."""
+    update = {}
+    incoming_token = (data.get("bot_token") or "").strip()
+    if incoming_token and incoming_token != _MASK:
+        update["bot_token"] = incoming_token
+    if "chat_id" in data:
+        update["chat_id"] = (data.get("chat_id") or "").strip()
+    if "enabled" in data:
+        update["enabled"] = bool(data.get("enabled"))
+    if not update:
+        return {"status": "ok", "changed": False}
+    update["updatedAt"] = datetime.now(timezone.utc).isoformat()
+    await db.telegram_production_settings.update_one({"_id": "config"}, {"$set": update}, upsert=True)
+    return {"status": "ok", "changed": True}
+
+
+@router.post("/test")
+async def test_prod_telegram():
+    """Verify the production bot (getMe) and send a test message to the chat."""
+    cfg = await _resolve_prod_config()
+    if not cfg["bot_token"]:
+        raise HTTPException(status_code=400, detail="Токен бота не задан")
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            me = await client.get(f"https://api.telegram.org/bot{cfg['bot_token']}/getMe")
+            mj = me.json()
+            if not mj.get("ok"):
+                return {"success": False, "error": "Неверный токен бота"}
+            bot_info = mj.get("result", {})
+            if not cfg["chat_id"]:
+                return {"success": True, "bot_username": bot_info.get("username"), "warning": "chat_id не задан — тестовое сообщение не отправлено"}
+            resp = await client.post(
+                f"https://api.telegram.org/bot{cfg['bot_token']}/sendMessage",
+                json={"chat_id": cfg["chat_id"], "text": "✅ Telegram производства подключён. Тестовое сообщение.", "parse_mode": "HTML"},
+            )
+            rj = resp.json()
+            if rj.get("ok"):
+                return {"success": True, "bot_username": bot_info.get("username")}
+            return {"success": False, "error": rj.get("description", "Ошибка отправки"), "bot_username": bot_info.get("username")}
+    except Exception as e:
+        return {"success": False, "error": str(e)}

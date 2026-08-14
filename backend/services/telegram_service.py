@@ -34,6 +34,7 @@ async def create_forum_topic(
     chat_id: str = None,
     bot_token: str = None,
     icon_color: int = None,
+    icon_custom_emoji_id: str = None,
 ) -> Dict[str, Any]:
     """Create a forum topic (Topic) in a Telegram supergroup.
 
@@ -45,6 +46,7 @@ async def create_forum_topic(
         chat_id: Target supergroup chat id (defaults to production chat)
         bot_token: Bot token (defaults to production bot)
         icon_color: Optional topic icon color (RGB int accepted by Telegram)
+        icon_custom_emoji_id: Optional custom-emoji icon id (from getForumTopicIconStickers)
 
     Returns:
         Dict with success status. On success includes `message_thread_id`.
@@ -66,7 +68,9 @@ async def create_forum_topic(
         "chat_id": target_chat_id,
         "name": name[:128],
     }
-    if icon_color is not None:
+    if icon_custom_emoji_id is not None:
+        payload["icon_custom_emoji_id"] = icon_custom_emoji_id
+    elif icon_color is not None:
         payload["icon_color"] = icon_color
 
     try:
@@ -110,13 +114,20 @@ async def _forum_topic_action(method: str, payload: dict, bot_token: str = None)
 
 
 async def edit_forum_topic(message_thread_id: int, name: str = None, icon_color: int = None,
+                           icon_custom_emoji_id: str = None,
                            chat_id: str = None, bot_token: str = None) -> Dict[str, Any]:
-    """Edit a forum topic name / icon color (Bot API editForumTopic)."""
+    """Edit a forum topic name / icon (Bot API editForumTopic).
+
+    Note: editForumTopic supports name + icon_custom_emoji_id. icon_color is
+    only reliably applied at creation, so custom-emoji icons are preferred here.
+    """
     config = get_production_telegram_config()
     payload = {"chat_id": chat_id or config['chat_id'], "message_thread_id": message_thread_id}
     if name is not None:
         payload["name"] = name[:128]
-    if icon_color is not None:
+    if icon_custom_emoji_id is not None:
+        payload["icon_custom_emoji_id"] = icon_custom_emoji_id
+    elif icon_color is not None:
         payload["icon_color"] = icon_color
     return await _forum_topic_action("editForumTopic", payload, bot_token)
 

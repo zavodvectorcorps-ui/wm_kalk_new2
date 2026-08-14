@@ -34,6 +34,27 @@ const ProductionListTab = ({ orders, stages, authHeaders, onUpdated }) => {
   const [savingId, setSavingId] = useState(null);
   const [commentModal, setCommentModal] = useState(null);
   const [commentText, setCommentText] = useState('');
+  const [sendingTgId, setSendingTgId] = useState(null);
+
+  const sendToTelegram = async (order) => {
+    setSendingTgId(order.id);
+    try {
+      const res = await fetch(`${API_URL}/api/integrations/telegram/send-to-production/${order.id}`, {
+        method: 'POST', headers: { ...authHeaders, 'Content-Type': 'application/json' },
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        let msg = data.isUpdate ? 'Обновление отправлено в Telegram' : 'Тема создана, заказ отправлен в Telegram';
+        if (data.documentsSent) msg += ` · документов: ${data.documentsSent}`;
+        toast.success(msg);
+        if ((data.documentsFailed || []).length > 0) toast.warning(`Не приложены: ${data.documentsFailed.join(', ')}`);
+        onUpdated();
+      } else {
+        toast.error(data.detail || 'Ошибка отправки в Telegram');
+      }
+    } catch { toast.error('Ошибка сети'); }
+    setSendingTgId(null);
+  };
 
   const saveField = async (orderId, field, value) => {
     setSavingId(orderId);
@@ -199,13 +220,26 @@ const ProductionListTab = ({ orders, stages, authHeaders, onUpdated }) => {
                     <EditableCell orderId={order.id} field="deliveryDate" value={order.deliveryDate} type="date" />
                   </TableCell>
                   <TableCell>
-                    <Button
-                      variant="ghost" size="icon" className="h-6 w-6"
-                      onClick={() => { setCommentModal(order); setCommentText(order.productionComment || ''); }}
-                      data-testid={`prod-list-comment-${order.id}`}
-                    >
-                      <MessageSquare className={`w-3.5 h-3.5 ${order.productionComment ? 'text-blue-500' : 'text-muted-foreground'}`} />
-                    </Button>
+                    <div className="flex items-center gap-0.5">
+                      <Button
+                        variant="ghost" size="icon" className="h-6 w-6"
+                        onClick={() => { setCommentModal(order); setCommentText(order.productionComment || ''); }}
+                        data-testid={`prod-list-comment-${order.id}`}
+                      >
+                        <MessageSquare className={`w-3.5 h-3.5 ${order.productionComment ? 'text-blue-500' : 'text-muted-foreground'}`} />
+                      </Button>
+                      <Button
+                        variant="ghost" size="icon" className="h-6 w-6"
+                        onClick={() => sendToTelegram(order)}
+                        disabled={sendingTgId === order.id}
+                        title={order.telegram_topic_id ? 'Обновить в Telegram' : 'Отправить в Telegram'}
+                        data-testid={`prod-list-telegram-${order.id}`}
+                      >
+                        {sendingTgId === order.id
+                          ? <Loader2 className="w-3.5 h-3.5 animate-spin text-sky-600" />
+                          : <Send className={`w-3.5 h-3.5 ${order.telegram_topic_id ? 'text-sky-600' : 'text-muted-foreground'}`} />}
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -245,6 +279,85 @@ const ProductionListTab = ({ orders, stages, authHeaders, onUpdated }) => {
     </Card>
   );
 };
+
+
+const ProdTelegramSettings = ({ authHeaders }) => {
+  const [cfg, setCfg] = useState({ bot_token_set: false, bot_token_masked: '', chat_id: '', enabled: true, source: 'none' });
+  const [newToken, setNewToken] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
+
+  const load = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/integrations/telegram/settings`, { headers: authHeaders });
+      if (res.ok) setCfg(await res.json());
+    } catch { /* noop */ }
+  };
+  useEffect(() => { load(); }, []);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      const body = { chat_id: cfg.chat_id, enabled: cfg.enabled };
+      if (newToken.trim()) body.bot_token = newToken.trim();
+      const res = await fetch(`${API_URL}/api/integrations/telegram/settings`, {
+        method: 'POST', headers: { ...authHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+      });
+      if (res.ok) { toast.success('Настройки Telegram сохранены'); setNewToken(''); load(); }
+      else toast.error('Ошибка сохранения');
+    } catch { toast.error('Ошибка сети'); }
+    setSaving(false);
+  };
+
+  const test = async () => {
+    setTesting(true);
+    try {
+      const res = await fetch(`${API_URL}/api/integrations/telegram/test`, { method: 'POST', headers: authHeaders });
+      const data = await res.json();
+      if (data.success) toast.success(`Бот @${data.bot_username} на связи${data.warning ? '. ' + data.warning : '. Тест отправлен в группу'}`);
+      else toast.error(data.error || 'Ошибка проверки');
+    } catch { toast.error('Ошибка сети'); }
+    setTesting(false);
+  };
+
+  return (
+    <div className="pt-4 border-t" data-testid="prod-telegram-settings">
+      <Label className="text-sm font-semibold flex items-center gap-2"><Send className="w-4 h-4 text-sky-600" />Telegram производства</Label>
+      <p className="text-xs text-muted-foreground mb-2">Отдельный бот и супергруппа (с включёнными Темами) для отправки заказов в производство. Не влияет на бота уведомлений/бэкапов.</p>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label className="text-xs">Токен бота</Label>
+          <Input
+            type="password"
+            value={newToken}
+            onChange={(e) => setNewToken(e.target.value)}
+            placeholder={cfg.bot_token_set ? `Сохранён (${cfg.source}) — оставьте пустым, чтобы не менять` : 'Токен от @BotFather'}
+            data-testid="prod-tg-token"
+          />
+        </div>
+        <div>
+          <Label className="text-xs">Chat ID супергруппы</Label>
+          <Input
+            value={cfg.chat_id || ''}
+            onChange={(e) => setCfg(p => ({ ...p, chat_id: e.target.value }))}
+            placeholder="-100..."
+            data-testid="prod-tg-chatid"
+          />
+        </div>
+      </div>
+      <div className="flex items-center gap-3 mt-3">
+        <Button size="sm" onClick={save} disabled={saving} data-testid="prod-tg-save">
+          {saving ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}Сохранить Telegram
+        </Button>
+        <Button size="sm" variant="outline" onClick={test} disabled={testing} data-testid="prod-tg-test">
+          {testing ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Send className="w-4 h-4 mr-1" />}Проверить связь
+        </Button>
+        {cfg.bot_token_set && <span className="text-xs text-emerald-600">● настроен ({cfg.source})</span>}
+      </div>
+    </div>
+  );
+};
+
 
 
 const SaunaProductionPage = ({ onBack }) => {
@@ -1088,6 +1201,8 @@ const SaunaProductionPage = ({ onBack }) => {
                   />
                 </div>
               </div>
+
+              <ProdTelegramSettings authHeaders={authHeaders} />
             </div>
           )}
           <DialogFooter>

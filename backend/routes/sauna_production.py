@@ -143,6 +143,17 @@ async def update_production_order(order_id: str, data: dict):
     data.pop("id", None)
 
     await db.sauna_crm_leads.update_one({"id": order_id}, {"$set": update})
+
+    # If the production stage changed here, sync the Telegram topic too
+    if "productionStageId" in update and update["productionStageId"] != existing.get("productionStageId"):
+        try:
+            from routes.telegram_production import sync_topic_for_stage
+            settings = await db.sauna_production_settings.find_one({}, {"_id": 0}) or {}
+            stage_name = next((s.get("name", "") for s in settings.get("stages", []) if s.get("id") == update["productionStageId"]), "")
+            await sync_topic_for_stage(order_id, update["productionStageId"], stage_name)
+        except Exception as e:
+            logger.error(f"Telegram topic stage-sync (PUT) failed for {order_id}: {e}")
+
     updated = await db.sauna_crm_leads.find_one({"id": order_id}, {"_id": 0})
     return updated
 

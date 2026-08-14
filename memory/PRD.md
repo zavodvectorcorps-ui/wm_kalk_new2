@@ -2191,3 +2191,31 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
 
 ### Осталось (для юзера)
 - Заменить TELEGRAM_PRODUCTION_* на боевые значения + задеплоить на прод.
+
+## Session — Aug 14, 2026 (cont.): кастомные иконки + кнопка в списке + DB-конфиг
+- **Кастомные emoji-иконки этапов** (вместо цвета): 📝 accepted / ⚡️ in_production /
+  🛍 ready / ✅ shipped (custom_emoji_id из getForumTopicIconStickers). `create_forum_topic`
+  и `edit_forum_topic` получили `icon_custom_emoji_id`. Текстовый emoji-префикс в
+  названии темы (⏳🏭📦✅) сохранён для читаемости/сортировки. Проверено live (200 OK).
+- **Кнопка «Отправить в Telegram» во вкладке «Список»** производства (иконка-самолётик
+  в строке, data-testid `prod-list-telegram-{id}`; голубая=тема есть, серая=нет).
+  Смена этапа из списка (PUT /orders/{id} с productionStageId) теперь тоже вызывает
+  `sync_topic_for_stage`.
+- **DB-конфиг вместо env** (чтобы не добавлять секреты на проде):
+  - Коллекция `telegram_production_settings` (_id="config": bot_token, chat_id, enabled).
+  - `_resolve_prod_config()` — DB → env fallback. Все вызовы create/edit/close/reopen/
+    send теперь получают bot_token+chat_id явно.
+  - Эндпоинты: `GET /api/integrations/telegram/settings` (токен маскирован),
+    `POST /settings` (маска = не менять токен), `POST /test` (getMe + тест-сообщение).
+  - UI: блок «Telegram производства» в диалоге «Настройки» производства
+    (`ProdTelegramSettings` в SaunaProductionPage.jsx): токен(password)/chat_id/
+    Сохранить/Проверить связь + статус «настроен (db/env)».
+    data-testid: prod-telegram-settings, prod-tg-token, prod-tg-chatid, prod-tg-save, prod-tg-test.
+  - Проверено live: env→db переключение, маскирование, тест @Sauna_Production_Bot OK.
+
+### Запрошено юзером (НЕ сделано, план на следующие итерации)
+- (A) Закреплённое сообщение-сводка в группе: сколько в очереди/в работе/готово — авто-обновление.
+- (B) Отправка сообщения из карточки CRM в тему заказа + фиксация текста в карточке (changeLog/messages).
+- (C) Двусторонняя связь из Telegram: inline-кнопки «Планируемая дата старта»,
+  «Дата производства», «Комментарий производства» → запись обратно в карточку.
+  ТРЕБУЕТ webhook/polling для production-бота (сейчас бот только исходящий).
