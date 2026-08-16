@@ -400,6 +400,9 @@ const ProdTelegramSettings = ({ authHeaders }) => {
 
 
 const SaunaProductionPage = ({ onBack }) => {
+  const isAdminUser = React.useMemo(() => {
+    try { return JSON.parse(localStorage.getItem('authUser') || '{}')?.role === 'admin'; } catch { return false; }
+  }, []);
   const [settings, setSettings] = useState(null);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -411,9 +414,26 @@ const SaunaProductionPage = ({ onBack }) => {
 
   // Order detail
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [prodCalcOrder, setProdCalcOrder] = useState(null);  // linked calculator order (for cost/margin)
   const [editData, setEditData] = useState({});
   const [saving, setSaving] = useState(false);
   const [sendingToTelegram, setSendingToTelegram] = useState(false);
+
+  // Fetch linked calculator order (for admin cost/margin block) when a card opens.
+  useEffect(() => {
+    if (!selectedOrder?.id || !isAdminUser) { setProdCalcOrder(null); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await fetch(`${API_URL}/api/sauna-crm/leads/${selectedOrder.id}/calculator-order`, { headers: authHeaders });
+        if (r.ok) {
+          const d = await r.json();
+          if (!cancelled) setProdCalcOrder(d.order || null);
+        } else if (!cancelled) setProdCalcOrder(null);
+      } catch { if (!cancelled) setProdCalcOrder(null); }
+    })();
+    return () => { cancelled = true; };
+  }, [selectedOrder?.id, isAdminUser]);
 
   // Settings
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -1042,6 +1062,57 @@ const SaunaProductionPage = ({ onBack }) => {
                   <Input type="date" value={(editData.deliveryDate || '').slice(0, 10)} onChange={(e) => setEditData(p => ({ ...p, deliveryDate: e.target.value }))} data-testid="prod-date-delivery" />
                 </div>
               </div>
+
+              {/* Cost / Margin (admin only) */}
+              {isAdminUser && prodCalcOrder && prodCalcOrder.totalCost > 0 && (() => {
+                const totalRetail = Number(prodCalcOrder.total || selectedOrder.totalAmount || 0);
+                const totalNetto = totalRetail / 1.23;
+                const extras = Number(prodCalcOrder.retailExtraCost || 0);
+                const marginNetto = totalNetto - Number(prodCalcOrder.totalCost || 0) - extras;
+                const marginPct = totalNetto > 0 ? (marginNetto / totalNetto) * 100 : 0;
+                const isLoss = marginNetto < 0;
+                const cls = isLoss ? 'text-red-600' : 'text-emerald-700';
+                return (
+                  <div className="p-3 rounded-lg border border-amber-200 bg-amber-50/60 grid grid-cols-3 gap-2 text-xs" data-testid="prod-cost-block">
+                    <div>
+                      <div className="text-muted-foreground">Себестоимость</div>
+                      <div className="font-semibold text-amber-800">{Number(prodCalcOrder.totalCost).toLocaleString('ru-RU')} PLN</div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground">Маржа (netto)</div>
+                      <div className={`font-semibold ${cls}`}>{Math.round(marginNetto).toLocaleString('ru-RU')} PLN</div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground">Маржа %</div>
+                      <div className={`font-semibold ${cls}`}>{marginPct.toFixed(0)}%</div>
+                    </div>
+                    <div className="col-span-3 text-[10px] text-amber-700/70 italic">Видно только администратору</div>
+                  </div>
+                );
+              })()}
+
+              {/* Production stock deduction history */}
+              {selectedOrder?.productionStockSummary?.items?.length > 0 && (
+                <div data-testid="prod-stock-summary">
+                  <Label className="text-sm font-semibold flex items-center gap-2 mb-2"><Package className="w-4 h-4" />Списание материалов в производство</Label>
+                  <div className="rounded-lg border bg-muted/30 divide-y">
+                    {selectedOrder.productionStockSummary.items.map((it, i) => (
+                      <div key={i} className="flex items-center justify-between px-3 py-1.5 text-xs">
+                        <span className="truncate">{it.name}</span>
+                        <span className="font-mono text-muted-foreground shrink-0 ml-2">
+                          −{Number(it.qty).toLocaleString('ru-RU')} · {Number(it.before).toLocaleString('ru-RU')}→{Number(it.after).toLocaleString('ru-RU')}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="text-[11px] text-muted-foreground mt-1 flex justify-between flex-wrap gap-1">
+                    <span>Позиций: {selectedOrder.productionStockSummary.applied}{selectedOrder.productionStockSummary.at ? ` · ${new Date(selectedOrder.productionStockSummary.at).toLocaleString('ru-RU')}` : ''}</span>
+                    {isAdminUser && selectedOrder.productionStockSummary.totalValue > 0 && (
+                      <span className="text-amber-700 font-semibold">Себестоимость: {Number(selectedOrder.productionStockSummary.totalValue).toLocaleString('ru-RU')} PLN</span>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Custom (free-form) positions from calculator — surfaces
                   off-catalog work for the production team so they know what

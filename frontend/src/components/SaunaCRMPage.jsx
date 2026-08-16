@@ -38,6 +38,9 @@ const DOC_TYPES = {
 };
 
 const SaunaCRMPage = () => {
+  const isAdminUser = React.useMemo(() => {
+    try { return JSON.parse(localStorage.getItem('authUser') || '{}')?.role === 'admin'; } catch { return false; }
+  }, []);
   const [settings, setSettings] = useState(null);
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -1465,7 +1468,7 @@ const SaunaCRMPage = () => {
                         {calcOrder.total != null && <span>Сумма: {Number(calcOrder.total).toLocaleString()} PLN</span>}
                         {calcOrder.orderDate && <span>Дата: {new Date(calcOrder.orderDate).toLocaleDateString('ru-RU')}</span>}
                       </div>
-                      {calcOrder.totalCost != null && calcOrder.totalCost > 0 && (
+                      {isAdminUser && calcOrder.totalCost != null && calcOrder.totalCost > 0 && (
                         <div
                           className="mt-2 p-2 rounded border border-amber-200 bg-amber-50/60 grid grid-cols-3 gap-2 text-[11px]"
                           data-testid="crm-order-cost-block"
@@ -1630,6 +1633,29 @@ const SaunaCRMPage = () => {
                 onUpdated={(u) => { setSelectedLead(u); setEditData(prev => ({ ...prev, productionMessages: u.productionMessages })); }}
               />
 
+
+              {/* Production stock deduction history */}
+              {selectedLead?.productionStockSummary?.items?.length > 0 && (
+                <div data-testid="crm-stock-summary">
+                  <Label className="text-sm font-semibold flex items-center gap-2 mb-2"><Package className="w-4 h-4" />Списание материалов в производство</Label>
+                  <div className="rounded-lg border bg-muted/30 divide-y">
+                    {selectedLead.productionStockSummary.items.map((it, i) => (
+                      <div key={i} className="flex items-center justify-between px-3 py-1.5 text-xs">
+                        <span className="truncate">{it.name}</span>
+                        <span className="font-mono text-muted-foreground shrink-0 ml-2">
+                          −{Number(it.qty).toLocaleString('ru-RU')} · {Number(it.before).toLocaleString('ru-RU')}→{Number(it.after).toLocaleString('ru-RU')}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="text-[11px] text-muted-foreground mt-1 flex justify-between flex-wrap gap-1">
+                    <span>Позиций: {selectedLead.productionStockSummary.applied}{selectedLead.productionStockSummary.at ? ` · ${new Date(selectedLead.productionStockSummary.at).toLocaleString('ru-RU')}` : ''}</span>
+                    {isAdminUser && selectedLead.productionStockSummary.totalValue > 0 && (
+                      <span className="text-amber-700 font-semibold">Себестоимость: {Number(selectedLead.productionStockSummary.totalValue).toLocaleString('ru-RU')} PLN</span>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Documents Section */}
               <div>

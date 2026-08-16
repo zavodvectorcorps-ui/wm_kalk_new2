@@ -2453,3 +2453,29 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
   лог `sauna_stock_movements`). По решению пользователя авто-триггер на
   перетаскивание в колонку «В производстве» НЕ добавляем.
 
+
+## Session — Aug 16, 2026 (5): себестоимость/маржа admin-only + история списаний + автозакупка по дефициту + TG-алерт
+### 1. Себестоимость/маржа — только для роли admin
+- CRM (SaunaCRMPage.jsx): блок `crm-order-cost-block` теперь под `isAdminUser`
+  (role==="admin" из localStorage authUser). Менеджеры/кладовщик не видят.
+- Производство (SaunaProductionPage.jsx): добавлен блок `prod-cost-block`
+  (Себестоимость/Маржа netto/Маржа %) — только admin. Данные тянутся из
+  связанного calc-order через `/api/sauna-crm/leads/{id}/calculator-order`
+  (useEffect по selectedOrder, только для admin).
+### 2. История списаний материалов в карточке
+- В CRM (`crm-stock-summary`) и Производстве (`prod-stock-summary`) показывается
+  `productionStockSummary.items` (материал −qty · before→after), кол-во позиций
+  и дата. Строка «Себестоимость (totalValue) PLN» — только admin.
+### 3. Автозакупка по дефициту
+- Backend `POST /api/procurement/requests/from-deficit` — собирает все
+  компоненты с stockMin>0 & stockCurrent<=stockMin, qty = stockMin−stockCurrent,
+  создаёт черновик заявки (status=draft, priority=high, tags=[deficit,auto],
+  notifyTelegram=false). Проверено curl (qty 10−2=8, total верный).
+- Frontend: кнопка `components-deficit-draft` рядом с фильтром «Дефицит» в
+  ComponentsAdmin (дизейбл при 0 дефицита) → toast с числом позиций.
+### 4. Telegram-алерт о дефиците в реальном времени
+- sauna_tech_cards.py: хелпер `_send_deficit_alert` + `_crossed_below_min`
+  (before>min & after<=min — без спама). Вызывается в `deduct_production_stock`
+  (списание в производство) и в `adjust_stock` (ручная корректировка out/set).
+  Проверено: списание 15→7 (мин 10) реально отправило сообщение в Telegram (200).
+- Канал: `services/telegram_service.send_telegram_message` (тот же бот).

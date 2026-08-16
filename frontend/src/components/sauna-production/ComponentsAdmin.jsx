@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
-import { Plus, Pencil, Trash2, Search, Loader2, Save, X, AlertTriangle, Boxes, History, ArrowUpCircle, ArrowDownCircle, RefreshCw } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, Loader2, Save, X, AlertTriangle, Boxes, History, ArrowUpCircle, ArrowDownCircle, RefreshCw, ShoppingCart } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../ui/dialog';
 import { Textarea } from '../ui/textarea';
 import { toast } from 'sonner';
-import { COST_BASE, authHeaders, COMPONENT_CATEGORIES, CAT_BY_ID, UNITS, fmtMoney, fmtNumber } from './costConstants';
+import { COST_BASE, API, authHeaders, COMPONENT_CATEGORIES, CAT_BY_ID, UNITS, fmtMoney, fmtNumber } from './costConstants';
 import ImportExportButtons from './ImportExportButtons';
 
 const EMPTY = { name: '', category: 'wood', unit: 'шт', unitPrice: 0, supplier: '', note: '', isActive: true, stockCurrent: 0, stockMin: 0 };
@@ -79,6 +79,17 @@ export default function ComponentsAdmin() {
     }
   };
 
+  const createDeficitDraft = async () => {
+    if (deficitCount === 0) { toast.info('Нет позиций с дефицитом'); return; }
+    if (!window.confirm(`Создать черновик заявки на закупку по ${deficitCount} дефицитным позициям (докупить до минимума)?`)) return;
+    try {
+      const r = await axios.post(`${API}/api/procurement/requests/from-deficit`, {}, { headers: authHeaders() });
+      toast.success(`Черновик закупки создан: ${r.data.linesCount} позиций. Откройте вкладку «Закупка».`);
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || 'Ошибка создания заявки');
+    }
+  };
+
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
@@ -105,6 +116,16 @@ export default function ComponentsAdmin() {
           <span className={`ml-1.5 inline-flex items-center justify-center min-w-[20px] h-5 px-1 rounded-full text-[11px] font-bold ${deficitOnly ? 'bg-white/25 text-white' : 'bg-red-100 text-red-700'}`} data-testid="components-deficit-count">
             {deficitCount}
           </span>
+        </Button>
+        <Button
+          variant="outline"
+          className="h-9 border-red-300 text-red-700 hover:bg-red-50 disabled:opacity-50"
+          onClick={createDeficitDraft}
+          disabled={deficitCount === 0}
+          data-testid="components-deficit-draft"
+          title="Сформировать черновик заявки на закупку из всех дефицитных позиций"
+        >
+          <ShoppingCart className="w-4 h-4 mr-1" />Черновик закупки
         </Button>
         <Button
           variant="outline"

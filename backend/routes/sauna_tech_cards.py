@@ -28,6 +28,26 @@ router = APIRouter(prefix="/sauna-production/cost", tags=["Sauna Tech Cards"])
 logger = logging.getLogger(__name__)
 
 
+async def _send_deficit_alert(name: str, unit: str, after: float, stock_min: float, ctx: str = "") -> None:
+    """Real-time Telegram alert when a component's stock falls to/below its minimum."""
+    try:
+        from services.telegram_service import send_telegram_message
+        msg = (
+            "⚠️ <b>ДЕФИЦИТ на складе</b>\n"
+            f"Компонент: <b>{name}</b>\n"
+            f"Остаток: <b>{round(after, 2)} {unit or ''}</b> (мин: {round(stock_min, 2)})"
+            + (f"\n{ctx}" if ctx else "")
+        )
+        await send_telegram_message(msg)
+    except Exception as e:
+        logger.warning(f"deficit telegram alert failed for {name}: {e}")
+
+
+def _crossed_below_min(before: float, after: float, stock_min: float) -> bool:
+    """True when stock just dropped to/below the minimum (avoids repeat spam)."""
+    return stock_min > 0 and after <= stock_min and before > stock_min
+
+
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -806,13 +826,21 @@ async def deduct_production_stock(lead: dict, direction: int = -1,
             {"$inc": {"stockCurrent": delta},
              "$set": {"updatedAt": _now()}},
             return_document=True,
-            projection={"_id": 0, "stockCurrent": 1, "name": 1},
+            projection={"_id": 0, "stockCurrent": 1, "name": 1, "stockMin": 1, "unit": 1},
         )
         if not res:
             skipped += 1
             continue
         after = float(res.get("stockCurrent") or 0)
         before = after - delta
+        # Real-time deficit alert when a deduction crosses below the minimum.
+        if direction < 0:
+            stock_min = float(res.get("stockMin") or 0)
+            if _crossed_below_min(before, after, stock_min):
+                await _send_deficit_alert(
+                    res.get("name", it.get("name", "")), res.get("unit", ""),
+                    after, stock_min,
+                    ctx=f"Списание по заказу {lead.get('id', '?')}")
         applied += 1
         total_qty += qty
         total_value += float(it.get("lineTotal") or 0)
@@ -999,6 +1027,12 @@ async def adjust_stock(component_id: str, body: dict, user: dict = Depends(get_a
     }
     await db.sauna_stock_movements.insert_one(dict(movement))
     movement.pop("_id", None)
+    # Real-time deficit alert on manual out/set that crosses below the minimum.
+    stock_min = float(comp.get("stockMin") or 0)
+    if _crossed_below_min(before, after, stock_min):
+        await _send_deficit_alert(
+            comp.get("name") or "", comp.get("unit") or "",
+            after, stock_min, ctx="Ручная корректировка склада")
     return {"ok": True, "movement": movement, "stockCurrent": after}
 
 
