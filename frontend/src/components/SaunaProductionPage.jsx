@@ -29,6 +29,13 @@ import DealerMatrix from './sauna-production/DealerMatrix';
 const API_URL = getApiUrl();
 
 // ==================== PRODUCTION LIST TAB ====================
+const CAL_DATE_FIELDS = [
+  { id: 'advancePaymentDate', label: 'Аванс' },
+  { id: 'productionDate', label: 'Начало произв.' },
+  { id: 'readyDate', label: 'Готовность' },
+  { id: 'deliveryDate', label: 'Доставка' },
+];
+
 const ProductionListTab = ({ orders, stages, authHeaders, onUpdated, isAdminUser }) => {
   const MARGIN_STYLES = { green: 'bg-emerald-100 text-emerald-700', amber: 'bg-amber-100 text-amber-700', red: 'bg-red-100 text-red-700' };
   const [editingCell, setEditingCell] = useState(null); // {orderId, field}
@@ -426,6 +433,7 @@ const SaunaProductionPage = ({ onBack }) => {
   // Calendar
   const [calendarDate, setCalendarDate] = useState(new Date());
   const [calendarData, setCalendarData] = useState({});
+  const [calDateField, setCalDateField] = useState('advancePaymentDate');
   const [selectedDate, setSelectedDate] = useState(null);
 
   // Order detail
@@ -478,7 +486,7 @@ const SaunaProductionPage = ({ onBack }) => {
   };
 
   // Active view
-  const [activeView, setActiveView] = useState('calendar');
+  const [activeView, setActiveView] = useState('kanban');
 
   // Drag & drop
   const [draggedOrder, setDraggedOrder] = useState(null);
@@ -513,13 +521,13 @@ const SaunaProductionPage = ({ onBack }) => {
     const m = calendarDate.getMonth() + 1;
     const y = calendarDate.getFullYear();
     try {
-      const res = await fetch(`${API_URL}/api/sauna-production/calendar?month=${m}&year=${y}`, { headers: authHeaders });
+      const res = await fetch(`${API_URL}/api/sauna-production/calendar?month=${m}&year=${y}&dateField=${calDateField}`, { headers: authHeaders });
       if (res.ok) {
         const data = await res.json();
         setCalendarData(data.byDate || {});
       }
     } catch (e) { console.error(e); }
-  }, [calendarDate]);
+  }, [calendarDate, calDateField]);
 
   useEffect(() => {
     const init = async () => {
@@ -781,8 +789,8 @@ const SaunaProductionPage = ({ onBack }) => {
       {/* View Tabs */}
       <Tabs value={activeView} onValueChange={setActiveView} className="mb-6">
         <TabsList>
-          <TabsTrigger value="calendar" className="gap-2" data-testid="prod-view-calendar"><CalendarIcon className="w-4 h-4" />Календарь</TabsTrigger>
           <TabsTrigger value="kanban" className="gap-2" data-testid="prod-view-kanban"><Package className="w-4 h-4" />Канбан</TabsTrigger>
+          <TabsTrigger value="calendar" className="gap-2" data-testid="prod-view-calendar"><CalendarIcon className="w-4 h-4" />Календарь</TabsTrigger>
           <TabsTrigger value="list" className="gap-2" data-testid="prod-view-list"><List className="w-4 h-4" />Список</TabsTrigger>
           <TabsTrigger value="techcards" className="gap-2" data-testid="prod-view-techcards"><Calculator className="w-4 h-4" />Тех.карты</TabsTrigger>
           <TabsTrigger value="components" className="gap-2" data-testid="prod-view-components"><Layers className="w-4 h-4" />Комплектующие</TabsTrigger>
@@ -802,6 +810,18 @@ const SaunaProductionPage = ({ onBack }) => {
                     <Button variant="ghost" size="icon" onClick={prevMonth}><ChevronLeft className="w-5 h-5" /></Button>
                     <CardTitle className="text-lg">{monthNames[month]} {year}</CardTitle>
                     <Button variant="ghost" size="icon" onClick={nextMonth}><ChevronRight className="w-5 h-5" /></Button>
+                  </div>
+                  <div className="flex flex-wrap gap-1 mt-2" data-testid="prod-cal-datefield-switcher">
+                    {CAL_DATE_FIELDS.map(f => (
+                      <button
+                        key={f.id}
+                        onClick={() => setCalDateField(f.id)}
+                        className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${calDateField === f.id ? 'bg-rose-600 text-white' : 'bg-muted text-muted-foreground hover:bg-muted/70'}`}
+                        data-testid={`prod-cal-datefield-${f.id}`}
+                      >
+                        {f.label}
+                      </button>
+                    ))}
                   </div>
                 </CardHeader>
                 <CardContent>

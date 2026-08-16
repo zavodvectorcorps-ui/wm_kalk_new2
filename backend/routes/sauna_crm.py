@@ -639,10 +639,20 @@ async def link_document(lead_id: str, data: dict):
 # ============== CALENDAR ==============
 
 @router.get("/calendar")
-async def get_calendar_data(month: int = Query(...), year: int = Query(...)):
-    """Get orders for production calendar grouped by configured date field."""
+async def get_calendar_data(month: int = Query(...), year: int = Query(...), dateField: str = Query("advancePaymentDate")):
+    """Get orders for production calendar grouped by the chosen date field.
+
+    dateField ∈ {advancePaymentDate, productionDate, readyDate, deliveryDate}.
+    'advancePaymentDate' resolves to the CRM-configured calendarDateField
+    (the advance-payment date field); the others map to lead fields directly.
+    """
     settings = await db.sauna_crm_settings.find_one({}, {"_id": 0})
-    date_field = (settings or {}).get("calendarDateField") or "prepaymentDate"
+    if dateField == "advancePaymentDate":
+        date_field = (settings or {}).get("calendarDateField") or "prepaymentDate"
+    elif dateField in ("productionDate", "readyDate", "deliveryDate"):
+        date_field = dateField
+    else:
+        date_field = (settings or {}).get("calendarDateField") or "prepaymentDate"
     
     leads = await db.sauna_crm_leads.find(
         {date_field: {"$exists": True, "$ne": None, "$nin": [""]}},
@@ -674,7 +684,7 @@ async def get_calendar_data(month: int = Query(...), year: int = Query(...)):
         except (ValueError, TypeError):
             continue
     
-    return {"month": month, "year": year, "byDate": by_date, "totalOrders": sum(len(v) for v in by_date.values())}
+    return {"month": month, "year": year, "byDate": by_date, "dateField": dateField, "totalOrders": sum(len(v) for v in by_date.values())}
 
 
 

@@ -208,16 +208,27 @@ async def update_production_order(order_id: str, data: dict):
 # ============== CALENDAR ==============
 
 @router.get("/calendar")
-async def get_production_calendar(month: int = Query(...), year: int = Query(...)):
-    """Production calendar uses readyDate (дата готовности) as the primary date source."""
+async def get_production_calendar(month: int = Query(...), year: int = Query(...), dateField: str = Query("advancePaymentDate")):
+    """Production calendar grouped by the chosen date field (same options as CRM).
+
+    dateField ∈ {advancePaymentDate, productionDate, readyDate, deliveryDate}.
+    'advancePaymentDate' resolves to the CRM-configured calendarDateField.
+    Only in-production leads are shown.
+    """
+    settings = await db.sauna_crm_settings.find_one({}, {"_id": 0})
+    if dateField in ("productionDate", "readyDate", "deliveryDate"):
+        date_field = dateField
+    else:
+        date_field = (settings or {}).get("calendarDateField") or "prepaymentDate"
+
     leads = await db.sauna_crm_leads.find(
-        {"inProduction": True, "readyDate": {"$exists": True, "$ne": None, "$nin": [""]}},
+        {"inProduction": True, date_field: {"$exists": True, "$ne": None, "$nin": [""]}},
         {"_id": 0}
     ).to_list(5000)
 
     by_date = {}
     for lead in leads:
-        rd = lead.get("readyDate", "")
+        rd = lead.get(date_field, "")
         if not rd:
             continue
         try:
@@ -230,16 +241,19 @@ async def get_production_calendar(month: int = Query(...), year: int = Query(...
                     "id": lead.get("id"),
                     "clientName": lead.get("clientName", ""),
                     "modelName": lead.get("modelName") or lead.get("field_1", ""),
-                    "readyDate": rd,
+                    "dateValue": rd,
+                    "readyDate": lead.get("readyDate", ""),
                     "productionDate": lead.get("productionDate", ""),
+                    "deliveryDate": lead.get("deliveryDate", ""),
                     "productionStageId": lead.get("productionStageId"),
                     "totalAmount": lead.get("totalAmount") or lead.get("field_2"),
                     "phone": lead.get("phone", ""),
+                    "manager": lead.get("manager", ""),
                 })
         except (ValueError, TypeError):
             continue
 
-    return {"month": month, "year": year, "byDate": by_date, "totalOrders": sum(len(v) for v in by_date.values())}
+    return {"month": month, "year": year, "byDate": by_date, "dateField": dateField, "totalOrders": sum(len(v) for v in by_date.values())}
 
 
 # ============== GOOGLE SHEETS SYNC ==============

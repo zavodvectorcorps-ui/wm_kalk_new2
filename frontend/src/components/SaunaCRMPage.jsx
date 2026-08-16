@@ -23,6 +23,13 @@ import { toast } from 'sonner';
 import { getApiUrl } from '../utils/api';
 import { DuplicatesModal } from './DuplicatesModal';
 import { KpDuplicatesModal } from './KpDuplicatesModal';
+
+const CAL_DATE_FIELDS = [
+  { id: 'advancePaymentDate', label: 'Аванс' },
+  { id: 'productionDate', label: 'Начало произв.' },
+  { id: 'readyDate', label: 'Готовность' },
+  { id: 'deliveryDate', label: 'Доставка' },
+];
 import { TechSpecModal } from './tech-spec';
 import { ContractTemplateSettings } from './ContractTemplateSettings';
 import { ContractGenerationModal } from './ContractGenerationModal';
@@ -49,6 +56,7 @@ const SaunaCRMPage = () => {
   // Calendar
   const [calendarDate, setCalendarDate] = useState(new Date());
   const [calendarData, setCalendarData] = useState({});
+  const [calDateField, setCalDateField] = useState('advancePaymentDate');
   const [selectedDate, setSelectedDate] = useState(null);
   
   // Lead detail
@@ -103,7 +111,7 @@ const SaunaCRMPage = () => {
   };
   
   // Active view
-  const [activeView, setActiveView] = useState('calendar');
+  const [activeView, setActiveView] = useState('kanban');
   
   // Tech Spec & Calculator
   const [techSpecOpen, setTechSpecOpen] = useState(false);
@@ -195,13 +203,13 @@ const SaunaCRMPage = () => {
     const m = calendarDate.getMonth() + 1;
     const y = calendarDate.getFullYear();
     try {
-      const res = await fetch(`${API_URL}/api/sauna-crm/calendar?month=${m}&year=${y}`, { headers: authHeaders });
+      const res = await fetch(`${API_URL}/api/sauna-crm/calendar?month=${m}&year=${y}&dateField=${calDateField}`, { headers: authHeaders });
       if (res.ok) {
         const data = await res.json();
         setCalendarData(data.byDate || {});
       }
     } catch (e) { console.error(e); }
-  }, [calendarDate]);
+  }, [calendarDate, calDateField]);
 
   useEffect(() => {
     const init = async () => {
@@ -869,8 +877,8 @@ const SaunaCRMPage = () => {
       {/* View Tabs */}
       <Tabs value={activeView} onValueChange={setActiveView} className="mb-6">
         <TabsList>
-          <TabsTrigger value="calendar" className="gap-2" data-testid="view-calendar"><CalendarIcon className="w-4 h-4" />Календарь</TabsTrigger>
           <TabsTrigger value="kanban" className="gap-2" data-testid="view-kanban"><Package className="w-4 h-4" />Канбан</TabsTrigger>
+          <TabsTrigger value="calendar" className="gap-2" data-testid="view-calendar"><CalendarIcon className="w-4 h-4" />Календарь</TabsTrigger>
           <TabsTrigger value="list" className="gap-2" data-testid="view-list"><FileText className="w-4 h-4" />Список</TabsTrigger>
         </TabsList>
 
@@ -885,6 +893,18 @@ const SaunaCRMPage = () => {
                     <Button variant="ghost" size="icon" onClick={prevMonth}><ChevronLeft className="w-5 h-5" /></Button>
                     <CardTitle className="text-lg">{monthNames[month]} {year}</CardTitle>
                     <Button variant="ghost" size="icon" onClick={nextMonth}><ChevronRight className="w-5 h-5" /></Button>
+                  </div>
+                  <div className="flex flex-wrap gap-1 mt-2" data-testid="cal-datefield-switcher">
+                    {CAL_DATE_FIELDS.map(f => (
+                      <button
+                        key={f.id}
+                        onClick={() => setCalDateField(f.id)}
+                        className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${calDateField === f.id ? 'bg-sky-600 text-white' : 'bg-muted text-muted-foreground hover:bg-muted/70'}`}
+                        data-testid={`cal-datefield-${f.id}`}
+                      >
+                        {f.label}
+                      </button>
+                    ))}
                   </div>
                 </CardHeader>
                 <CardContent>
