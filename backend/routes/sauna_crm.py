@@ -582,6 +582,20 @@ async def delete_lead(lead_id: str):
     return {"status": "ok"}
 
 
+class BulkDeletePayload(BaseModel):
+    ids: List[str]
+
+
+@router.post("/leads/bulk-delete")
+async def bulk_delete_leads(payload: BulkDeletePayload):
+    """Delete multiple leads at once (select-and-delete from the CRM board)."""
+    ids = [i for i in (payload.ids or []) if i]
+    if not ids:
+        raise HTTPException(status_code=400, detail="Не переданы идентификаторы лидов")
+    result = await db.sauna_crm_leads.delete_many({"id": {"$in": ids}})
+    return {"status": "ok", "deleted": result.deleted_count}
+
+
 # ============== DOCUMENTS ==============
 
 @router.post("/leads/{lead_id}/documents")

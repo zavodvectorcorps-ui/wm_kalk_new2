@@ -61,6 +61,8 @@ const SaunaCRMPage = () => {
   
   // Lead detail
   const [selectedLead, setSelectedLead] = useState(null);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(new Set());
   const [editData, setEditData] = useState({});
   const [saving, setSaving] = useState(false);
   
@@ -489,6 +491,36 @@ const SaunaCRMPage = () => {
     } catch (e) { toast.error('Ошибка'); }
   };
 
+  const toggleSelect = (id) => setSelectedIds(prev => {
+    const n = new Set(prev);
+    n.has(id) ? n.delete(id) : n.add(id);
+    return n;
+  });
+
+  const exitSelectMode = () => { setSelectMode(false); setSelectedIds(new Set()); };
+
+  const bulkDeleteLeads = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) { toast.info('Ничего не выбрано'); return; }
+    if (!window.confirm(`Удалить выбранные заказы (${ids.length})? Действие необратимо.`)) return;
+    try {
+      const res = await fetch(`${API_URL}/api/sauna-crm/leads/bulk-delete`, {
+        method: 'POST',
+        headers: { ...authHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok) {
+        toast.success(`Удалено: ${d.deleted}`);
+        exitSelectMode();
+        fetchLeads();
+        fetchCalendar();
+      } else {
+        toast.error(d.detail || 'Ошибка удаления');
+      }
+    } catch (e) { toast.error('Ошибка сети'); }
+  };
+
   // ---- Drag & Drop ----
   const handleDragStart = (e, lead) => {
     setDraggedLead(lead);
@@ -864,6 +896,18 @@ const SaunaCRMPage = () => {
           <Button variant="outline" size="sm" onClick={() => { setKpDupLeadId(null); setShowKpDuplicatesModal(true); }} data-testid="crm-kp-duplicates-btn">
             <FileText className="w-4 h-4 mr-2" />Дубли КП
           </Button>
+          {selectMode ? (
+            <>
+              <Button variant="destructive" size="sm" onClick={bulkDeleteLeads} disabled={selectedIds.size === 0} data-testid="crm-bulk-delete-btn">
+                <Trash2 className="w-4 h-4 mr-2" />Удалить выбранные ({selectedIds.size})
+              </Button>
+              <Button variant="ghost" size="sm" onClick={exitSelectMode} data-testid="crm-bulk-cancel-btn">Отмена</Button>
+            </>
+          ) : (
+            <Button variant="outline" size="sm" onClick={() => setSelectMode(true)} data-testid="crm-select-mode-btn">
+              <Trash2 className="w-4 h-4 mr-2" />Выбрать / удалить
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={() => setSettingsOpen(true)} data-testid="crm-settings-btn">
             <Settings className="w-4 h-4 mr-2" />Настройки
           </Button>
@@ -1129,14 +1173,27 @@ const SaunaCRMPage = () => {
                     return (
                     <Card
                       key={lead.id}
-                      className={`cursor-grab active:cursor-grabbing hover:shadow-md transition-all ${isDragging ? 'opacity-40 scale-95' : ''} ${lead.hasUnreviewedChanges ? 'ring-2 ring-amber-400 ring-offset-1' : ''}`}
-                      draggable
+                      className={`cursor-grab active:cursor-grabbing hover:shadow-md transition-all ${isDragging ? 'opacity-40 scale-95' : ''} ${lead.hasUnreviewedChanges ? 'ring-2 ring-amber-400 ring-offset-1' : ''} ${selectMode && selectedIds.has(lead.id) ? 'ring-2 ring-red-500 ring-offset-1' : ''}`}
+                      draggable={!selectMode}
                       onDragStart={(e) => handleDragStart(e, lead)}
                       onDragEnd={handleDragEnd}
-                      onClick={() => { if (!draggedLead) openLead(lead); }}
+                      onClick={() => { if (selectMode) { toggleSelect(lead.id); return; } if (!draggedLead) openLead(lead); }}
                       data-testid={`kanban-lead-${lead.id}`}
                     >
                       <CardContent className="p-3">
+                        {selectMode && (
+                          <div className="flex items-center mb-2" onClick={(e) => { e.stopPropagation(); toggleSelect(lead.id); }}>
+                            <input
+                              type="checkbox"
+                              checked={selectedIds.has(lead.id)}
+                              onChange={() => toggleSelect(lead.id)}
+                              onClick={(e) => e.stopPropagation()}
+                              className="w-4 h-4 accent-red-600 cursor-pointer"
+                              data-testid={`lead-select-${lead.id}`}
+                            />
+                            <span className="text-[11px] text-muted-foreground ml-2">Выбрать</span>
+                          </div>
+                        )}
                         <div className="flex items-start justify-between mb-1">
                           <span className="font-bold text-sm truncate">{lead.clientName || 'Без имени'}</span>
                           <div className="flex items-center gap-1 flex-shrink-0">
