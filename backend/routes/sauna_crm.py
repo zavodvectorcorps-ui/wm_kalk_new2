@@ -231,36 +231,30 @@ async def _enrich_leads_with_kp_info(leads: List[dict]) -> None:
                 return d
         return None
 
+    # Only leads that actually have a KP document need enrichment. On the full board
+    # most leads have none, so this keeps the extra query tiny.
+    leads_with_kp = [(l, kp) for l in leads for kp in (_find_kp_doc(l),) if kp]
+    if not leads_with_kp:
+        return
+
     amo_ids = set()
-    for l in leads:
+    for l, _kp in leads_with_kp:
         a = l.get("amocrm_id")
         if a not in (None, ""):
             amo_ids.add(str(a))
-    if not amo_ids:
-        # still expose kpInfo from the doc alone (v1/1) for leads without amocrm_id
-        for l in leads:
-            kp_doc = _find_kp_doc(l)
-            if kp_doc:
-                l["kpInfo"] = {"versionNumber": 1, "versionCount": 1,
-                               "date": kp_doc.get("uploadedAt"),
-                               "filename": kp_doc.get("filename") or kp_doc.get("name")}
-        return
-
-    # Match both string and int stored amocrm_id forms
-    query_ids = list(amo_ids) + [int(a) for a in amo_ids if a.isdigit()]
-    pdf_docs = await db.calculator_pdfs.find(
-        {"amocrm_id": {"$in": query_ids}, "obsolete": {"$ne": True}},
-        {"_id": 0, "amocrm_id": 1, "order_id": 1, "created_at": 1, "filename": 1, "cloudinary_url": 1}
-    ).sort("created_at", 1).to_list(5000)
 
     kp_map: Dict[str, list] = {}
-    for p in pdf_docs:
-        kp_map.setdefault(str(p.get("amocrm_id")), []).append(p)
+    if amo_ids:
+        # Match both string and int stored amocrm_id forms
+        query_ids = list(amo_ids) + [int(a) for a in amo_ids if a.isdigit()]
+        pdf_docs = await db.calculator_pdfs.find(
+            {"amocrm_id": {"$in": query_ids}, "obsolete": {"$ne": True}},
+            {"_id": 0, "amocrm_id": 1, "order_id": 1, "created_at": 1, "filename": 1, "cloudinary_url": 1}
+        ).sort("created_at", 1).to_list(5000)
+        for p in pdf_docs:
+            kp_map.setdefault(str(p.get("amocrm_id")), []).append(p)
 
-    for l in leads:
-        kp_doc = _find_kp_doc(l)
-        if not kp_doc:
-            continue
+    for l, kp_doc in leads_with_kp:
         versions = kp_map.get(str(l.get("amocrm_id")), [])
         count = len(versions)
         ver_num = None
