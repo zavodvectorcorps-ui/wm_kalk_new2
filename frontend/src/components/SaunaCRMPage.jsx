@@ -9,6 +9,7 @@ import { Switch } from './ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from './ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { ProductionTelegramPanel } from './ProductionTelegramPanel';
 import {
   Briefcase, Calendar as CalendarIcon, ChevronLeft, ChevronRight, 
   RefreshCw, Settings, Upload, FileText, File, Trash2, 
@@ -811,94 +812,6 @@ const SaunaCRMPage = () => {
         </div>
       </div>
 
-      {/* Full chat history with search */}
-      <Dialog open={chatHistoryOpen} onOpenChange={setChatHistoryOpen}>
-        <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col" data-testid="chat-history-dialog">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Send className="w-5 h-5 text-sky-600" />
-              Переписка по заказу {selectedLead?.id ? `#${selectedLead.id}` : ''}
-              <div className="ml-auto flex gap-2">
-                <Button variant="outline" size="sm" className="h-7 text-xs"
-                  onClick={() => window.open(`${API_URL}/api/integrations/telegram/export-chat/${selectedLead.id}?format=pdf`, '_blank')}
-                  data-testid="export-chat-pdf-btn">
-                  <FileText className="w-3.5 h-3.5 mr-1" />PDF
-                </Button>
-                <Button variant="outline" size="sm" className="h-7 text-xs"
-                  onClick={() => window.open(`${API_URL}/api/integrations/telegram/export-chat/${selectedLead.id}?format=txt`, '_blank')}
-                  data-testid="export-chat-txt-btn">
-                  <File className="w-3.5 h-3.5 mr-1" />TXT
-                </Button>
-              </div>
-            </DialogTitle>
-          </DialogHeader>
-          <div className="relative mb-2">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input placeholder="Поиск по тексту / автору…" value={chatSearch} onChange={(e) => setChatSearch(e.target.value)} className="pl-10" data-testid="chat-history-search" />
-          </div>
-          <div className="flex-1 overflow-y-auto space-y-2 pr-1">
-            {(() => {
-              const q = chatSearch.trim().toLowerCase();
-              const msgs = (selectedLead?.productionMessages || []).filter(m =>
-                !q || (m.text || '').toLowerCase().includes(q) || (m.author || '').toLowerCase().includes(q)
-              );
-              if (msgs.length === 0) {
-                return <p className="text-center text-muted-foreground py-10 text-sm">{q ? 'Ничего не найдено' : 'Сообщений пока нет'}</p>;
-              }
-              return msgs.map((m, i) => (
-                <div key={i} className={`text-sm p-2.5 rounded-lg border ${m.direction === 'in' ? 'bg-sky-50 border-sky-200' : 'bg-muted/30'}`} data-testid={`chat-history-msg-${i}`}>
-                  <div className="flex items-center justify-between text-[11px] text-muted-foreground mb-1">
-                    <span className="font-medium">{m.author || 'Менеджер'}{m.direction === 'in' ? ' · из Telegram' : ''}</span>
-                    <span>{m.at ? new Date(m.at).toLocaleString('ru-RU') : ''}</span>
-                  </div>
-                  <div className="whitespace-pre-wrap">{m.text}</div>
-                </div>
-              ));
-            })()}
-          </div>
-          {selectedLead?.telegram_topic_id && (
-            <div className="flex gap-2 items-end pt-2 border-t mt-2">
-              <Textarea
-                value={prodMsgText}
-                onChange={(e) => setProdMsgText(e.target.value)}
-                placeholder="Быстрый ответ в тему производства…"
-                rows={2}
-                className="text-sm"
-                data-testid="chat-history-reply-input"
-              />
-              <Button size="sm" onClick={sendProdMessage} disabled={sendingProdMsg || !prodMsgText.trim()} data-testid="chat-history-reply-send">
-                {sendingProdMsg ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-              </Button>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Production photo lightbox */}
-      {lightbox.open && lightbox.photos.length > 0 && (
-        <div className="fixed inset-0 z-[100] bg-black/85 flex items-center justify-center" onClick={() => setLightbox(p => ({ ...p, open: false }))} data-testid="photo-lightbox">
-          <button className="absolute top-4 right-4 text-white/90 hover:text-white p-2" onClick={(e) => { e.stopPropagation(); setLightbox(p => ({ ...p, open: false })); }} data-testid="lightbox-close">
-            <X className="w-7 h-7" />
-          </button>
-          {lightbox.photos.length > 1 && (
-            <button className="absolute left-4 text-white/90 hover:text-white p-2" onClick={(e) => { e.stopPropagation(); setLightbox(p => ({ ...p, index: (p.index - 1 + p.photos.length) % p.photos.length })); }} data-testid="lightbox-prev">
-              <ChevronLeft className="w-10 h-10" />
-            </button>
-          )}
-          <div className="max-w-[85vw] max-h-[85vh] flex flex-col items-center" onClick={(e) => e.stopPropagation()}>
-            <img src={lightbox.photos[lightbox.index]?.url} alt="Фото производства" className="max-w-[85vw] max-h-[78vh] object-contain rounded-lg" />
-            <div className="text-white/80 text-xs mt-2">
-              {lightbox.photos[lightbox.index]?.name || 'Фото производства'} · {lightbox.index + 1}/{lightbox.photos.length}
-            </div>
-          </div>
-          {lightbox.photos.length > 1 && (
-            <button className="absolute right-4 text-white/90 hover:text-white p-2" onClick={(e) => { e.stopPropagation(); setLightbox(p => ({ ...p, index: (p.index + 1) % p.photos.length })); }} data-testid="lightbox-next">
-              <ChevronRight className="w-10 h-10" />
-            </button>
-          )}
-        </div>
-      )}
-
       {/* Sync Progress Indicator */}
       {syncProgress && syncProgress.status !== 'idle' && (
         <div className={`mb-4 p-4 rounded-lg border-2 transition-all shadow-sm ${
@@ -1231,7 +1144,7 @@ const SaunaCRMPage = () => {
           <div className="flex flex-wrap gap-3 mb-4">
             <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input placeholder="Поиск..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
+              <Input placeholder="Поиск..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" data-testid="crm-list-search" />
             </div>
             <Select value={filterManager || "all"} onValueChange={(v) => setFilterManager(v === "all" ? "" : v)}>
               <SelectTrigger className="w-[180px]"><SelectValue placeholder="Менеджер" /></SelectTrigger>
@@ -1686,83 +1599,15 @@ const SaunaCRMPage = () => {
                     Тема в Telegram создана · спецификация и документы уходят в неё
                   </p>
                 )}
-                {selectedLead.telegram_topic_id && (
-                  <div className="mt-2 text-xs" data-testid="prod-ack-status">
-                    {selectedLead.productionAckedAt ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
-                        ✅ Производство приняло: <b>{selectedLead.productionAckedBy || '—'}</b> · {new Date(selectedLead.productionAckedAt).toLocaleString('ru-RU')}
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-amber-50 text-amber-700 border border-amber-200">
-                        ⏳ Ожидает подтверждения производства
-                      </span>
-                    )}
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-muted-foreground">
-                      {selectedLead.plannedStartDate && <span>Плановый старт: <b>{new Date(selectedLead.plannedStartDate).toLocaleDateString('ru-RU')}</b></span>}
-                      {selectedLead.productionDate && <span>Дата производства: <b>{new Date(selectedLead.productionDate).toLocaleDateString('ru-RU')}</b></span>}
-                    </div>
-                    {selectedLead.productionComment && (
-                      <div className="mt-1 text-muted-foreground">Комментарий производства: <span className="text-foreground">{selectedLead.productionComment}</span></div>
-                    )}
-                    {(selectedLead.documents || []).filter(d => d.type === 'production_photo').length > 0 && (
-                      <div className="mt-2" data-testid="production-photo-gallery">
-                        <div className="text-[11px] font-medium text-foreground mb-1">📷 Фото от производства</div>
-                        <div className="flex flex-wrap gap-2">
-                          {(selectedLead.documents || []).filter(d => d.type === 'production_photo').map((d, i, arr) => (
-                            <button key={d.id || i} type="button"
-                               onClick={() => setLightbox({ open: true, photos: arr, index: i })}
-                               className="block w-16 h-16 rounded-md overflow-hidden border hover:ring-2 hover:ring-sky-400 transition"
-                               title={d.name || 'Фото производства'} data-testid={`production-photo-${i}`}>
-                              <img src={d.url} alt={d.name || 'Фото'} className="w-full h-full object-cover" />
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
               </div>
 
-              {/* Production Messages (chat with topic) */}
-              {selectedLead.telegram_topic_id && (
-                <div data-testid="prod-messages-section">
-                  <Label className="text-sm font-semibold flex items-center gap-2 mb-2">
-                    <Send className="w-4 h-4 text-sky-600" />Сообщения производству
-                    {(selectedLead.productionMessages || []).length > 0 && (
-                      <button type="button" onClick={() => { setChatSearch(''); setChatHistoryOpen(true); }}
-                        className="ml-auto text-[11px] font-normal text-sky-600 hover:underline" data-testid="open-chat-history-btn">
-                        Вся переписка ({(selectedLead.productionMessages || []).length})
-                      </button>
-                    )}
-                  </Label>
-                  {(selectedLead.productionMessages || []).length > 0 && (
-                    <div className="space-y-1.5 max-h-40 overflow-y-auto mb-2 pr-1">
-                      {(selectedLead.productionMessages || []).map((m, i) => (
-                        <div key={i} className="text-xs p-2 rounded-lg border bg-muted/30">
-                          <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-0.5">
-                            <span className="font-medium">{m.author || 'Менеджер'}{m.direction === 'in' ? ' · из Telegram' : ''}</span>
-                            <span>{m.at ? new Date(m.at).toLocaleString('ru-RU') : ''}</span>
-                          </div>
-                          <div className="whitespace-pre-wrap">{m.text}</div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  <div className="flex gap-2 items-end">
-                    <Textarea
-                      value={prodMsgText}
-                      onChange={(e) => setProdMsgText(e.target.value)}
-                      placeholder="Написать в тему производства…"
-                      rows={2}
-                      className="text-sm"
-                      data-testid="prod-message-input"
-                    />
-                    <Button size="sm" onClick={sendProdMessage} disabled={sendingProdMsg || !prodMsgText.trim()} data-testid="prod-message-send">
-                      {sendingProdMsg ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                    </Button>
-                  </div>
-                </div>
-              )}
+              {/* Production Messages + Telegram info (shared panel) */}
+              <ProductionTelegramPanel
+                order={selectedLead}
+                authHeaders={authHeaders}
+                onUpdated={(u) => { setSelectedLead(u); setEditData(prev => ({ ...prev, productionMessages: u.productionMessages })); }}
+              />
+
 
               {/* Documents Section */}
               <div>

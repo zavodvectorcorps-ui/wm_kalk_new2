@@ -1,0 +1,27 @@
+{
+  "summary": "Frontend-only verification of the CRM-card refactor to the shared ProductionTelegramPanel plus parity with the Production card, order 'Test Direct URL' (CRM-2164B233). CRM flow: login admin/admin123 -> Sauna -> Wybierz -> crm-tab-btn -> 'Список' -> search 'Test Direct URL' -> card. CRM card renders exactly ONE prod-tg-panel (no duplicates, no white screen): prod-ack-status '✅ Производство приняло: Ext2 · 14.08.2026, 21:08:24' + 'Дата производства: 15.09.2026', production-photo-gallery with 1 thumb, prod-messages-section with feed + composer, 'Вся переписка (4)'. Lightbox opens (counter '1/1', prev/next correctly hidden for single photo) and closes via lightbox-close. Chat-history dialog (exactly 1 instance in DOM): 4 messages, search 'zzzznotfound' -> 0 msgs + 'Ничего не найдено', search 'QA' -> 2 msgs; PDF/TXT export buttons open new tabs and both endpoints verified via curl (TXT 200 text/plain 729B with correct Russian transcript, PDF 200 application/pdf 69.6KB); quick reply sent -> message count 4->5 and text visible in dialog; Escape closes dialog. CRM composer send: message appended to feed, input cleared, counter 5->6. Production card parity (Produkcja saun -> Канбан -> 'Test Direct URL'): same single panel, same ack badge/photo/lightbox, dialog shows 6 messages including both messages sent from the CRM card (search 'QA crm' -> 2), composer send shows toast 'Сообщение отправлено в тему', feed updates, counter 6->7. All 5 requested scenarios pass in both cards.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "SaunaCRMPage / SaunaProductionPage", "issue": "React console error 'Each child in a list should have a unique key prop' logged on render of both pages (pre-existing, also reported in iteration_124). No functional impact observed.", "selector": "SaunaCRMPage / SaunaProductionPage render", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [
+    "Fix missing/duplicate React key in the .map() rendering of SaunaCRMPage and SaunaProductionPage (console error on every card render)."
+  ],
+  "critical_code_review_comments": [
+    "ProductionTelegramPanel keeps local `lead` state synced only on order.id / productionMessages.length / lastProductionUpdateAt / productionAckedAt changes; if the parent refetches the same order with edited (not added) messages or new photos, the panel shows stale data until the card is reopened (still open from iteration_124).",
+    "CRM list-view search Input had no data-testid; added data-testid=\"crm-list-search\" (kanban view uses crm-search) — needed for automation."
+  ],
+  "updated_files": ["/app/frontend/src/components/SaunaCRMPage.jsx"],
+  "success_rate": {"backend": "not tested (export-chat endpoints spot-checked: 2/2 OK)", "frontend": "100% (5/5 requested scenarios passed)"},
+  "seed_data_creation": "3 test messages appended to order CRM-2164B233 productionMessages by send tests ('QA crm reply <ts>', 'QA crm composer <ts>', 'QA prod parity <ts>'); message count now 7.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "admin / admin123 (preview)",
+  "context_for_next_testing_agent": "State-based SPA navigation (no URL routes). CRM card: login -> click 'Sauna' -> 'Wybierz' -> data-testid crm-tab-btn -> tab 'Список' -> fill [data-testid=\"crm-list-search\"] with 'Test Direct URL' -> click [data-testid=\"list-lead-CRM-2164B233\"]. Production card: 'Produkcja saun' -> 'Wybierz' -> 'Канбан' -> click text 'Test Direct URL'. Note: selector [data-testid^=\"production-photo-\"] also matches production-photo-gallery — use production-photo-0 for the thumb. Toast (sonner) auto-dismisses; poll li[data-sonner-toast] within ~3s of the send click. Order CRM-2164B233 now has 7 productionMessages, 1 production photo.",
+  "rca_of_the_issue": "Not applicable — refactor verified working in both cards; only the pre-existing React key warning remains."
+}
