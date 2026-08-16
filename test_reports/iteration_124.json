@@ -1,0 +1,28 @@
+{
+  "summary": "Frontend-only test of the shared ProductionTelegramPanel in the Production card (Produkcja saun) and parity with the CRM card, order 'Test Direct URL' (CRM-2164B233). Flow: login admin/admin123 -> Produkcja saun -> Канбан -> card in 'Отгружен'. Panel renders fully (prod-tg-panel, prod-ack-status '✅ Производство приняло: Ext2 · 14.08.2026', 'Дата производства: 15.09.2026', production-photo-gallery + production-photo-0, prod-messages-section with feed, composer, 'Вся переписка (N)'). Lightbox opens with counter '1/1' and closes via lightbox-close (prev/next hidden correctly with 1 photo). Chat-history dialog: search filters by author ('Мастер' -> 1 msg) and shows 'Ничего не найдено' for no match; PDF/TXT export buttons open popups and endpoints verified via curl (TXT 200 text/plain 512B with correct content, PDF 200 application/pdf 69KB); quick reply sent successfully and appeared in feed. Composer send in Production card: toast 'Сообщение отправлено в тему', message appears in feed, counter increments, input cleared. Parity verified in CRM card (Sauna -> CRM -> Список -> search): same ack badge, same photo, same 4 messages including both messages just sent from the Production card.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "SaunaProductionPage", "issue": "React console error 'Each child in a list should have a unique key prop' logged when rendering SaunaProductionPage (appears when kanban/detail renders). Functional impact none observed, but indicates a .map() without stable keys.", "selector": "SaunaProductionPage render", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [
+    "Fix missing/duplicate React key in SaunaProductionPage list rendering (console error on every card render).",
+    "Optional DRY cleanup: SaunaCRMPage.jsx still contains its own inline copy of the Telegram panel markup (lines ~1684-1780) with the same data-testids instead of reusing the new ProductionTelegramPanel component — future changes must be made twice."
+  ],
+  "critical_code_review_comments": [
+    "ProductionTelegramPanel resets local state only on order?.id change; if parent refetches the same order with new productionMessages, the panel keeps stale local lead state (messages/photos won't refresh until card is reopened).",
+    "CRM card duplicates the panel logic instead of importing ProductionTelegramPanel — extraction goal only half done."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "not tested (export endpoints spot-checked: 2/2 OK)", "frontend": "100% (5/5 requested scenarios passed)"},
+  "seed_data_creation": "Two test messages appended to order CRM-2164B233 productionMessages ('QA reply <ts>', 'QA prod composer <ts>') as a side effect of send tests; message count now 4.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "admin / admin123 (preview)",
+  "context_for_next_testing_agent": "Navigation is state-based (no URL routes). Production card: login -> click text 'Produkcja saun' -> tab 'Канбан' -> click card 'Test Direct URL' (column 'Отгружен'). CRM card: 'Powrót do wyboru' -> 'Sauna' -> data-testid crm-tab-btn -> 'Список' -> search 'Test Direct URL'. Panel testids: prod-tg-panel, prod-ack-status, production-photo-{i}, prod-messages-section, prod-message-input/send, open-chat-history-btn, chat-history-dialog/search/reply-input/reply-send, export-chat-pdf/txt-btn, photo-lightbox, lightbox-close/prev/next. Order CRM-2164B233 now has 4 productionMessages.",
+  "rca_of_the_issue": "Not applicable — reported fix verified working; only a stale React key warning remains."
+}

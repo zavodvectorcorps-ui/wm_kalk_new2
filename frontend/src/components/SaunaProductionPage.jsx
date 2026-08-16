@@ -6,6 +6,7 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from './ui/dialog';
+import { ProductionTelegramPanel } from './ProductionTelegramPanel';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import {
@@ -1111,6 +1112,12 @@ const SaunaProductionPage = ({ onBack }) => {
                   Тема в Telegram создана · спецификация и документы уходят в неё
                 </p>
               )}
+
+              <ProductionTelegramPanel
+                order={selectedOrder}
+                authHeaders={authHeaders}
+                onUpdated={(u) => setSelectedOrder(u)}
+              />
 
               {/* Documents */}
               {(selectedOrder.documents || []).length > 0 && (
