@@ -66,6 +66,10 @@ class CRMSettings(BaseModel):
     salesPrepaymentFlagFieldId: Optional[str] = None  # amoCRM field ID for "Предоплата получена" flag
     salesDateFieldId: Optional[str] = None  # CRM field ID for sale date (дата получения аванса)
     salesStageId: Optional[str] = None  # CRM stage from which leads go to Sales (e.g. "prepayment_received")
+    # Telegram: separate alerts channel (analytics / deficit / procurement)
+    alertsChatId: Optional[str] = None       # chat id for alerts (managers' orders stay in the main chat)
+    ordersSummaryEnabled: bool = False       # daily pinned summary of orders created by managers
+    ordersSummaryHour: int = 9               # UTC hour to send the daily summary
 
 
 class CRMLead(BaseModel):
@@ -160,6 +164,18 @@ async def save_crm_settings(settings: CRMSettings):
     settings_dict = settings.model_dump()
     await db.sauna_crm_settings.update_one({}, {"$set": settings_dict}, upsert=True)
     return {"status": "ok", "message": "Settings saved"}
+
+
+@router.post("/telegram/send-orders-summary")
+async def send_orders_summary_now():
+    """Manually send + pin the daily orders summary to the alerts chat (for testing)."""
+    s = await db.sauna_crm_settings.find_one({}, {"_id": 0, "alertsChatId": 1})
+    chat = (s or {}).get("alertsChatId")
+    if not chat:
+        raise HTTPException(status_code=400, detail="Не задан чат для алертов (Настройки → Telegram)")
+    from services.daily_orders_summary import send_daily_orders_summary
+    ok = await send_daily_orders_summary(db, chat)
+    return {"status": "ok" if ok else "failed", "chatId": chat}
 
 
 @router.put("/settings/fields")

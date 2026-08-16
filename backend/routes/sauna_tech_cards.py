@@ -29,16 +29,23 @@ logger = logging.getLogger(__name__)
 
 
 async def _send_deficit_alert(name: str, unit: str, after: float, stock_min: float, ctx: str = "") -> None:
-    """Real-time Telegram alert when a component's stock falls to/below its minimum."""
+    """Real-time Telegram alert when a component's stock falls to/below its minimum.
+    Sent to the dedicated alerts chat (Настройки CRM → alertsChatId) when configured."""
     try:
         from services.telegram_service import send_telegram_message
+        alerts_chat = None
+        try:
+            s = await db.sauna_crm_settings.find_one({}, {"_id": 0, "alertsChatId": 1})
+            alerts_chat = (s or {}).get("alertsChatId") or None
+        except Exception:
+            alerts_chat = None
         msg = (
             "⚠️ <b>ДЕФИЦИТ на складе</b>\n"
             f"Компонент: <b>{name}</b>\n"
             f"Остаток: <b>{round(after, 2)} {unit or ''}</b> (мин: {round(stock_min, 2)})"
             + (f"\n{ctx}" if ctx else "")
         )
-        await send_telegram_message(msg)
+        await send_telegram_message(msg, chat_id=alerts_chat)
     except Exception as e:
         logger.warning(f"deficit telegram alert failed for {name}: {e}")
 

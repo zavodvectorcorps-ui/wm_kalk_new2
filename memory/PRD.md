@@ -2479,3 +2479,34 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
   (списание в производство) и в `adjust_stock` (ручная корректировка out/set).
   Проверено: списание 15→7 (мин 10) реально отправило сообщение в Telegram (200).
 - Канал: `services/telegram_service.send_telegram_message` (тот же бот).
+
+## Session — Aug 16, 2026 (6): маржа-светофор + единый календарь + разделение Telegram
+### Шаг 1. Маржа-светофор в списке производства (admin only)
+- Backend `sauna_production.py`: `/orders` теперь требует auth и добавляет
+  `marginInfo` (totalCost, marginNetto, marginPct, level) ТОЛЬКО для role
+  admin/super-admin (helper `_enrich_orders_with_margin`, из связанного
+  calc-order). Пороги: green ≥25% · amber 15–25% · red <15%.
+- Frontend `SaunaProductionPage.jsx`: колонка «Маржа» в списке (ProductionListTab)
+  с цветным бейджем, видна только админу. Проверено: админ видит, маркетолог нет.
+### Шаг 2. Единый календарь с переключателем дат + канбан по умолчанию
+- Backend: оба календаря (`sauna_crm.py /calendar`, `sauna_production.py /calendar`)
+  принимают `dateField` ∈ {advancePaymentDate, productionDate, readyDate,
+  deliveryDate}. advancePaymentDate → settings.calendarDateField. Разница
+  CRM/Производство только в фильтре inProduction. Дефолт = advancePaymentDate (единый).
+- Frontend: переключатель-пилюли (Аванс/Начало произв./Готовность/Доставка) в
+  календаре CRM и Производства. Дефолтная вкладка теперь Канбан (порядок:
+  Канбан → Календарь → Список) в обоих разделах. Канбан/список/amoCRM-синк не тронуты.
+- Проверено: тестовый лид с 4 датами — одинаковые дни в CRM и Производстве.
+### Шаг 3. Разделение Telegram на два чата + ежедневная сводка (закреп)
+- Настройки CRM: новые поля `alertsChatId`, `ordersSummaryEnabled`,
+  `ordersSummaryHour` (модель CRMSettings + UI-блок в Настройки → Поля).
+- Маршрутизация в чат алертов: дефицит (`sauna_tech_cards._send_deficit_alert`),
+  закупки (`procurement._send_telegram`), аналитика-дайджест (server.py Job 2)
+  → alertsChatId. Заказы менеджеров остаются в основном TELEGRAM_CHAT_ID.
+- Ежедневная сводка: `services/daily_orders_summary.py` (заказы калькулятора по
+  createdBy + новые лиды CRM + обработанные amoCRM), отправка+закреп через
+  `telegram_service.send_and_pin_message`. Планировщик server.py Job 4
+  (ordersSummaryHour, дедуп lastOrdersSummaryDate).
+- Ручной тест: `POST /api/sauna-crm/telegram/send-orders-summary` + кнопка
+  «Отправить сводку сейчас». Проверено: send 200 + unpin 200 + pin 200.
+- Тестовое значение alertsChatId очищено (пользователь задаёт реальный чат на проде).

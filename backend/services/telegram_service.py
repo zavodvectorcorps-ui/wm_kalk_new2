@@ -197,7 +197,44 @@ async def send_telegram_message(text: str, chat_id: str = None, bot_token: str =
         return False
 
 
-def format_order_notification(order: Dict[str, Any], order_type: str = 'balia', is_web_order: bool = False) -> str:
+async def send_and_pin_message(text: str, chat_id: str = None, bot_token: str = None) -> bool:
+    """Send a message and pin it (unpinning previous pins first). Used for the
+    daily orders summary that should stay pinned at the top of the alerts chat."""
+    config = get_telegram_config()
+    token = bot_token or config['bot_token']
+    target = chat_id or config['chat_id']
+    if not token or not target or not config['enabled']:
+        logger.warning("send_and_pin_message: telegram not configured/disabled")
+        return False
+    base = f"https://api.telegram.org/bot{token}"
+    try:
+        async with httpx.AsyncClient() as client:
+            r = await client.post(
+                f"{base}/sendMessage",
+                json={"chat_id": target, "text": text, "parse_mode": "HTML", "disable_web_page_preview": True},
+                timeout=10.0,
+            )
+            if r.status_code != 200:
+                logger.error(f"send_and_pin_message send error: {r.status_code} - {r.text}")
+                return False
+            mid = (r.json().get("result") or {}).get("message_id")
+            if mid:
+                try:
+                    await client.post(f"{base}/unpinAllChatMessages", json={"chat_id": target}, timeout=10.0)
+                except Exception:
+                    pass
+                try:
+                    await client.post(
+                        f"{base}/pinChatMessage",
+                        json={"chat_id": target, "message_id": mid, "disable_notification": True},
+                        timeout=10.0,
+                    )
+                except Exception as pe:
+                    logger.warning(f"pinChatMessage failed (bot may lack admin rights): {pe}")
+            return True
+    except Exception as e:
+        logger.error(f"send_and_pin_message failed: {e}")
+        return False
     """Format order data into a Telegram notification message.
     
     Args:

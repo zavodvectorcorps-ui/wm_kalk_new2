@@ -247,6 +247,8 @@ async def manager_analytics_daily_scheduler():
             settings = await db.event_analytics_settings.find_one(
                 {"type": "event_analytics"}, {"_id": 0}
             ) or {}
+            crm_settings = await db.sauna_crm_settings.find_one({}, {"_id": 0}) or {}
+            alerts_chat = crm_settings.get("alertsChatId") or None
             sync_enabled = bool(settings.get("autoDailySyncEnabled"))
             sync_hour = int(settings.get("autoDailySyncHour") or 6)
             digest_enabled = bool(settings.get("dailyReportEnabled"))
@@ -300,7 +302,7 @@ async def manager_analytics_daily_scheduler():
                 try:
                     from services.manager_analytics_report import send_manager_digest
                     yesterday_disp = (now - timedelta(days=1)).strftime("%d.%m.%Y")
-                    chat_id = settings.get("dailyReportChatId") or None
+                    chat_id = alerts_chat or settings.get("dailyReportChatId") or None
                     include_ai = settings.get("dailyReportAiAdvice", True)
                     result = await send_manager_digest(
                         db, period_label=f"вчера ({yesterday_disp})",
@@ -330,6 +332,23 @@ async def manager_analytics_daily_scheduler():
                 await db.event_analytics_settings.update_one(
                     {"type": "event_analytics"},
                     {"$set": {"lastProcurementNotifDate": today_str}},
+                    upsert=True,
+                )
+
+            # ── Job 4: daily manager-orders summary (pinned) → alerts chat ──
+            summary_enabled = bool(crm_settings.get("ordersSummaryEnabled")) and bool(alerts_chat)
+            summary_hour = int(crm_settings.get("ordersSummaryHour") or 9)
+            summary_last = settings.get("lastOrdersSummaryDate") or ""
+            if summary_enabled and now.hour >= summary_hour and summary_last != today_str:
+                logger.info("Daily orders summary firing")
+                try:
+                    from services.daily_orders_summary import send_daily_orders_summary
+                    await send_daily_orders_summary(db, alerts_chat)
+                except Exception as e:
+                    logger.error(f"Daily orders summary failed: {e}")
+                await db.event_analytics_settings.update_one(
+                    {"type": "event_analytics"},
+                    {"$set": {"lastOrdersSummaryDate": today_str}},
                     upsert=True,
                 )
 

@@ -209,10 +209,17 @@ async def _apply_stock_delivery(doc: dict, direction: int = 1) -> dict:
 
 
 async def _send_telegram(message: str) -> bool:
-    """Send a Telegram message via the bot. Returns True if delivered."""
+    """Send a Telegram message via the bot. Returns True if delivered.
+    Routed to the dedicated alerts chat (Настройки CRM → alertsChatId) when set."""
     try:
         from services.telegram_service import send_telegram_message
-        return bool(await send_telegram_message(message))
+        alerts_chat = None
+        try:
+            s = await db.sauna_crm_settings.find_one({}, {"_id": 0, "alertsChatId": 1})
+            alerts_chat = (s or {}).get("alertsChatId") or None
+        except Exception:
+            alerts_chat = None
+        return bool(await send_telegram_message(message, chat_id=alerts_chat))
     except Exception as e:
         logger.warning(f"procurement telegram send failed: {e}")
         return False

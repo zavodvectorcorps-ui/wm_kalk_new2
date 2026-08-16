@@ -443,6 +443,18 @@ const SaunaCRMPage = () => {
     } catch (e) { toast.error('Ошибка'); }
   };
 
+  const sendOrdersSummaryNow = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/sauna-crm/telegram/send-orders-summary`, {
+        method: 'POST', headers: { ...authHeaders, 'Content-Type': 'application/json' },
+      });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok && d.status === 'ok') toast.success('Сводка отправлена и закреплена в чате алертов');
+      else if (res.ok) toast.error('Не удалось отправить (проверьте настройки Telegram)');
+      else toast.error(d.detail || 'Ошибка отправки');
+    } catch (e) { toast.error('Ошибка сети'); }
+  };
+
   const deleteLead = async (leadId) => {
     if (!window.confirm('Удалить заказ?')) return;
     try {
@@ -1817,6 +1829,48 @@ const SaunaCRMPage = () => {
                       </SelectContent>
                     </Select>
                     <p className="text-xs text-muted-foreground mt-1">Это поле будет использоваться для фильтрации сделок по дате и отображения в календаре</p>
+                  </div>
+
+                  {/* Telegram: separate alerts chat */}
+                  <div className="p-3 border rounded-lg bg-sky-50/60 space-y-3" data-testid="telegram-alerts-settings">
+                    <div className="flex items-center gap-2">
+                      <Send className="w-4 h-4 text-sky-600" />
+                      <Label className="text-sm font-semibold">Telegram: отдельный чат для алертов</Label>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Заказы менеджеров остаются в основном чате. В этот чат будут падать: аналитика по менеджерам, дефицит склада и необходимость закупки.</p>
+                    <div>
+                      <Label className="text-xs mb-1 block">ID чата алертов</Label>
+                      <Input
+                        value={settingsForm.alertsChatId || ''}
+                        onChange={(e) => setSettingsForm(p => ({ ...p, alertsChatId: e.target.value }))}
+                        placeholder="напр. -1001234567890"
+                        data-testid="alerts-chat-id-input"
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label className="text-sm">Ежедневная сводка заказов (закреп)</Label>
+                        <p className="text-xs text-muted-foreground">Раз в день: сколько заказов создали менеджеры (калькулятор + amoCRM). Сообщение закрепляется в чате.</p>
+                      </div>
+                      <Switch
+                        checked={!!settingsForm.ordersSummaryEnabled}
+                        onCheckedChange={(v) => setSettingsForm(p => ({ ...p, ordersSummaryEnabled: v }))}
+                        data-testid="orders-summary-toggle"
+                      />
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Label className="text-xs">Час отправки (UTC)</Label>
+                      <Input
+                        type="number" min="0" max="23"
+                        className="w-20"
+                        value={settingsForm.ordersSummaryHour ?? 9}
+                        onChange={(e) => setSettingsForm(p => ({ ...p, ordersSummaryHour: parseInt(e.target.value || '9', 10) }))}
+                        data-testid="orders-summary-hour-input"
+                      />
+                      <Button type="button" variant="outline" size="sm" onClick={sendOrdersSummaryNow} data-testid="send-summary-now-btn">
+                        <Send className="w-3.5 h-3.5 mr-1" />Отправить сводку сейчас
+                      </Button>
+                    </div>
                   </div>
                   {(settingsForm.fields || []).map((field, idx) => (
                     <div key={field.id} className="flex items-center gap-3 p-3 border rounded-lg">
