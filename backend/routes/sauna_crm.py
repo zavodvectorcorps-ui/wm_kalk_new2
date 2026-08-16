@@ -222,6 +222,15 @@ async def _enrich_leads_with_kp_info(leads: List[dict]) -> None:
     """Attach `kpInfo` (version number, total versions, date, filename) to each lead
     that has a linked KP document. Uses a single aggregation over calculator_pdfs so it
     stays cheap even for the full board. Mutates `leads` in place."""
+    def _find_kp_doc(l):
+        docs = l.get("documents")
+        if not isinstance(docs, list):
+            return None
+        for d in docs:
+            if isinstance(d, dict) and d.get("type") == "kp":
+                return d
+        return None
+
     amo_ids = set()
     for l in leads:
         a = l.get("amocrm_id")
@@ -230,7 +239,7 @@ async def _enrich_leads_with_kp_info(leads: List[dict]) -> None:
     if not amo_ids:
         # still expose kpInfo from the doc alone (v1/1) for leads without amocrm_id
         for l in leads:
-            kp_doc = next((d for d in (l.get("documents") or []) if d.get("type") == "kp"), None)
+            kp_doc = _find_kp_doc(l)
             if kp_doc:
                 l["kpInfo"] = {"versionNumber": 1, "versionCount": 1,
                                "date": kp_doc.get("uploadedAt"),
@@ -249,7 +258,7 @@ async def _enrich_leads_with_kp_info(leads: List[dict]) -> None:
         kp_map.setdefault(str(p.get("amocrm_id")), []).append(p)
 
     for l in leads:
-        kp_doc = next((d for d in (l.get("documents") or []) if d.get("type") == "kp"), None)
+        kp_doc = _find_kp_doc(l)
         if not kp_doc:
             continue
         versions = kp_map.get(str(l.get("amocrm_id")), [])
@@ -302,7 +311,12 @@ async def get_all_leads(
         query[date_field] = date_q
 
     leads = await db.sauna_crm_leads.find(query, {"_id": 0}).to_list(1000)
-    await _enrich_leads_with_kp_info(leads)
+    # KP enrichment is a non-essential add-on — it must NEVER break lead loading
+    # (otherwise the whole board goes empty). Guard it defensively.
+    try:
+        await _enrich_leads_with_kp_info(leads)
+    except Exception as e:
+        logger.warning(f"KP enrichment skipped due to error: {e}")
     settings = await get_crm_settings()
     stages_data = {}
     for stage in settings.get("stages", []):
