@@ -585,6 +585,79 @@ async def create_request_from_deficit(user: dict = Depends(get_current_user)):
     return {"status": "ok", "request": _strip(doc), "linesCount": len(norm_items)}
 
 
+@router.post("/requests/from-deficit-by-supplier")
+async def create_requests_from_deficit_by_supplier(user: dict = Depends(get_current_user)):
+    """One draft per supplier: split all deficit components into separate
+    procurement requests grouped by their `supplier` (empty → «Без поставщика»).
+    Quantity per line = stockMin − stockCurrent."""
+    comps = await db[COMPONENTS_COL].find(
+        {"$expr": {"$and": [
+            {"$gt": [{"$ifNull": ["$stockMin", 0]}, 0]},
+            {"$lte": [{"$ifNull": ["$stockCurrent", 0]}, {"$ifNull": ["$stockMin", 0]}]},
+        ]}},
+        {"_id": 0},
+    ).to_list(length=5000)
+    if not comps:
+        raise HTTPException(400, "Нет позиций с дефицитом — заявки не созданы")
+
+    # Group by supplier
+    groups: Dict[str, list] = {}
+    for c in comps:
+        sup = (c.get("supplier") or "").strip() or "Без поставщика"
+        groups.setdefault(sup, []).append(c)
+
+    today = _now()[:10]
+    created = []
+    for supplier, group_comps in groups.items():
+        lines = []
+        for c in group_comps:
+            cur = float(c.get("stockCurrent") or 0)
+            mn = float(c.get("stockMin") or 0)
+            need = mn - cur
+            if need <= 0:
+                need = mn
+            lines.append({
+                "componentId": c.get("id"),
+                "componentName": c.get("name", ""),
+                "category": c.get("category", ""),
+                "unit": c.get("unit", "шт"),
+                "quantity": round(need, 3),
+                "unitPrice": float(c.get("unitPrice") or 0),
+                "note": f"Дефицит: остаток {round(cur, 2)} ≤ мин {round(mn, 2)}",
+            })
+        comps_by_id = {c["id"]: c for c in group_comps}
+        norm_items, grand_total = _normalize_items(lines, comps_by_id)
+        doc = {
+            "id": str(uuid.uuid4()),
+            "title": f"Закупка · {supplier} · {today}",
+            "items": norm_items,
+            "totalPrice": grand_total,
+            "componentId": None, "componentName": "", "category": "", "unit": "",
+            "quantity": 0, "unitPrice": 0,
+            "supplier": supplier if supplier != "Без поставщика" else "",
+            "note": f"Автоматический черновик по дефициту ({len(norm_items)} позиций).",
+            "status": "draft",
+            "priority": "high",
+            "dueDate": None,
+            "assigneeUserId": None,
+            "assigneeUsername": "",
+            "reminderDaysBefore": DEFAULT_REMINDER_DAYS,
+            "notifyTelegram": False,
+            "tags": ["deficit", "auto", "by-supplier"],
+            "createdAt": _now(),
+            "updatedAt": _now(),
+            "createdByUserId": user.get("id") or user.get("user_id"),
+            "createdByUsername": user.get("username", ""),
+            "notifications": {"created": False, "reminder": False, "overdue": False},
+            "stockApplied": False,
+            "source": "deficit",
+        }
+        await db[COL].insert_one(doc)
+        created.append({"supplier": supplier, "requestId": doc["id"], "linesCount": len(norm_items), "totalPrice": grand_total})
+
+    return {"status": "ok", "requestsCount": len(created), "requests": created}
+
+
 @router.put("/requests/{request_id}")
 async def update_request(
     request_id: str,

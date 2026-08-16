@@ -949,7 +949,16 @@ const SaunaProductionPage = ({ onBack }) => {
                           data-testid={`prod-kanban-order-${order.id}`}
                         >
                           <CardContent className="p-3">
-                            <span className="font-medium text-sm truncate block">{order.clientName || 'Без имени'}</span>
+                            <span className="font-medium text-sm truncate block">
+                              {isAdminUser && order.marginInfo && (
+                                <span
+                                  className={`inline-block w-2 h-2 rounded-full mr-1.5 align-middle ${order.marginInfo.level === 'green' ? 'bg-emerald-500' : order.marginInfo.level === 'amber' ? 'bg-amber-500' : 'bg-red-500'}`}
+                                  title={`Маржа ${order.marginInfo.marginPct}% · ${Number(order.marginInfo.marginNetto).toLocaleString()} PLN`}
+                                  data-testid={`prod-kanban-margin-${order.id}`}
+                                />
+                              )}
+                              {order.clientName || 'Без имени'}
+                            </span>
                             <p className="text-xs text-muted-foreground truncate">{order.modelName || order.field_1 || '—'}</p>
                             {order.manager && <p className="text-xs text-muted-foreground truncate"><User className="w-3 h-3 inline mr-1" />{order.manager}</p>}
                             {(order.totalAmount || order.field_2) && (

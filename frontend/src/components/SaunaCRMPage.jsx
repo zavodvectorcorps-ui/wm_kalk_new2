@@ -455,6 +455,29 @@ const SaunaCRMPage = () => {
     } catch (e) { toast.error('Ошибка сети'); }
   };
 
+  const testDeficitAlert = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/sauna-crm/telegram/test-deficit`, {
+        method: 'POST', headers: { ...authHeaders, 'Content-Type': 'application/json' },
+      });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok && d.status === 'ok') toast.success('Тестовый сигнал о дефиците отправлен в чат алертов');
+      else toast.error(d.detail || 'Ошибка отправки');
+    } catch (e) { toast.error('Ошибка сети'); }
+  };
+
+  const sendWeeklySummaryNow = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/sauna-crm/telegram/send-weekly-summary`, {
+        method: 'POST', headers: { ...authHeaders, 'Content-Type': 'application/json' },
+      });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok && d.status === 'ok') toast.success('Недельная сводка отправлена в чат алертов');
+      else if (res.ok) toast.error('Не удалось отправить (проверьте настройки Telegram)');
+      else toast.error(d.detail || 'Ошибка отправки');
+    } catch (e) { toast.error('Ошибка сети'); }
+  };
+
   const deleteLead = async (leadId) => {
     if (!window.confirm('Удалить заказ?')) return;
     try {
@@ -1869,6 +1892,14 @@ const SaunaCRMPage = () => {
                       />
                       <Button type="button" variant="outline" size="sm" onClick={sendOrdersSummaryNow} data-testid="send-summary-now-btn">
                         <Send className="w-3.5 h-3.5 mr-1" />Отправить сводку сейчас
+                      </Button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button type="button" variant="outline" size="sm" className="border-red-300 text-red-700 hover:bg-red-50" onClick={testDeficitAlert} data-testid="test-deficit-btn">
+                        <AlertTriangle className="w-3.5 h-3.5 mr-1" />Тест: сигнал о дефиците
+                      </Button>
+                      <Button type="button" variant="outline" size="sm" onClick={sendWeeklySummaryNow} data-testid="send-weekly-now-btn">
+                        <CalendarIcon className="w-3.5 h-3.5 mr-1" />Недельная сводка сейчас
                       </Button>
                     </div>
                   </div>

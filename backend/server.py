@@ -352,6 +352,22 @@ async def manager_analytics_daily_scheduler():
                     upsert=True,
                 )
 
+            # ── Job 5: weekly recap (Mondays) → alerts chat ──
+            if summary_enabled and now.weekday() == 0 and now.hour >= summary_hour:
+                iso_week = now.strftime("%G-W%V")
+                if settings.get("lastWeeklySummaryWeek") != iso_week:
+                    logger.info("Weekly summary firing")
+                    try:
+                        from services.daily_orders_summary import send_weekly_summary
+                        await send_weekly_summary(db, alerts_chat)
+                    except Exception as e:
+                        logger.error(f"Weekly summary failed: {e}")
+                    await db.event_analytics_settings.update_one(
+                        {"type": "event_analytics"},
+                        {"$set": {"lastWeeklySummaryWeek": iso_week}},
+                        upsert=True,
+                    )
+
             # Re-check every 10 minutes.
             await asyncio.sleep(600)
         except asyncio.CancelledError:

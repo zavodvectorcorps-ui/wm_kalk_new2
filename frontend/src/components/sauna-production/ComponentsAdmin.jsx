@@ -90,6 +90,17 @@ export default function ComponentsAdmin() {
     }
   };
 
+  const createDeficitDraftBySupplier = async () => {
+    if (deficitCount === 0) { toast.info('Нет позиций с дефицитом'); return; }
+    if (!window.confirm(`Создать отдельные черновики закупки по каждому поставщику (${deficitCount} дефицитных позиций)?`)) return;
+    try {
+      const r = await axios.post(`${API}/api/procurement/requests/from-deficit-by-supplier`, {}, { headers: authHeaders() });
+      toast.success(`Создано черновиков: ${r.data.requestsCount} (по поставщикам). Откройте вкладку «Закупка».`);
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || 'Ошибка создания заявок');
+    }
+  };
+
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
@@ -123,9 +134,19 @@ export default function ComponentsAdmin() {
           onClick={createDeficitDraft}
           disabled={deficitCount === 0}
           data-testid="components-deficit-draft"
-          title="Сформировать черновик заявки на закупку из всех дефицитных позиций"
+          title="Сформировать один общий черновик заявки на закупку из всех дефицитных позиций"
         >
           <ShoppingCart className="w-4 h-4 mr-1" />Черновик закупки
+        </Button>
+        <Button
+          variant="outline"
+          className="h-9 border-red-300 text-red-700 hover:bg-red-50 disabled:opacity-50"
+          onClick={createDeficitDraftBySupplier}
+          disabled={deficitCount === 0}
+          data-testid="components-deficit-draft-by-supplier"
+          title="Создать отдельный черновик заявки на каждого поставщика"
+        >
+          <ShoppingCart className="w-4 h-4 mr-1" />По поставщикам
         </Button>
         <Button
           variant="outline"

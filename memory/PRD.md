@@ -2510,3 +2510,26 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
 - Ручной тест: `POST /api/sauna-crm/telegram/send-orders-summary` + кнопка
   «Отправить сводку сейчас». Проверено: send 200 + unpin 200 + pin 200.
 - Тестовое значение alertsChatId очищено (пользователь задаёт реальный чат на проде).
+
+## Session — Aug 16, 2026 (7): маржа-точка канбан + тест дефицита + закупка по поставщикам + недельная сводка
+### A. Маржа-точка на канбане производства (admin only)
+- `SaunaProductionPage.jsx`: цветная точка (green/amber/red) перед именем клиента на
+  карточке канбана из `order.marginInfo.level`, только для admin, tooltip с % и суммой.
+### B. Кнопка «Тест: сигнал о дефиците»
+- `POST /api/sauna-crm/telegram/test-deficit` → шлёт тестовый deficit-alert в чат алертов
+  (через `_send_deficit_alert`). Кнопка в Настройки CRM → Telegram (`test-deficit-btn`).
+### C. Черновики закупки по поставщикам
+- `POST /api/procurement/requests/from-deficit-by-supplier` — группирует дефицитные
+  компоненты по `supplier` (пустой → «Без поставщика»), создаёт по одному черновику на
+  поставщика (qty = stockMin−stockCurrent). Проверено: 2 группы → 2 заявки.
+- `ComponentsAdmin.jsx`: вторая кнопка «По поставщикам» рядом с «Черновик закупки»
+  (`components-deficit-draft-by-supplier`). Общая кнопка сохранена.
+### D. Недельная сводка (понедельники) в чат алертов
+- `services/daily_orders_summary.py`: `build_weekly_summary_text` / `send_weekly_summary`
+  за прошлую неделю Пн–Вс: заказы калькулятора, лиды CRM (+amoCRM), средняя маржа %,
+  топ-3 менеджера по числу заказов (без закрепа).
+- server.py Job 5: по понедельникам в ordersSummaryHour (gate: ordersSummaryEnabled +
+  alertsChatId), дедуп `lastWeeklySummaryWeek` (ISO %G-W%V).
+- `POST /api/sauna-crm/telegram/send-weekly-summary` + кнопка «Недельная сводка сейчас».
+- Проверено: from-deficit-by-supplier (2 заявки), test-deficit (200), weekly (200).
+  Все тестовые данные очищены, alertsChatId сброшен.

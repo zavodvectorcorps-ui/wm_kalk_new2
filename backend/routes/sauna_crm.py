@@ -178,6 +178,30 @@ async def send_orders_summary_now():
     return {"status": "ok" if ok else "failed", "chatId": chat}
 
 
+@router.post("/telegram/test-deficit")
+async def test_deficit_alert():
+    """Send a test deficit alert to the alerts chat (verify the channel is wired)."""
+    s = await db.sauna_crm_settings.find_one({}, {"_id": 0, "alertsChatId": 1})
+    chat = (s or {}).get("alertsChatId")
+    if not chat:
+        raise HTTPException(status_code=400, detail="Не задан чат для алертов (Настройки → Telegram)")
+    from routes.sauna_tech_cards import _send_deficit_alert
+    await _send_deficit_alert("ТЕСТ Комплектующая", "шт", 2, 10, ctx="🔧 Тестовый сигнал из настроек CRM")
+    return {"status": "ok", "chatId": chat}
+
+
+@router.post("/telegram/send-weekly-summary")
+async def send_weekly_summary_now():
+    """Manually send the weekly recap to the alerts chat (for testing)."""
+    s = await db.sauna_crm_settings.find_one({}, {"_id": 0, "alertsChatId": 1})
+    chat = (s or {}).get("alertsChatId")
+    if not chat:
+        raise HTTPException(status_code=400, detail="Не задан чат для алертов (Настройки → Telegram)")
+    from services.daily_orders_summary import send_weekly_summary
+    ok = await send_weekly_summary(db, chat)
+    return {"status": "ok" if ok else "failed", "chatId": chat}
+
+
 @router.put("/settings/fields")
 async def update_field_settings(fields: List[CRMFieldConfig]):
     fields_dict = [f.model_dump() for f in fields]
