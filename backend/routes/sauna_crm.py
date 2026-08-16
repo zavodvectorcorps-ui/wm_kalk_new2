@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from database import db
 from services.cloudinary_service import upload_pdf as cloudinary_upload_pdf, is_cloudinary_configured
 from routes.amocrm import add_note_to_amocrm
+from bson import ObjectId
 import httpx
 import os
 import logging
@@ -199,7 +200,7 @@ async def _enrich_leads_with_kp_info(leads: List[dict]) -> None:
     # Match both string and int stored amocrm_id forms
     query_ids = list(amo_ids) + [int(a) for a in amo_ids if a.isdigit()]
     pdf_docs = await db.calculator_pdfs.find(
-        {"amocrm_id": {"$in": query_ids}},
+        {"amocrm_id": {"$in": query_ids}, "obsolete": {"$ne": True}},
         {"_id": 0, "amocrm_id": 1, "order_id": 1, "created_at": 1, "filename": 1, "cloudinary_url": 1}
     ).sort("created_at", 1).to_list(5000)
 
@@ -1283,6 +1284,143 @@ async def merge_duplicates(payload: dict):
     # Delete the losers
     del_result = await db.sauna_crm_leads.delete_many({"id": {"$in": remove_ids}})
     return {"status": "ok", "merged": del_result.deleted_count, "keepId": keep_id, "fieldsCopied": list(merged_update.keys())}
+
+
+# ============== KP (COMMERCIAL PROPOSAL) DEDUPLICATION ==============
+
+def _build_kp_row(p: dict, linked_url: Optional[str], linked_order: Optional[str],
+                  version: int, is_latest: bool) -> dict:
+    """Shape one calculator_pdfs doc into a KP-cleanup row."""
+    url = p.get("cloudinary_url")
+    order_id = p.get("order_id")
+    is_linked = bool((linked_url and url and url == linked_url) or
+                     (linked_order and order_id and order_id == linked_order))
+    return {
+        "pdfId": str(p.get("_id")),
+        "order_id": order_id,
+        "created_at": p.get("created_at"),
+        "filename": p.get("filename"),
+        "clientName": p.get("client_name"),
+        "cloudinary_url": url,
+        "obsolete": bool(p.get("obsolete")),
+        "version": version,
+        "isLatest": is_latest,
+        "isLinked": is_linked,
+    }
+
+
+async def _linked_kp_ref(amocrm_id) -> tuple:
+    """Return (linked_url, linked_order) of the KP currently attached to the CRM lead."""
+    lead = await db.sauna_crm_leads.find_one(
+        {"$or": [{"amocrm_id": str(amocrm_id)},
+                 {"amocrm_id": int(amocrm_id)} if str(amocrm_id).isdigit() else {"amocrm_id": str(amocrm_id)}]},
+        {"_id": 0, "id": 1, "clientName": 1, "documents": 1}
+    )
+    linked_url = linked_order = None
+    if lead:
+        kp_doc = next((d for d in (lead.get("documents") or []) if d.get("type") == "kp"), None)
+        if kp_doc:
+            linked_url = kp_doc.get("url")
+            linked_order = kp_doc.get("orderId")
+    return lead, linked_url, linked_order
+
+
+@router.get("/kp-duplicates")
+async def find_kp_duplicates(include_obsolete: bool = Query(True)):
+    """Global sweep: amoCRM deals that have MORE THAN ONE КП (calculator_pdfs).
+
+    Returns one group per amoCRM id, each with the full ordered list of КП
+    (oldest→newest) so the user can decide per-item what to keep/mark/delete.
+    """
+    match = {"amocrm_id": {"$nin": [None, ""]}}
+    if not include_obsolete:
+        match["obsolete"] = {"$ne": True}
+    pipeline = [
+        {"$match": match},
+        {"$group": {"_id": "$amocrm_id", "count": {"$sum": 1}}},
+        {"$match": {"count": {"$gt": 1}}},
+        {"$sort": {"count": -1}},
+        {"$limit": 200},
+    ]
+    groups_raw = await db.calculator_pdfs.aggregate(pipeline).to_list(200)
+
+    groups = []
+    for g in groups_raw:
+        amo = g["_id"]
+        query_ids = [str(amo)] + ([int(amo)] if str(amo).isdigit() else [])
+        pdfs = await db.calculator_pdfs.find(
+            {"amocrm_id": {"$in": query_ids}},
+            {"pdf_data": 0}
+        ).sort("created_at", 1).to_list(200)
+        lead, linked_url, linked_order = await _linked_kp_ref(amo)
+        rows = [
+            _build_kp_row(p, linked_url, linked_order, i + 1, i == len(pdfs) - 1)
+            for i, p in enumerate(pdfs)
+        ]
+        groups.append({
+            "amocrm_id": str(amo),
+            "count": len(rows),
+            "leadId": lead.get("id") if lead else None,
+            "clientName": (lead.get("clientName") if lead else None)
+                          or next((r["clientName"] for r in reversed(rows) if r.get("clientName")), ""),
+            "pdfs": rows,
+        })
+    return {"groups": groups, "total": len(groups)}
+
+
+@router.get("/leads/{lead_id}/kp-duplicates")
+async def lead_kp_duplicates(lead_id: str):
+    """Per-lead: list all КП versions attached to this lead's amoCRM deal."""
+    lead = await db.sauna_crm_leads.find_one({"id": lead_id}, {"_id": 0})
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    amo = lead.get("amocrm_id")
+    if not amo:
+        return {"amocrm_id": None, "leadId": lead_id, "clientName": lead.get("clientName"), "count": 0, "pdfs": []}
+    query_ids = [str(amo)] + ([int(amo)] if str(amo).isdigit() else [])
+    pdfs = await db.calculator_pdfs.find(
+        {"amocrm_id": {"$in": query_ids}}, {"pdf_data": 0}
+    ).sort("created_at", 1).to_list(200)
+    kp_doc = next((d for d in (lead.get("documents") or []) if d.get("type") == "kp"), None)
+    linked_url = kp_doc.get("url") if kp_doc else None
+    linked_order = kp_doc.get("orderId") if kp_doc else None
+    rows = [
+        _build_kp_row(p, linked_url, linked_order, i + 1, i == len(pdfs) - 1)
+        for i, p in enumerate(pdfs)
+    ]
+    return {"amocrm_id": str(amo), "leadId": lead_id, "clientName": lead.get("clientName"),
+            "count": len(rows), "pdfs": rows}
+
+
+class KpCleanupPayload(BaseModel):
+    pdfIds: List[str]
+    mode: str = "obsolete"  # obsolete | restore | delete
+
+
+@router.post("/kp-duplicates/action")
+async def kp_duplicates_action(payload: KpCleanupPayload):
+    """Mark obsolete / restore / physically delete selected КП (calculator_pdfs)."""
+    oids = []
+    for s in payload.pdfIds:
+        try:
+            oids.append(ObjectId(s))
+        except Exception:
+            pass
+    if not oids:
+        raise HTTPException(status_code=400, detail="Не переданы валидные идентификаторы КП")
+
+    if payload.mode == "delete":
+        r = await db.calculator_pdfs.delete_many({"_id": {"$in": oids}})
+        return {"status": "ok", "mode": "delete", "affected": r.deleted_count}
+    elif payload.mode == "restore":
+        r = await db.calculator_pdfs.update_many(
+            {"_id": {"$in": oids}}, {"$unset": {"obsolete": "", "obsoleteAt": ""}})
+        return {"status": "ok", "mode": "restore", "affected": r.modified_count}
+    else:  # obsolete
+        r = await db.calculator_pdfs.update_many(
+            {"_id": {"$in": oids}},
+            {"$set": {"obsolete": True, "obsoleteAt": datetime.now(timezone.utc).isoformat()}})
+        return {"status": "ok", "mode": "obsolete", "affected": r.modified_count}
 
 
 

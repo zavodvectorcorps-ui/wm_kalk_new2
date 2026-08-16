@@ -22,6 +22,7 @@ import {
 import { toast } from 'sonner';
 import { getApiUrl } from '../utils/api';
 import { DuplicatesModal } from './DuplicatesModal';
+import { KpDuplicatesModal } from './KpDuplicatesModal';
 import { TechSpecModal } from './tech-spec';
 import { ContractTemplateSettings } from './ContractTemplateSettings';
 import { ContractGenerationModal } from './ContractGenerationModal';
@@ -61,6 +62,8 @@ const SaunaCRMPage = () => {
   // Settings
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [showDuplicatesModal, setShowDuplicatesModal] = useState(false);
+  const [showKpDuplicatesModal, setShowKpDuplicatesModal] = useState(false);
+  const [kpDupLeadId, setKpDupLeadId] = useState(null);
   const [settingsForm, setSettingsForm] = useState(null);
   
   // Search & Filters
@@ -805,6 +808,9 @@ const SaunaCRMPage = () => {
           )}
           <Button variant="outline" size="sm" onClick={() => setShowDuplicatesModal(true)} data-testid="crm-duplicates-btn">
             <Users className="w-4 h-4 mr-2" />Дубликаты
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => { setKpDupLeadId(null); setShowKpDuplicatesModal(true); }} data-testid="crm-kp-duplicates-btn">
+            <FileText className="w-4 h-4 mr-2" />Дубли КП
           </Button>
           <Button variant="outline" size="sm" onClick={() => setSettingsOpen(true)} data-testid="crm-settings-btn">
             <Settings className="w-4 h-4 mr-2" />Настройки
@@ -1630,6 +1636,11 @@ const SaunaCRMPage = () => {
                 <div className="flex items-center justify-between mb-3">
                   <Label className="text-sm font-semibold flex items-center gap-2"><FileText className="w-4 h-4" />Документы</Label>
                   <div className="flex items-center gap-2">
+                    {selectedLead?.amocrm_id && (
+                      <Button size="sm" variant="outline" onClick={() => { setKpDupLeadId(selectedLead.id); setShowKpDuplicatesModal(true); }} data-testid="lead-kp-duplicates-btn">
+                        <FileText className="w-4 h-4 mr-1" />Дубли КП
+                      </Button>
+                    )}
                     <Select value={uploadDocType} onValueChange={setUploadDocType}>
                       <SelectTrigger className="w-32 h-8 text-xs"><SelectValue /></SelectTrigger>
                       <SelectContent>
@@ -1702,6 +1713,12 @@ const SaunaCRMPage = () => {
 
       {/* Settings Modal */}
       <DuplicatesModal open={showDuplicatesModal} onClose={() => setShowDuplicatesModal(false)} onMerged={fetchLeads} />
+      <KpDuplicatesModal
+        open={showKpDuplicatesModal}
+        leadId={kpDupLeadId}
+        onClose={() => setShowKpDuplicatesModal(false)}
+        onChanged={fetchLeads}
+      />
       {selectedLead && (
         <ContractGenerationModal
           open={contractModalOpen}

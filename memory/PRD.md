@@ -2420,3 +2420,36 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
 - Проверено curl (kpInfo возвращается) + скриншот Канбана: бейдж
   «КП v1/1 · КП Test Direct» рендерится корректно, без ошибок.
 - P0 «amocrm_id: null sparse index» — по решению пользователя НЕ трогаем.
+
+## Session — Aug 16, 2026 (4): чистка дублей КП + бейдж дефицита
+### 1. Чистка дублей КП (calculator_pdfs по одной сделке amoCRM)
+- Backend `routes/sauna_crm.py` (+ `from bson import ObjectId`):
+  - `GET /api/sauna-crm/kp-duplicates?include_obsolete=` — глобально: группы
+    amoCRM с >1 КП, каждый КП с version/isLatest/isLinked/obsolete.
+  - `GET /api/sauna-crm/leads/{lead_id}/kp-duplicates` — по одному лиду.
+  - `POST /api/sauna-crm/kp-duplicates/action` body `{pdfIds, mode}` где
+    mode = obsolete | restore | delete. Мягкая пометка `obsolete=true`
+    (+obsoleteAt) или физическое удаление.
+  - Enrichment бейджа КП (`_enrich_leads_with_kp_info`) теперь исключает
+    `obsolete=true` из подсчёта версий.
+- Frontend: новый компонент `components/KpDuplicatesModal.jsx` (работает и
+  глобально, и для одного лида через prop `leadId`). Показывает группы,
+  версии с бейджами «Привязан/Актуальный/Устаревший», per-row действия
+  (Устаревший/Вернуть/Удалить + открыть PDF) и групповое «Старые →
+  устаревшие (N)». Кнопки: в шапке CRM `crm-kp-duplicates-btn`, в карточке
+  лида (секция Документы, если есть amocrm_id) `lead-kp-duplicates-btn`.
+- Проверено: curl все режимы (obsolete/restore/delete + include_obsolete=false)
+  + скриншот модалки (2 группы, версии, бейджи, действия рендерятся).
+
+### 2. Бейдж «Дефицит» + фильтр + счётчик (ComponentsAdmin.jsx)
+- Красный бейдж «ДЕФИЦИТ» в колонке «Остаток / Мин.» когда
+  `stockMin>0 && stockCurrent<=stockMin` (`component-deficit-badge-{id}`).
+- Кнопка-тоггл «Дефицит N» со счётчиком (`components-deficit-filter` /
+  `components-deficit-count`) — фильтрует список только по дефицитным.
+- Проверено скриншотом: фильтр активен (красный), «0/10 м³» + бейдж ДЕФИЦИТ.
+
+### 3. Списание со склада при переводе в производство — БЕЗ изменений
+- Уже реализовано ранее: `POST /leads/{id}/to-production` (идемпотентно,
+  лог `sauna_stock_movements`). По решению пользователя авто-триггер на
+  перетаскивание в колонку «В производстве» НЕ добавляем.
+

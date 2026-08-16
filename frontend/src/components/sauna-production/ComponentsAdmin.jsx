@@ -21,8 +21,12 @@ export default function ComponentsAdmin() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [catFilter, setCatFilter] = useState('');
+  const [deficitOnly, setDeficitOnly] = useState(false);
   const [editing, setEditing] = useState(null);
   const [stockOn, setStockOn] = useState(null);   // component for stock-adjust dialog
+
+  const isDeficit = (i) => Number(i.stockMin || 0) > 0 && Number(i.stockCurrent || 0) <= Number(i.stockMin || 0);
+  const deficitCount = useMemo(() => items.filter(isDeficit).length, [items]);
 
   const load = async () => {
     setLoading(true);
@@ -41,12 +45,13 @@ export default function ComponentsAdmin() {
   const filtered = useMemo(() => {
     let list = items;
     if (catFilter) list = list.filter((i) => i.category === catFilter);
+    if (deficitOnly) list = list.filter(isDeficit);
     if (search) {
       const s = search.toLowerCase();
       list = list.filter((i) => i.name?.toLowerCase().includes(s) || i.supplier?.toLowerCase().includes(s));
     }
     return list;
-  }, [items, search, catFilter]);
+  }, [items, search, catFilter, deficitOnly]);
 
   const save = async (item) => {
     try {
@@ -88,6 +93,19 @@ export default function ComponentsAdmin() {
             {COMPONENT_CATEGORIES.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
           </SelectContent>
         </Select>
+        <Button
+          variant={deficitOnly ? 'default' : 'outline'}
+          onClick={() => setDeficitOnly((v) => !v)}
+          className={`h-9 ${deficitOnly ? 'bg-red-600 hover:bg-red-700' : deficitCount > 0 ? 'border-red-300 text-red-700 hover:bg-red-50' : ''}`}
+          data-testid="components-deficit-filter"
+          title="Показать только позиции с дефицитом (остаток ≤ минимума)"
+        >
+          <AlertTriangle className="w-4 h-4 mr-1" />
+          Дефицит
+          <span className={`ml-1.5 inline-flex items-center justify-center min-w-[20px] h-5 px-1 rounded-full text-[11px] font-bold ${deficitOnly ? 'bg-white/25 text-white' : 'bg-red-100 text-red-700'}`} data-testid="components-deficit-count">
+            {deficitCount}
+          </span>
+        </Button>
         <Button
           variant="outline"
           onClick={async () => {
@@ -153,6 +171,11 @@ export default function ComponentsAdmin() {
                         <span className="font-mono">{fmtNumber(stock, 2)}</span>
                         {min > 0 && <span className="text-muted-foreground">/ {fmtNumber(min, 2)}</span>}
                         <span className="text-muted-foreground">{c.unit}</span>
+                        {lowStock && (
+                          <span className="ml-1 inline-flex items-center rounded-full bg-red-100 text-red-700 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide" data-testid={`component-deficit-badge-${c.id}`}>
+                            Дефицит
+                          </span>
+                        )}
                       </span>
                     </td>
                     <td className="px-3 py-2 text-xs text-muted-foreground">{c.supplier || '—'}</td>
