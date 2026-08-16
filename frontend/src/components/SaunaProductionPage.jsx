@@ -29,7 +29,8 @@ import DealerMatrix from './sauna-production/DealerMatrix';
 const API_URL = getApiUrl();
 
 // ==================== PRODUCTION LIST TAB ====================
-const ProductionListTab = ({ orders, stages, authHeaders, onUpdated }) => {
+const ProductionListTab = ({ orders, stages, authHeaders, onUpdated, isAdminUser }) => {
+  const MARGIN_STYLES = { green: 'bg-emerald-100 text-emerald-700', amber: 'bg-amber-100 text-amber-700', red: 'bg-red-100 text-red-700' };
   const [editingCell, setEditingCell] = useState(null); // {orderId, field}
   const [editValue, setEditValue] = useState('');
   const [savingId, setSavingId] = useState(null);
@@ -179,6 +180,7 @@ const ProductionListTab = ({ orders, stages, authHeaders, onUpdated }) => {
                 <TableHead className="text-xs">Этап</TableHead>
                 <TableHead className="text-xs text-right">Сумма</TableHead>
                 <TableHead className="text-xs text-right">Аванс</TableHead>
+                {isAdminUser && <TableHead className="text-xs text-right" data-testid="prod-list-margin-head">Маржа</TableHead>}
                 <TableHead className="text-xs">Дата заказа</TableHead>
                 <TableHead className="text-xs">Дата предоплаты</TableHead>
                 <TableHead className="text-xs">Метод оплаты</TableHead>
@@ -208,6 +210,20 @@ const ProductionListTab = ({ orders, stages, authHeaders, onUpdated }) => {
                   <TableCell className="text-right">
                     <EditableCell orderId={order.id} field="advancePayment" value={order.advancePayment} type="number" />
                   </TableCell>
+                  {isAdminUser && (
+                    <TableCell className="text-right">
+                      {order.marginInfo ? (
+                        <span
+                          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold ${MARGIN_STYLES[order.marginInfo.level] || ''}`}
+                          title={`Себестоимость ${Number(order.marginInfo.totalCost).toLocaleString()} PLN · Маржа ${Number(order.marginInfo.marginNetto).toLocaleString()} PLN`}
+                          data-testid={`prod-list-margin-${order.id}`}
+                        >
+                          <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                          {order.marginInfo.marginPct}%
+                        </span>
+                      ) : <span className="text-[10px] text-muted-foreground">—</span>}
+                    </TableCell>
+                  )}
                   <TableCell>
                     <EditableCell orderId={order.id} field="orderDate" value={order.orderDate || (order.createdAt || '').slice(0, 10)} type="date" />
                   </TableCell>
@@ -943,7 +959,7 @@ const SaunaProductionPage = ({ onBack }) => {
 
         {/* Production List View */}
         <TabsContent value="list">
-          <ProductionListTab orders={orders} stages={stages} authHeaders={authHeaders} onUpdated={fetchOrders} />
+          <ProductionListTab orders={orders} stages={stages} authHeaders={authHeaders} onUpdated={fetchOrders} isAdminUser={isAdminUser} />
         </TabsContent>
 
         {/* Tech Cards (cost-price BOM) */}

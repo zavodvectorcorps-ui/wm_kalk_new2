@@ -1,13 +1,54 @@
 """Sauna Production routes - Production board for sauna orders."""
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timezone
 from database import db
+from services.auth_service import get_current_user
 import logging
 import uuid
 
 router = APIRouter(prefix="/sauna-production", tags=["Sauna Production"])
 logger = logging.getLogger(__name__)
+
+
+async def _enrich_orders_with_margin(leads: list) -> None:
+    """Attach admin-only `marginInfo` (netto margin + traffic-light level) to each
+    production lead, computed from its linked calculator order. Single batched
+    lookup. Levels: green ≥25% · amber 15–25% · red <15%."""
+    order_ids = [l.get("calculatorOrderId") for l in leads if l.get("calculatorOrderId")]
+    amo_ids = [str(l.get("amocrm_id")) for l in leads if l.get("amocrm_id")]
+    proj = {"_id": 0, "id": 1, "amocrm_id": 1, "total": 1, "totalCost": 1, "retailExtraCost": 1, "createdAt": 1}
+    by_id: Dict[str, dict] = {}
+    by_amo: Dict[str, dict] = {}
+    for coll in ("sauna_orders", "balia_orders"):
+        if order_ids:
+            async for o in db[coll].find({"id": {"$in": order_ids}}, proj):
+                by_id[o["id"]] = o
+        if amo_ids:
+            amo_query = amo_ids + [int(a) for a in amo_ids if a.isdigit()]
+            async for o in db[coll].find({"amocrm_id": {"$in": amo_query}}, proj).sort("createdAt", -1):
+                key = str(o.get("amocrm_id"))
+                if key not in by_amo:
+                    by_amo[key] = o
+    for l in leads:
+        o = by_id.get(l.get("calculatorOrderId")) or by_amo.get(str(l.get("amocrm_id")))
+        if not o:
+            continue
+        total = float(o.get("total") or 0)
+        cost = float(o.get("totalCost") or 0)
+        if total <= 0 or cost <= 0:
+            continue
+        netto = total / 1.23
+        extras = float(o.get("retailExtraCost") or 0)
+        margin = netto - cost - extras
+        pct = (margin / netto * 100) if netto > 0 else 0
+        level = "green" if pct >= 25 else ("amber" if pct >= 15 else "red")
+        l["marginInfo"] = {
+            "totalCost": round(cost),
+            "marginNetto": round(margin),
+            "marginPct": round(pct, 1),
+            "level": level,
+        }
 
 
 # ============== DEFAULT SETTINGS ==============
@@ -54,6 +95,7 @@ async def save_production_settings(data: dict):
 async def get_production_orders(
     date_from: Optional[str] = None,
     date_to: Optional[str] = None,
+    user: dict = Depends(get_current_user),
 ):
     query = {"inProduction": True}
     if date_from or date_to:
@@ -65,6 +107,9 @@ async def get_production_orders(
         query["readyDate"] = date_q
 
     leads = await db.sauna_crm_leads.find(query, {"_id": 0}).to_list(1000)
+    # Margin is admin-only — never leak cost/margin to managers/foremen.
+    if user.get("role") in ("admin", "super-admin"):
+        await _enrich_orders_with_margin(leads)
     return {"orders": leads}
 
 
