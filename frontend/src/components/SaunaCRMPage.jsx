@@ -765,7 +765,13 @@ const SaunaCRMPage = () => {
     : filteredLeads;
   const leadsByStage = {};
   stages.forEach(s => { leadsByStage[s.id] = []; });
-  kanbanLeads.forEach(l => { if (leadsByStage[l.stageId]) leadsByStage[l.stageId].push(l); });
+  // Fallback: leads whose stageId doesn't match any configured stage (e.g. after an
+  // amoCRM sync assigned an unmapped status) must NOT vanish — bucket them into the
+  // first stage so they stay visible and can be re-staged (mirrors Production board).
+  kanbanLeads.forEach(l => {
+    if (leadsByStage[l.stageId]) leadsByStage[l.stageId].push(l);
+    else if (stages.length > 0) leadsByStage[stages[0].id].push(l);
+  });
 
   // Real-time signal: live SSE stream instead of polling
   useEffect(() => {
