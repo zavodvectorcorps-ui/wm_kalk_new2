@@ -1102,6 +1102,22 @@ const SaunaCRMPage = () => {
                             ))}
                           </div>
                         )}
+                        {lead.kpInfo && (
+                          <div className="mt-1" data-testid={`kp-info-${lead.id}`}>
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] border-blue-300 text-blue-700 bg-blue-50 hover:bg-blue-50 max-w-full inline-flex"
+                              title={`Привязан КП: версия ${lead.kpInfo.versionNumber} из ${lead.kpInfo.versionCount}${lead.kpInfo.filename ? ` · ${lead.kpInfo.filename}` : ''}`}
+                            >
+                              <FileText className="w-3 h-3 mr-1 flex-shrink-0" />
+                              <span className="truncate">
+                                КП v{lead.kpInfo.versionNumber}/{lead.kpInfo.versionCount}
+                                {lead.kpInfo.date ? ` · ${new Date(lead.kpInfo.date).toLocaleDateString('ru-RU')}` : ''}
+                                {lead.kpInfo.filename ? ` · ${lead.kpInfo.filename}` : ''}
+                              </span>
+                            </Badge>
+                          </div>
+                        )}
                         <div className="mt-1.5 flex items-center gap-2">
                           <Button
                             size="sm" variant="ghost"

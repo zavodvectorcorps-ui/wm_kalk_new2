@@ -2399,3 +2399,24 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
   тест-файл tests/test_latest_kp_duplicate_orders_iteration127.py.
 - На будущее (не сделано): compound index (amocrm_id, createdAt) для перф;
   dovoz.py:592 та же схема (низкий риск).
+
+
+## Session — Aug 16, 2026 (3): compound index (amocrm_id, createdAt) + бейдж версии КП
+- **Составной индекс** для ускорения выбора «самого свежего КП» добавлен в
+  `create_indexes()` (server.py): `calculator_pdfs (amocrm_id, created_at desc)`,
+  `sauna_orders / balia_orders / orders (amocrm_id, createdAt desc)`. Индексы
+  создались без ошибок при старте.
+- **Бейдж «Версия и дата КП»** на карточке CRM (Канбан): показывает
+  `КП v{N}/{всего} · {дата} · {имя файла}`. Реализация:
+  - Backend `routes/sauna_crm.py`: новый хелпер `_enrich_leads_with_kp_info()` —
+    ОДНА агрегация по `calculator_pdfs` для всех amocrm_id доски, считает сколько
+    КП было сгенерировано на сделку и ранг привязанного КП (по совпадению
+    cloudinary_url/order_id, иначе = самый свежий). Кладёт поле `kpInfo`
+    {versionNumber, versionCount, date, filename} в каждый лид с KP-документом.
+    Вызывается в `get_all_leads`. Дёшево для всей доски (1 запрос).
+  - Frontend `SaunaCRMPage.jsx`: голубой бейдж (иконка FileText) под бейджами
+    документов, data-testid `kp-info-{leadId}`, с tooltip. Дата опускается, если
+    её нет; имя файла в truncate.
+- Проверено curl (kpInfo возвращается) + скриншот Канбана: бейдж
+  «КП v1/1 · КП Test Direct» рендерится корректно, без ошибок.
+- P0 «amocrm_id: null sparse index» — по решению пользователя НЕ трогаем.

@@ -177,6 +177,61 @@ async def update_stage_settings(stages: List[CRMStageConfig]):
 
 # ============== LEADS CRUD ==============
 
+async def _enrich_leads_with_kp_info(leads: List[dict]) -> None:
+    """Attach `kpInfo` (version number, total versions, date, filename) to each lead
+    that has a linked KP document. Uses a single aggregation over calculator_pdfs so it
+    stays cheap even for the full board. Mutates `leads` in place."""
+    amo_ids = set()
+    for l in leads:
+        a = l.get("amocrm_id")
+        if a not in (None, ""):
+            amo_ids.add(str(a))
+    if not amo_ids:
+        # still expose kpInfo from the doc alone (v1/1) for leads without amocrm_id
+        for l in leads:
+            kp_doc = next((d for d in (l.get("documents") or []) if d.get("type") == "kp"), None)
+            if kp_doc:
+                l["kpInfo"] = {"versionNumber": 1, "versionCount": 1,
+                               "date": kp_doc.get("uploadedAt"),
+                               "filename": kp_doc.get("filename") or kp_doc.get("name")}
+        return
+
+    # Match both string and int stored amocrm_id forms
+    query_ids = list(amo_ids) + [int(a) for a in amo_ids if a.isdigit()]
+    pdf_docs = await db.calculator_pdfs.find(
+        {"amocrm_id": {"$in": query_ids}},
+        {"_id": 0, "amocrm_id": 1, "order_id": 1, "created_at": 1, "filename": 1, "cloudinary_url": 1}
+    ).sort("created_at", 1).to_list(5000)
+
+    kp_map: Dict[str, list] = {}
+    for p in pdf_docs:
+        kp_map.setdefault(str(p.get("amocrm_id")), []).append(p)
+
+    for l in leads:
+        kp_doc = next((d for d in (l.get("documents") or []) if d.get("type") == "kp"), None)
+        if not kp_doc:
+            continue
+        versions = kp_map.get(str(l.get("amocrm_id")), [])
+        count = len(versions)
+        ver_num = None
+        for idx, v in enumerate(versions):
+            same_url = v.get("cloudinary_url") and v.get("cloudinary_url") == kp_doc.get("url")
+            same_order = kp_doc.get("orderId") and v.get("order_id") == kp_doc.get("orderId")
+            if same_url or same_order:
+                ver_num = idx + 1
+                break
+        if count == 0:
+            count = 1
+        if ver_num is None:
+            ver_num = count  # assume the linked KP is the freshest one
+        l["kpInfo"] = {
+            "versionNumber": ver_num,
+            "versionCount": count,
+            "date": kp_doc.get("uploadedAt"),
+            "filename": kp_doc.get("filename") or kp_doc.get("name"),
+        }
+
+
 @router.get("/leads")
 async def get_all_leads(
     manager_username: Optional[str] = None,
@@ -206,6 +261,7 @@ async def get_all_leads(
         query[date_field] = date_q
 
     leads = await db.sauna_crm_leads.find(query, {"_id": 0}).to_list(1000)
+    await _enrich_leads_with_kp_info(leads)
     settings = await get_crm_settings()
     stages_data = {}
     for stage in settings.get("stages", []):

@@ -448,6 +448,15 @@ async def create_indexes():
     # CRM leads — prevent duplicates by amocrm_id
     await db.sauna_crm_leads.create_index("amocrm_id", unique=True, sparse=True)
 
+    # Compound indexes for fast "freshest KP" lookups (sort by createdAt desc within an amocrm_id)
+    try:
+        await db.calculator_pdfs.create_index([("amocrm_id", 1), ("created_at", -1)])
+        await db.sauna_orders.create_index([("amocrm_id", 1), ("createdAt", -1)])
+        await db.balia_orders.create_index([("amocrm_id", 1), ("createdAt", -1)])
+        await db.orders.create_index([("amocrm_id", 1), ("createdAt", -1)])
+    except Exception as _e:
+        logger.warning(f"Compound (amocrm_id, createdAt) index creation skipped: {_e}")
+
 
 async def deferred_startup_tasks():
     """
