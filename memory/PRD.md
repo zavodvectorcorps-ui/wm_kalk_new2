@@ -2382,3 +2382,20 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
 - Остаток (LOW, не блокер): предсуществующий React-warning 'unique key' в
   .map() SaunaCRMPage/SaunaProductionPage (только консоль). Тест-агент добавил
   data-testid="crm-list-search".
+
+## Session — Aug 16, 2026 (2): фикс дублей КП — привязка самого свежего
+- Причина: выбор заказа/PDF по amocrm_id через find_one БЕЗ сортировки → при
+  дублях КП на одну сделку возвращался произвольный (обычно старый) КП.
+- Фикс: добавлена сортировка по самому свежему во ВСЕХ местах чтения заказа по
+  amocrm_id (orders: sort createdAt desc; calculator_pdfs: created_at desc):
+  sauna_crm.py (get_linked_calculator_order fallback, link_calculator_order,
+  debug-kp), amocrm.py (5 мест update/read), widget.py (карточка сделки amoCRM),
+  telegram_production.py (_get_calc_order), warehouse.py, driver_panel.py (4).
+- Итог: в CRM и в виджете amoCRM теперь всегда показывается/привязывается САМЫЙ
+  свежий расчёт (КП) и его новейший PDF. Дубли КП не удаляются (их создаёт кнопка
+  «Создать новое КП» намеренно) — просто всегда берётся последний.
+- Тест testing_agent iteration_126 (CRM path) + iteration_127 (widget+регресс):
+  100%. Seed для регресса: amocrm_id=KPDUP_TEST_1 (ORD-OLD/ORD-NEW), лид LEAD-KPDUP;
+  тест-файл tests/test_latest_kp_duplicate_orders_iteration127.py.
+- На будущее (не сделано): compound index (amocrm_id, createdAt) для перф;
+  dovoz.py:592 та же схема (низкий риск).

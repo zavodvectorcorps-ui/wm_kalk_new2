@@ -46,7 +46,7 @@ def get_all_orders_by_amocrm_id(amocrm_id: str):
     
     found_orders = {}
     for section, collection in collections:
-        order = collection.find_one({"amocrm_id": str(amocrm_id)}, {"_id": 0})
+        order = collection.find_one({"amocrm_id": str(amocrm_id)}, {"_id": 0}, sort=[("createdAt", -1)])
         if order:
             found_orders[section] = order
     
@@ -69,7 +69,7 @@ def get_orders_dict_by_amocrm_id(amocrm_id: str):
     
     found_orders = {}
     for section, collection in collections:
-        order = collection.find_one({"amocrm_id": str(amocrm_id)}, {"_id": 0})
+        order = collection.find_one({"amocrm_id": str(amocrm_id)}, {"_id": 0}, sort=[("createdAt", -1)])
         if order:
             found_orders[section] = order
     

@@ -1,0 +1,38 @@
+{
+  "summary": "Backend-only verification of the 'duplicate KP / stale calculator order per amocrm_id' fix. Wrote /app/backend/tests/test_kp_duplicate_latest_iteration126.py (9 tests, 8 passed). Verified GET /api/sauna-crm/leads/LEAD-KPDUP/calculator-order returns the LATEST order (ORD-NEW / 'NEW KP' / .../new.pdf) via the amocrm_id fallback after clearing the stored link, that the latest link is persisted back to the lead, and that the internal link_calculator_order() helper attaches the KP document built from the newest calculator_pdfs record (.../new.pdf). Regression with a single-order lead (TEST_LEAD_SINGLE_126) passes, and unknown lead returns 404. Code review confirmed sort=[('createdAt',-1)] present at all 5 reported amocrm.py locations (1226, 1734, 3394, 3500, 3585) and in sauna_crm.py (672 area, 1693). However, the SAME bug class is still unfixed in routes/widget.py, which serves the widget embedded in the amoCRM deal card: /api/widget/orders-status/KPDUP_TEST_1 returns ORD-OLD ('OLD KP') instead of ORD-NEW.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "/api/widget/orders-status/{lead_id} (routes/widget.py get_orders_dict_by_amocrm_id ~L61-72, get_order_by_amocrm_id ~L49)", "issue": "find_one({'amocrm_id': ...}) without sort -> returns the OLDEST/arbitrary order. Reproduced live: returned ORD-OLD ('OLD KP') while ORD-NEW exists. This widget is embedded in the amoCRM deal card and is used by /api/widget/orders-status, /api/widget/embed/{lead_id}, /api/widget/preview/{lead_id} and salesbot-handler, so stale/duplicate KP is still user-visible despite the sauna_crm/amocrm fixes. Fix: add sort=[('createdAt', -1)] in both helpers.", "priority": "HIGH"}
+    ],
+    "minor": [
+      {"endpoint": "routes/telegram_production.py:95", "issue": "await db[coll].find_one({'amocrm_id': lead['amocrm_id']}) without sort -> may pick stale order for production/Telegram notification."},
+      {"endpoint": "routes/warehouse.py:257", "issue": "collection.find_one({'amocrm_id': order_id}) without sort -> stale order risk."},
+      {"endpoint": "routes/driver_panel.py:463, 606, 735, 850", "issue": "find_one({'amocrm_id': ...}) without sort -> driver may see/update the stale duplicate order."},
+      {"endpoint": "routes/contract_template.py:778, 1200, 1226 (calculator_pdfs by order_id)", "issue": "No sort=[('created_at',-1)]; if a KP PDF is regenerated for the same order_id, the contract can embed an outdated KP. Lower risk than the amocrm_id case but same defect class."},
+      {"endpoint": "/api/sauna-crm/... debug endpoint (routes/sauna_crm.py:631, 639)", "issue": "Diagnostic checks still use unsorted find_one by amocrm_id, so debug output can contradict the actual (now sorted) behaviour and mislead future debugging."}
+    ]
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_kp_duplicate_latest_iteration126.py",
+    "/app/test_reports/pytest/pytest_results_iteration126.xml"
+  ],
+  "action_items": [
+    "Add sort=[('createdAt', -1)] to get_order_by_amocrm_id and get_orders_dict_by_amocrm_id in /app/backend/routes/widget.py (confirmed still returning ORD-OLD).",
+    "Apply the same sort to telegram_production.py:95, warehouse.py:257 and driver_panel.py:463/606/735/850.",
+    "Add sort=[('created_at', -1)] to calculator_pdfs lookups in contract_template.py (778, 1200, 1226).",
+    "Consider a single shared helper (e.g. find_latest_order_by_amocrm_id) so this sorting rule cannot be forgotten again, plus a unique/compound index on (amocrm_id, createdAt) and root-cause prevention of duplicate order creation per amocrm_id."
+  ],
+  "critical_code_review_comments": [
+    "The fix was applied per-callsite; 8+ other production callsites still do unsorted find_one by amocrm_id, so the bug persists in the widget/driver/telegram/warehouse paths. Extract one helper instead.",
+    "The real root cause (two orders being created for the same amocrm_id) is untouched — sorting only masks the duplication; consider deduplicating on upsert.",
+    "createdAt is stored as an ISO string; sorting works for UTC ISO-8601 with identical formatting but will break if any writer stores a different format/offset or a datetime object. Normalise the field type."
+  ],
+  "updated_files": ["/app/backend/tests/test_kp_duplicate_latest_iteration126.py"],
+  "success_rate": {"backend": "89% (8/9 tests passed)", "frontend": "not tested (backend-only request)"},
+  "seed_data_creation": "Used main-agent seeded LEAD-KPDUP / KPDUP_TEST_1 (ORD-OLD, ORD-NEW + 2 calculator_pdfs). Created and cleaned up TEST_LEAD_SINGLE_126 / TEST_AMO_SINGLE_126 / TEST_ORD_SINGLE_126 for the single-order regression.",
+  "should_call_test_agent_after_fix": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Run: cd /app/backend && python -m pytest tests/test_kp_duplicate_latest_iteration126.py -v. The last test (test_widget_orders_status_should_return_latest) intentionally FAILS until routes/widget.py adds sort by createdAt desc. Note LEAD-KPDUP gets calculatorOrderId re-written to ORD-NEW by the endpoint; the test unsets it first to exercise the amocrm_id fallback path. Seeded KPDUP data still present in Mongo.",
+  "rca_of_the_issue": "MongoDB find_one returns an arbitrary (usually natural/insertion-order first) document, so with two orders sharing one amocrm_id the older duplicate was returned and linked to the deal. The reported fix adds sort=[('createdAt',-1)] (orders) and sort=[('created_at',-1)] (calculator_pdfs) in routes/sauna_crm.py and routes/amocrm.py — verified working. The same unsorted pattern remains in routes/widget.py (reproduced: /api/widget/orders-status/KPDUP_TEST_1 -> ORD-OLD), driver_panel.py, telegram_production.py and warehouse.py."
+}

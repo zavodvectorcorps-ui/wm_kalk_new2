@@ -92,7 +92,7 @@ async def _get_calc_order(lead: dict):
         order = await db[calc_collection].find_one({"id": calc_order_id}, {"_id": 0})
     if not order and lead.get("amocrm_id"):
         for coll in ["sauna_orders", "balia_orders", "greenhouse_orders"]:
-            order = await db[coll].find_one({"amocrm_id": lead["amocrm_id"]}, {"_id": 0})
+            order = await db[coll].find_one({"amocrm_id": lead["amocrm_id"]}, {"_id": 0}, sort=[("createdAt", -1)])
             if order:
                 break
     return order

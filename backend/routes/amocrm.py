@@ -1223,7 +1223,7 @@ async def receive_webhook_section(
     # Check if order with this amoCRM ID already exists
     existing_order = None
     if lead_id:
-        existing_order = collection.find_one({"amocrm_id": lead_id})
+        existing_order = collection.find_one({"amocrm_id": lead_id}, sort=[("createdAt", -1)])
     
     # === HANDLE CANCELLED ORDERS ===
     # If lead is moved to "cancelled" stage, delete from logistics
@@ -1731,7 +1731,7 @@ async def sync_missing_orders(
         
         try:
             # Check if order already exists
-            existing = collection.find_one({"amocrm_id": lead_id_str})
+            existing = collection.find_one({"amocrm_id": lead_id_str}, sort=[("createdAt", -1)])
             
             # Get lead data from batch results
             api_data = leads_data.get(lead_id_str)
@@ -3391,7 +3391,7 @@ async def refresh_single_lead(section: str, amocrm_id: str):
         raise HTTPException(status_code=400, detail=f"Unknown section: {section}")
     
     # Find existing order
-    existing_order = collection.find_one({"amocrm_id": str(amocrm_id)})
+    existing_order = collection.find_one({"amocrm_id": str(amocrm_id)}, sort=[("createdAt", -1)])
     if not existing_order:
         raise HTTPException(status_code=404, detail=f"Order with amoCRM ID {amocrm_id} not found")
     
@@ -3497,7 +3497,7 @@ async def refresh_single_lead(section: str, amocrm_id: str):
     logger.info(f"Manually refreshed order {existing_order['id']} from amoCRM lead {amocrm_id}")
     
     # Return updated order data
-    updated_order = collection.find_one({"amocrm_id": str(amocrm_id)}, {"_id": 0})
+    updated_order = collection.find_one({"amocrm_id": str(amocrm_id)}, {"_id": 0}, sort=[("createdAt", -1)])
     
     return {
         "status": "ok",
@@ -3582,7 +3582,7 @@ async def refresh_all_orders(section: str):
                     amocrm_tags.append(tag_info)
             
             # Get existing order to preserve some fields
-            existing = collection.find_one({"amocrm_id": amocrm_id})
+            existing = collection.find_one({"amocrm_id": amocrm_id}, sort=[("createdAt", -1)])
             
             # Update fields
             update_fields = {

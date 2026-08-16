@@ -628,7 +628,7 @@ async def debug_kp_linking(amocrm_id: str):
 
     # 1. Check sauna_orders
     for coll in ["sauna_orders", "balia_orders", "greenhouse_orders"]:
-        order = await db[coll].find_one({"amocrm_id": amocrm_id}, {"_id": 0, "id": 1, "modelName": 1, "amocrm_id": 1})
+        order = await db[coll].find_one({"amocrm_id": amocrm_id}, {"_id": 0, "id": 1, "modelName": 1, "amocrm_id": 1}, sort=[("createdAt", -1)])
         if order:
             result["checks"]["calculator_order"] = {"found": True, "collection": coll, "order_id": order.get("id"), "amocrm_id_stored": order.get("amocrm_id")}
             break
@@ -636,7 +636,7 @@ async def debug_kp_linking(amocrm_id: str):
         result["checks"]["calculator_order"] = {"found": False}
 
     # 2. Check calculator_pdfs by amocrm_id
-    pdf_by_amo = await db["calculator_pdfs"].find_one({"amocrm_id": amocrm_id}, {"_id": 0, "pdf_data": 0})
+    pdf_by_amo = await db["calculator_pdfs"].find_one({"amocrm_id": amocrm_id}, {"_id": 0, "pdf_data": 0}, sort=[("created_at", -1)])
     if pdf_by_amo:
         result["checks"]["pdf_by_amocrm_id"] = {"found": True, "order_id": pdf_by_amo.get("order_id"), "has_cloudinary": bool(pdf_by_amo.get("cloudinary_url")), "cloudinary_url": pdf_by_amo.get("cloudinary_url", ""), "filename": pdf_by_amo.get("filename", "")}
     else:
@@ -680,7 +680,8 @@ async def link_calculator_order(amocrm_id: str, crm_lead: dict) -> dict:
         for collection_name in ["sauna_orders", "balia_orders", "greenhouse_orders"]:
             calc_order = await db[collection_name].find_one(
                 {"amocrm_id": amocrm_id},
-                {"_id": 0, "id": 1, "fullName": 1, "modelName": 1, "totalAmount": 1, "kpCloudinaryUrl": 1}
+                {"_id": 0, "id": 1, "fullName": 1, "modelName": 1, "totalAmount": 1, "kpCloudinaryUrl": 1},
+                sort=[("createdAt", -1)]
             )
             if calc_order:
                 crm_lead["calculatorOrderId"] = calc_order.get("id")
@@ -696,7 +697,8 @@ async def link_calculator_order(amocrm_id: str, crm_lead: dict) -> dict:
         try:
             pdf_doc = await db["calculator_pdfs"].find_one(
                 {"amocrm_id": amocrm_id},
-                {"pdf_data": 0}
+                {"pdf_data": 0},
+                sort=[("created_at", -1)]
             )
             if pdf_doc:
                 logger.info(f"PDF found by amocrm_id={amocrm_id}, has_cloudinary={bool(pdf_doc.get('cloudinary_url'))}")
@@ -704,7 +706,8 @@ async def link_calculator_order(amocrm_id: str, crm_lead: dict) -> dict:
             if not pdf_doc and crm_lead.get("calculatorOrderId"):
                 pdf_doc = await db["calculator_pdfs"].find_one(
                     {"order_id": crm_lead["calculatorOrderId"]},
-                    {"pdf_data": 0}
+                    {"pdf_data": 0},
+                    sort=[("created_at", -1)]
                 )
                 if pdf_doc:
                     logger.info(f"PDF found by order_id={crm_lead['calculatorOrderId']}, has_cloudinary={bool(pdf_doc.get('cloudinary_url'))}")
@@ -1684,10 +1687,10 @@ async def get_linked_calculator_order(lead_id: str):
     if calc_order_id:
         order = await db[calc_collection].find_one({"id": calc_order_id}, {"_id": 0})
     
-    # Fallback: search by amocrm_id across collections
+    # Fallback: search by amocrm_id across collections (pick the LATEST order)
     if not order and lead.get("amocrm_id"):
         for coll in ["sauna_orders", "balia_orders", "greenhouse_orders"]:
-            order = await db[coll].find_one({"amocrm_id": lead["amocrm_id"]}, {"_id": 0})
+            order = await db[coll].find_one({"amocrm_id": lead["amocrm_id"]}, {"_id": 0}, sort=[("createdAt", -1)])
             if order:
                 # Update the link for next time
                 await db.sauna_crm_leads.update_one(

@@ -460,7 +460,7 @@ async def upload_delivery_photo(
             if not order:
                 numeric_id = orderId.split("-")[-1] if "-" in orderId else orderId
                 if numeric_id.isdigit():
-                    order = collection.find_one({"amocrm_id": numeric_id}, {"_id": 0})
+                    order = collection.find_one({"amocrm_id": numeric_id}, {"_id": 0}, sort=[("createdAt", -1)])
             if not order and orderId.isdigit():
                 for prefix in ["AMO-GH-", "AMO-BA-", "AMO-SA-"]:
                     order = collection.find_one({"id": f"{prefix}{orderId}"}, {"_id": 0})
@@ -603,7 +603,7 @@ async def debug_order_info(order_id: str, current_user: dict = Depends(get_curre
                 order = collection.find_one({"id": sid}, {"_id": 0, "deliveryPhotoUrl": 0})
                 if order:
                     break
-                order = collection.find_one({"amocrm_id": sid}, {"_id": 0, "deliveryPhotoUrl": 0})
+                order = collection.find_one({"amocrm_id": sid}, {"_id": 0, "deliveryPhotoUrl": 0}, sort=[("createdAt", -1)])
                 if order:
                     break
             
@@ -732,7 +732,7 @@ async def repair_photo_link(order_id: str, current_user: dict = Depends(get_curr
                     order_found_by = f"id={sid}"
                     result["found_in"] = section_name
                     break
-                order = collection.find_one({"amocrm_id": sid})
+                order = collection.find_one({"amocrm_id": sid}, sort=[("createdAt", -1)])
                 if order:
                     order_collection = collection
                     order_found_by = f"amocrm_id={sid}"
@@ -847,7 +847,7 @@ async def resend_photo_to_amocrm(order_id: str, current_user: dict = Depends(get
             for sid in search_ids:
                 order = collection.find_one({"id": sid})
                 if not order:
-                    order = collection.find_one({"amocrm_id": sid})
+                    order = collection.find_one({"amocrm_id": sid}, sort=[("createdAt", -1)])
                 if order:
                     result["debug"]["found_in"] = section_name
                     break

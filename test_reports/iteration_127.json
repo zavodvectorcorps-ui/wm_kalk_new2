@@ -1,0 +1,32 @@
+{
+  "summary": "Backend-only retest of the 'latest KP for duplicate orders on same amocrm_id' fix. Verified seed data (sauna_orders ORD-OLD createdAt 2026-08-13 'OLD KP' + ORD-NEW createdAt 2026-08-16 'NEW KP', both amocrm_id=KPDUP_TEST_1; lead LEAD-KPDUP). All 8 pytest cases pass: widget orders-status now returns ORD-NEW/'NEW KP' (previous iteration_126 defect fixed), sauna-crm calculator-order regression holds (ORD-NEW), and other amocrm_id readers (widget delivery-status, widget embed/preview HTML, driver-panel debug/order, driver-panel warehouse-settings) return 200 with the freshest order and no stale 'OLD KP' anywhere. Static grep confirms sort=[('createdAt',-1)] added in widget.py (49,72), driver_panel.py (463,606,735,850), warehouse.py (257), telegram_production.py (95), sauna_crm.py (684,1693), amocrm.py (5 spots).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "GET /api/sauna-crm/debug-kp/{amocrm_id}", "issue": "sauna_crm.py:631 find_one({'amocrm_id':...}) still has no sort=[('createdAt',-1)] — debug-only endpoint may report the stale order id, inconsistent with the fixed production paths"},
+      {"endpoint": "internal dovoz.py:592", "issue": "find_one on dovoz_orders by amocrm_id without sort (different collection; low risk, but same duplicate-doc pattern)"},
+      {"endpoint": "sorting semantics", "issue": "createdAt is stored as an ISO string; ordering works only while all docs use the same ISO/UTC format. Docs missing createdAt sort last on desc, so a legacy order without createdAt would never win — acceptable but worth noting"}
+    ]
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_latest_kp_duplicate_orders_iteration127.py",
+    "/app/test_reports/pytest/it127.xml"
+  ],
+  "action_items": [
+    "Optional: add sort=[('createdAt',-1)] to sauna_crm.py:631 (debug-kp) so debug output matches production selection"
+  ],
+  "critical_code_review_comments": [
+    "widget.py is 3228 lines — should be split into modules (helpers, HTML views, PDF/gifts handlers) per file-size guideline",
+    "Consider a compound index (amocrm_id, createdAt) on sauna_orders/orders/greenhouse_orders; every read now sorts by createdAt and unindexed sorts will degrade as data grows",
+    "get_all_orders_by_amocrm_id picks the 'first' section from a dict for backward compatibility — collection priority order is implicit; make it explicit if greenhouse+sauna dupes coexist"
+  ],
+  "updated_files": ["/app/backend/tests/test_latest_kp_duplicate_orders_iteration127.py"],
+  "success_rate": {"backend": "100% (8/8)", "frontend": "not tested (per request)"},
+  "seed_data_creation": "None created; reused existing seed KPDUP_TEST_1 / LEAD-KPDUP (ORD-OLD, ORD-NEW). Left intact for future regression runs.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "admin/admin123 used only for driver-panel authenticated endpoints",
+  "context_for_next_testing_agent": "Regression suite: /app/backend/tests/test_latest_kp_duplicate_orders_iteration127.py (run with `python -m pytest tests/test_latest_kp_duplicate_orders_iteration127.py -o addopts=''`). Seed docs KPDUP_TEST_1 (ORD-OLD/ORD-NEW) and lead LEAD-KPDUP must stay in DB for it to pass. Note /api/widget/order/{id} does not exist (404 expected); driver-panel routes require Bearer token.",
+  "rca_of_the_issue": "Original bug: find_one({'amocrm_id':...}) without sort returns natural/insertion order, so with duplicate orders per amocrm_id the oldest KP won. Fix adds sort=[('createdAt',-1)] at all read sites; verified end-to-end via public widget and sauna-crm endpoints returning ORD-NEW."
+}

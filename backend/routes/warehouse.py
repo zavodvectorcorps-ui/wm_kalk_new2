@@ -254,7 +254,7 @@ async def get_warehouse_trips(
                 
                 # Try amocrm_id match
                 if not order:
-                    order = await collection.find_one({"amocrm_id": order_id}, {"_id": 0})
+                    order = await collection.find_one({"amocrm_id": order_id}, {"_id": 0}, sort=[("createdAt", -1)])
                 
                 # Try partial match (AMO-GH-12345 -> 12345)
                 if not order and order_id.isdigit():
