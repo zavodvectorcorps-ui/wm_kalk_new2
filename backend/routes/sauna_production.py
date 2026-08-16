@@ -1,9 +1,9 @@
 """Sauna Production routes - Production board for sauna orders."""
-from fastapi import APIRouter, HTTPException, Query, Depends
+from fastapi import APIRouter, HTTPException, Query, Depends, Request
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timezone
 from database import db
-from services.auth_service import get_current_user
+from services.auth_service import get_current_user, decode_token
 import logging
 import uuid
 
@@ -93,9 +93,9 @@ async def save_production_settings(data: dict):
 
 @router.get("/orders")
 async def get_production_orders(
+    request: Request,
     date_from: Optional[str] = None,
     date_to: Optional[str] = None,
-    user: dict = Depends(get_current_user),
 ):
     query = {"inProduction": True}
     if date_from or date_to:
@@ -107,8 +107,18 @@ async def get_production_orders(
         query["readyDate"] = date_q
 
     leads = await db.sauna_crm_leads.find(query, {"_id": 0}).to_list(1000)
-    # Margin is admin-only — never leak cost/margin to managers/foremen.
-    if user.get("role") in ("admin", "super-admin"):
+
+    # Optional admin detection — margin is admin-only, but auth must NEVER block
+    # the board from loading. Resolve the token if present; ignore any failure.
+    role = None
+    auth = request.headers.get("Authorization") or ""
+    if auth.startswith("Bearer "):
+        try:
+            payload = decode_token(auth.split(" ", 1)[1])
+            role = (payload or {}).get("role")
+        except Exception:
+            role = None
+    if role in ("admin", "super-admin"):
         await _enrich_orders_with_margin(leads)
     return {"orders": leads}
 
