@@ -245,13 +245,17 @@ async def _enrich_leads_with_kp_info(leads: List[dict]) -> None:
 
     kp_map: Dict[str, list] = {}
     if amo_ids:
-        # Match both string and int stored amocrm_id forms
+        # Match both string and int stored amocrm_id forms. Query only by amocrm_id so
+        # the (amocrm_id, created_at) index is fully used; filter `obsolete` in Python
+        # (a $ne in the query would prevent the index from serving the sort).
         query_ids = list(amo_ids) + [int(a) for a in amo_ids if a.isdigit()]
         pdf_docs = await db.calculator_pdfs.find(
-            {"amocrm_id": {"$in": query_ids}, "obsolete": {"$ne": True}},
-            {"_id": 0, "amocrm_id": 1, "order_id": 1, "created_at": 1, "filename": 1, "cloudinary_url": 1}
-        ).sort("created_at", 1).to_list(5000)
+            {"amocrm_id": {"$in": query_ids}},
+            {"_id": 0, "amocrm_id": 1, "order_id": 1, "created_at": 1, "filename": 1, "cloudinary_url": 1, "obsolete": 1}
+        ).sort("created_at", 1).to_list(3000)
         for p in pdf_docs:
+            if p.get("obsolete"):
+                continue
             kp_map.setdefault(str(p.get("amocrm_id")), []).append(p)
 
     for l, kp_doc in leads_with_kp:
