@@ -128,11 +128,14 @@ async def create_sauna_order(order: SaunaOrder):
 
 
 @router.get("/orders")
-async def get_sauna_orders(username: str = None, role: str = None, for_logistics: bool = False):
+async def get_sauna_orders(username: str = None, role: str = None, for_logistics: bool = False, light: bool = False):
     """Get sauna orders - admins see all, managers see only their own.
-    
+
     Args:
         for_logistics: If True, only return orders from amoCRM (for logistics page)
+        light: If True, exclude heavy fields (selectedOptions, selections, change/stage
+               history, images) — used by the orders list to stay fast. The full order
+               is fetched on demand via GET /orders/{id} for preview/edit/PDF.
     """
     query = {}
     
@@ -146,8 +149,14 @@ async def get_sauna_orders(username: str = None, role: str = None, for_logistics
             {"source": "amocrm"},
             {"amocrm_id": {"$exists": True, "$ne": None, "$ne": ""}},
         ]
-    
-    orders = await db.sauna_orders.find(query, {"_id": 0}).sort("createdAt", -1).to_list(5000)
+
+    projection = {"_id": 0}
+    if light:
+        projection.update({
+            "selectedOptions": 0, "selections": 0, "changeHistory": 0,
+            "stageHistory": 0, "modelImageUrl": 0, "layoutImageUrl": 0,
+        })
+    orders = await db.sauna_orders.find(query, projection).sort("createdAt", -1).to_list(5000)
     await _recompute_totals_bulk(orders)
     return orders
 

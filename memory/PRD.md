@@ -2569,3 +2569,15 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
 - Прим.: страница «Заказы» (/api/sauna/orders, to_list(5000) целиком) тормозит на проде —
   это существовавший ранее код, не мои правки. Предложена оптимизация (исключить changeHistory
   из списка / пагинация) — ждёт подтверждения пользователя.
+
+## Session — Aug 17, 2026 (4): ПЕРФОРМАНС (замерено на проде через curl)
+- Прод-замеры: /api/sauna/orders = 18.5 МБ / 11.8с (2230 заказов; selectedOptions=13.4МБ,
+  selections=1.4МБ); /api/sauna-crm/leads = 436 КБ / 11.4с.
+- FIX orders: `GET /api/sauna/orders?light=1` — projection исключает selectedOptions,
+  selections, changeHistory, stageHistory, modelImageUrl, layoutImageUrl (в списке не нужны;
+  _recompute_totals_bulk использует только subtotal/discountPercent/certificateDiscount).
+  OrdersPage.jsx: fetchOrders?light=1; новый ensureFullOrder(order) догружает полный заказ
+  через GET /orders/{id} в preview/edit/edit-in-calc/PDF/techspec. Проверено: предпросмотр ок.
+- FIX leads: KP-запрос к calculator_pdfs без obsolete-фильтра (в памяти) → индекс
+  (amocrm_id, created_at); только для лидов с KP-документом.
+- ⚠️ РЕДЕПЛОЙ обязателен.

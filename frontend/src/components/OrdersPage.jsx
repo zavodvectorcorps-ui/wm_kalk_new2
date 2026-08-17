@@ -129,21 +129,34 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
   const txt = texts[lang];
 
   // Open preview modal
-  const handlePreviewOrder = (order) => {
-    setPreviewOrder(order);
+  const ensureFullOrder = async (order) => {
+    if (!order || !order.id) return order;
+    if (order.selectedOptions !== undefined) return order; // already full (non-light)
+    try {
+      const ep = isSauna ? `${API_URL}/api/sauna/orders/${order.id}` : `${API_URL}/api/orders/${order.id}`;
+      const r = await axios.get(ep);
+      return r.data || order;
+    } catch (e) { return order; }
+  };
+
+  const handlePreviewOrder = async (order) => {
+    const full = await ensureFullOrder(order);
+    setPreviewOrder(full);
     setPreviewModalOpen(true);
   };
 
   // Open edit modal (quick edit for customer data, discount, gifts)
-  const handleEditOrder = (order) => {
-    setEditOrder(order);
+  const handleEditOrder = async (order) => {
+    const full = await ensureFullOrder(order);
+    setEditOrder(full);
     setEditModalOpen(true);
   };
   
   // Open order in calculator for full editing (model, options change)
-  const handleEditInCalculator = (order) => {
+  const handleEditInCalculator = async (order) => {
+    const full = await ensureFullOrder(order);
     if (onEditInCalculator) {
-      onEditInCalculator(order);
+      onEditInCalculator(full);
     }
   };
   
@@ -158,11 +171,11 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
 
   const fetchOrders = async () => {
     try {
-      let endpoint = isSauna ? `${API_URL}/api/sauna/orders` : `${API_URL}/api/orders`;
+      let endpoint = isSauna ? `${API_URL}/api/sauna/orders?light=1` : `${API_URL}/api/orders`;
       
       // Add user filtering params (managers see only their orders)
       if (user?.username && user?.role) {
-        endpoint += `?username=${encodeURIComponent(user.username)}&role=${encodeURIComponent(user.role)}`;
+        endpoint += `${isSauna ? '&' : '?'}username=${encodeURIComponent(user.username)}&role=${encodeURIComponent(user.role)}`;
       }
       
       const response = await axios.get(endpoint);
@@ -179,6 +192,7 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
   };
 
   const handleDownloadPDF = async (order, type = 'customer') => {
+    order = await ensureFullOrder(order);
     try {
       // For balia technical spec - use Excel production sheet
       if (!isSauna && type === 'technical') {
@@ -427,13 +441,15 @@ export const OrdersPage = ({ calculatorType = 'balia', onEditInCalculator }) => 
   };
 
   // Open Tech Spec Modal
-  const handleOpenTechSpec = (order) => {
-    setSelectedOrder(order);
+  const handleOpenTechSpec = async (order) => {
+    const full = await ensureFullOrder(order);
+    setSelectedOrder(full);
     setTechSpecModalOpen(true);
   };
 
   // Download existing Tech Spec PDF
   const handleDownloadTechSpec = async (order) => {
+    order = await ensureFullOrder(order);
     try {
       const techSpec = order.techSpec || {};
       const response = await axios.post(
