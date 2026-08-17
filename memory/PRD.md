@@ -2663,3 +2663,15 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
   pdf_data (батчами). Для уменьшения размера БД (после того как скорость починена индексом).
 - Проверено на preview: index-status, ensure-index (done, идемпотентно), migrate dry-run.
 - ⚠️ Нужен РЕДЕПЛОЙ. После: ensure-index на проде → подтвердить индекс → замерить /leads.
+
+## Session — Aug 17, 2026 (10): чистка pdf_data у ВСЕХ (старые — просто удаляем)
+- Диагностика прода подтвердила: calculator_pdfs имеет ТОЛЬКО индекс _id (ничего больше).
+  Построение индекса напрямую падает по socket-таймауту (коллекция огромна).
+- Решение пользователя: старые КП без cloudinary_url можно просто удалять pdf_data (не
+  переносить в Cloudinary).
+- FIX: cleanup эндпоинт получил параметр `?all=true` — удаляет pdf_data у ВСЕХ записей
+  батча (не только с cloudinary_url). Батчи + max_time_ms, off event loop.
+  Полный вызов: POST /api/integrations/amocrm/kp-cleanup-pdf-data?apply=true&all=true&batch=150
+  звать пока more=false.
+- ⚠️ Необратимо: у старых КП без cloudinary скачивание перестанет работать (согласовано).
+- ⚠️ Нужен РЕДЕПЛОЙ, затем прогнать чистку до конца и замерить /leads.
