@@ -1,0 +1,6 @@
+{
+  "resource": "https://spa-planner-replaced-1767401260.emergent.host/api/mcp",
+  "authorization_servers": ["https://al-spa.pl"],
+  "scopes_supported": ["mcp:use"],
+  "bearer_methods_supported": ["header"]
+}

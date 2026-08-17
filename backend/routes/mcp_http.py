@@ -202,7 +202,11 @@ def _authed(request: Request) -> bool:
 
 
 def _unauth_response(request: Request) -> JSONResponse:
-    meta = f'{_public_base(request)}/api/mcp/.well-known/oauth-protected-resource'
+    # If OAuth discovery is hosted externally (to work around the platform serving
+    # root /.well-known from the frontend with a wrong content-type), point Claude
+    # there via env MCP_OAUTH_METADATA_URL. Otherwise use the in-app /api metadata.
+    meta = os.environ.get("MCP_OAUTH_METADATA_URL") or \
+        f'{_public_base(request)}/api/mcp/.well-known/oauth-protected-resource'
     return JSONResponse(
         _rpc_error(None, -32001, "Unauthorized"), status_code=401,
         headers={"WWW-Authenticate":

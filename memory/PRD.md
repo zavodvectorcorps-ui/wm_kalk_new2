@@ -2787,3 +2787,17 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
 - Дальше: РЕДЕПЛОЙ (нужны и фронт-файлы, и бэк). Пользователю — переподключить коннектор БЕЗ ручного
   Client ID (авто-DCR). Если снова калькулятор/ошибка — снять логи прода через deployment_agent
   (в /oauth/register логируется входящий запрос Claude).
+
+## Session — Aug 18, 2026 (17): Option B — внешний хост OAuth-метаданных на al-spa.pl
+- Подтверждено support: платформа не роутит корневой /.well-known на бэкенд и не даёт задать
+  content-type статики. Решение — вынести 2 JSON-метаданных на внешний HTTPS-хост (hostido, al-spa.pl).
+- Backend: 401 resource_metadata теперь берётся из env MCP_OAUTH_METADATA_URL
+  (=https://al-spa.pl/.well-known/oauth-protected-resource). OAuth endpoints (register/authorize/
+  token) остаются на Emergent. issuer в метаданных = https://al-spa.pl (без пути → well-known строго
+  в корне, снимает RFC8414 неоднозначность insertion/append, которая, вероятно, ломала DCR у Claude).
+- Файлы для загрузки: /app/mcp/hostido/.well-known/{oauth-authorization-server,oauth-protected-resource,.htaccess}
+  (.htaccess форсит application/json + CORS). README: /app/mcp/hostido/README.md.
+- ВНИМАНИЕ: al-spa.pl сейчас НЕ отвечает по HTTPS (http=000) — пользователю нужно поднять сайт+SSL.
+- env добавлен: MCP_OAUTH_METADATA_URL. Нужен РЕДЕПЛОЙ.
+- Коннектор claude.ai: URL https://spa-planner-replaced-1767401260.emergent.host/api/mcp, Client ID/Secret пусто,
+  пароль страницы = MCP_OAUTH_PASSWORD (MQwRuzGxBYqF).
