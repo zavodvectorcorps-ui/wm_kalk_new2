@@ -263,24 +263,38 @@ async def authorization_server_metadata(request: Request):
 @router.post("/api/mcp/oauth/register")
 async def oauth_register(request: Request):
     """Dynamic Client Registration (RFC 7591) — public client, no secret."""
+    body = {}
     try:
         body = await request.json()
     except Exception:
-        body = {}
+        try:
+            form = await request.form()
+            body = dict(form)
+        except Exception:
+            body = {}
+    import logging
+    logging.getLogger(__name__).info("MCP DCR request: %s", _json.dumps(body)[:500])
     client_id = "mcp-" + secrets.token_urlsafe(16)
     redirect_uris = body.get("redirect_uris") or []
+    if isinstance(redirect_uris, str):
+        redirect_uris = [redirect_uris]
+    now = datetime.now(timezone.utc)
     await db.mcp_oauth_clients.insert_one({
         "client_id": client_id,
         "redirect_uris": redirect_uris,
         "client_name": body.get("client_name"),
-        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": now.isoformat(),
     })
     resp = {
         "client_id": client_id,
+        "client_id_issued_at": int(now.timestamp()),
+        "client_secret_expires_at": 0,
         "redirect_uris": redirect_uris,
+        "client_name": body.get("client_name") or "claude",
         "token_endpoint_auth_method": "none",
         "grant_types": ["authorization_code", "refresh_token"],
         "response_types": ["code"],
+        "scope": "mcp:use",
     }
     return JSONResponse(resp, status_code=201)
 

@@ -679,6 +679,8 @@ allowed_origins = [
     "https://spa-planner.emergent.host",
     "https://excel-mapping.emergent.host",
     "https://spa-planner-replaced-1767401260.emergent.host",
+    "https://claude.ai",
+    "https://claude.com",
     "http://localhost:3000",
     "http://localhost:8001",
 ]
