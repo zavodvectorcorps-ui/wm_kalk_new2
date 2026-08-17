@@ -2636,3 +2636,12 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
   откатить (POST .../rollback/{v}). Использует существующие эндпоинты amocrm.
 - Проверено на PREVIEW: список версий, модалка, откат v2→v1 (currentVersion меняется). E2E скрин ок.
 - ⚠️ Изменения бэкенда+фронта в preview → нужен РЕДЕПЛОЙ на новый прод-URL.
+
+## Session — Aug 17, 2026 (8): чистка pdf_data сделана БАТЧЕВОЙ
+- Проблема: на проде даже count_documents по calculator_pdfs = таймаут (коллекция огромна).
+- FIX: `POST /api/integrations/amocrm/kp-cleanup-pdf-data?apply=&batch=150` переписан на
+  батчевый режим: берёт порцию из `batch` документов с pdf_data (projection _id+cloudinary_url,
+  max_time_ms=25000), unset pdf_data только у тех, где есть cloudinary_url; выполняется через
+  asyncio.to_thread (не блокирует loop). Возвращает `more` — звать повторно пока more=false.
+- Проверено на preview: batch=50 → found 2, cleanable 0 (нет cloudinary в тестовых), more=false.
+- ⚠️ Нужен РЕДЕПЛОЙ (эта правка + версии КП из сессии 7 ещё не на проде).

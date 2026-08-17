@@ -2833,40 +2833,52 @@ async def download_calculator_pdf(order_id: str):
     )
 
 @router.post("/kp-cleanup-pdf-data")
-async def kp_cleanup_pdf_data(apply: bool = False):
-    """Maintenance: strip the heavy `pdf_data` bytes from calculator_pdfs docs that
-    already have a `cloudinary_url` (the PDF is safely hosted on Cloudinary, so the
-    in-DB copy only bloats the collection and causes read timeouts).
+async def kp_cleanup_pdf_data(apply: bool = False, batch: int = 150):
+    """Maintenance: strip heavy `pdf_data` bytes from calculator_pdfs docs that already
+    have a `cloudinary_url`. The collection is so bloated that even count_documents()
+    times out, so we work in small ID batches (each reads only `batch` heavy docs) and
+    run off the event loop. Call repeatedly until `more=false`.
 
-    - GET-style dry run (default): returns counts, changes nothing.
-    - `?apply=true`: unsets pdf_data on the cleanable docs.
-    Docs WITHOUT a cloudinary_url are never touched (they keep serving from the DB).
+    - dry run (default): reports how many of the next batch are cleanable, changes nothing.
+    - `?apply=true`: unsets pdf_data on the cleanable docs in this batch.
+    Docs WITHOUT a cloudinary_url are never touched.
     """
     col = db["calculator_pdfs"]
-    total = col.count_documents({})
-    with_pdf = col.count_documents({"pdf_data": {"$exists": True, "$ne": None}})
-    cleanable = col.count_documents({
-        "pdf_data": {"$exists": True, "$ne": None},
-        "cloudinary_url": {"$exists": True, "$nin": [None, ""]},
-    })
-    kept_no_cloud = with_pdf - cleanable
-    result = {
-        "total_docs": total,
-        "with_pdf_data": with_pdf,
-        "cleanable_has_cloudinary": cleanable,
-        "kept_no_cloudinary": kept_no_cloud,
-        "applied": False,
-        "modified": 0,
-    }
-    if apply and cleanable:
-        r = col.update_many(
-            {"pdf_data": {"$exists": True, "$ne": None},
-             "cloudinary_url": {"$exists": True, "$nin": [None, ""]}},
-            {"$unset": {"pdf_data": ""}},
+
+    def _work():
+        # Fetch a bounded batch of docs that still carry pdf_data. Projection keeps only
+        # the id + cloudinary flag, but reading still touches heavy docs — hence the
+        # small batch + max_time_ms. Cleaned docs drop out of this filter next time.
+        docs = list(
+            col.find(
+                {"pdf_data": {"$exists": True, "$ne": None}},
+                {"_id": 1, "cloudinary_url": 1},
+            ).max_time_ms(25000).limit(batch)
         )
-        result["applied"] = True
-        result["modified"] = r.modified_count
-    return result
+        found = len(docs)
+        cleanable_ids = [d["_id"] for d in docs if d.get("cloudinary_url")]
+        kept_no_cloud = found - len(cleanable_ids)
+        modified = 0
+        applied = False
+        if apply and cleanable_ids:
+            r = col.update_many({"_id": {"$in": cleanable_ids}}, {"$unset": {"pdf_data": ""}})
+            modified = r.modified_count
+            applied = True
+        return {
+            "batch_size": batch,
+            "found_with_pdf_data": found,
+            "cleanable_has_cloudinary": len(cleanable_ids),
+            "kept_no_cloudinary": kept_no_cloud,
+            "applied": applied,
+            "modified": modified,
+            # if this batch was full there are almost certainly more docs to process
+            "more": found >= batch,
+        }
+
+    try:
+        return await asyncio.to_thread(_work)
+    except Exception as e:
+        return {"error": str(e), "hint": "reduce ?batch= or retry"}
 
 
 
