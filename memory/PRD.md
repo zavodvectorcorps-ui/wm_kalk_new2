@@ -2581,3 +2581,26 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
 - FIX leads: KP-запрос к calculator_pdfs без obsolete-фильтра (в памяти) → индекс
   (amocrm_id, created_at); только для лидов с KP-документом.
 - ⚠️ РЕДЕПЛОЙ обязателен.
+
+## Session — Aug 17, 2026 (5): корень 10с /leads + фикс дублей КП/телефонов
+- ДИАГНОЗ (замерено на ПРОДЕ через curl): /leads = 10.36с при ответе всего 371 КБ (75 лидов) —
+  дело НЕ в объёме. /settings и /calendar по той же базе = 0.13с. debug-kp по calculator_pdfs
+  падает через ~10с с "The read operation timed out". Корень: любой запрос к calculator_pdfs
+  упирается в socketTimeout (коллекция огромная, base64-PDF внутри, рабочего индекса нет).
+  `_enrich_leads_with_kp_info` в /leads делает такой запрос → 10с (потом ловится try/except).
+- FIX 1 `_enrich_leads_with_kp_info`: убран DB-sort (сортировка в Python), добавлен
+  `.max_time_ms(4000)` → худший случай доски 4с вместо 10с даже без индекса.
+- FIX 2 `/kp-duplicates`: переписан — вместо полного скана calculator_pdfs берём amocrm_id из
+  sauna_crm_leads (маленькая коллекция) и делаем ОДИН индексируемый `$in` по calculator_pdfs
+  (pdf_data исключён, max_time_ms=8000), группируем в Python с нормализацией amocrm_id к строке
+  (ловит смешанные int/str). Это чинило toast "Ошибка загрузки дублей КП" (был таймаут).
+- FIX 3 `/leads/{id}/kp-duplicates`: поиск по amocrm_id ИЛИ order_id из документов лида +
+  calculatorOrderId (ловит КП без amocrm_id), дедуп по _id, max_time_ms=6000.
+- FIX 4 `/duplicates`: телефоны нормализуются (только цифры, последние 9) и группируются в
+  Python → разное форматирование одного номера теперь схлопывается; amocrm_id к строке.
+- FIX 5 server.py: добавлен индекс `calculator_pdfs.created_at` (плюс существующий compound
+  (amocrm_id, created_at)).
+- Проверено на PREVIEW: /leads 0.13с, /kp-duplicates 2 группы (без ошибки), per-lead 2 КП,
+  /duplicates без ошибок. Прод-проверка — ПОСЛЕ РЕДЕПЛОЯ.
+- ⚠️ РЕДЕПЛОЙ ОБЯЗАТЕЛЕН. После деплоя индексы соберутся в фоне (Atlas), запросы станут <1с;
+  max_time_ms гарантирует отсутствие 10с-зависания даже во время построения индекса.

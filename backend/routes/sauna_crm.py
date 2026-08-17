@@ -246,17 +246,22 @@ async def _enrich_leads_with_kp_info(leads: List[dict]) -> None:
     kp_map: Dict[str, list] = {}
     if amo_ids:
         # Match both string and int stored amocrm_id forms. Query only by amocrm_id so
-        # the (amocrm_id, created_at) index is fully used; filter `obsolete` in Python
-        # (a $ne in the query would prevent the index from serving the sort).
+        # the (amocrm_id, created_at) index prefix serves the lookup. Do NOT sort in the
+        # DB (a global sort would force a merge/scan on a huge collection and time out);
+        # sort in Python instead. Bound with max_time_ms so a slow/unindexed collection
+        # never blocks the whole board — enrichment is a non-essential badge.
         query_ids = list(amo_ids) + [int(a) for a in amo_ids if a.isdigit()]
         pdf_docs = await db.calculator_pdfs.find(
             {"amocrm_id": {"$in": query_ids}},
             {"_id": 0, "amocrm_id": 1, "order_id": 1, "created_at": 1, "filename": 1, "cloudinary_url": 1, "obsolete": 1}
-        ).sort("created_at", 1).to_list(3000)
+        ).max_time_ms(4000).to_list(3000)
         for p in pdf_docs:
             if p.get("obsolete"):
                 continue
             kp_map.setdefault(str(p.get("amocrm_id")), []).append(p)
+        # oldest -> newest within each amocrm_id (was previously done by the DB sort)
+        for lst in kp_map.values():
+            lst.sort(key=lambda x: x.get("created_at") or "")
 
     for l, kp_doc in leads_with_kp:
         versions = kp_map.get(str(l.get("amocrm_id")), [])
@@ -1250,40 +1255,35 @@ async def deduplicate_crm_leads():
 async def find_duplicate_leads():
     """Find groups of duplicate leads. Two strategies:
        1. Same amocrm_id — clear duplicates from sync.
-       2. Same phone OR same (clientName lowercase) — possible same client from different channels.
+       2. Same normalized phone (digits only, last 9) — same client from different channels.
+       Grouping is done in Python so mixed formatting / mixed int-str amocrm_id
+       still collapses into one group.
     """
-    # By amocrm_id (only when amocrm_id is non-empty)
-    by_amo = await db.sauna_crm_leads.aggregate([
-        {"$match": {"amocrm_id": {"$nin": [None, ""]}}},
-        {"$group": {
-            "_id": "$amocrm_id",
-            "count": {"$sum": 1},
-            "leads": {"$push": {"id": "$id", "clientName": "$clientName", "phone": "$phone",
-                                "createdAt": "$createdAt", "stageId": "$stageId",
-                                "totalAmount": "$totalAmount", "manager": "$manager"}}
-        }},
-        {"$match": {"count": {"$gt": 1}}},
-        {"$limit": 200}
-    ]).to_list(length=200)
+    import re
+    leads = await db.sauna_crm_leads.find(
+        {}, {"_id": 0, "id": 1, "clientName": 1, "phone": 1, "createdAt": 1,
+             "stageId": 1, "amocrm_id": 1, "totalAmount": 1, "manager": 1}
+    ).to_list(10000)
 
-    # By phone (normalized — only digits, last 9)
-    by_phone = await db.sauna_crm_leads.aggregate([
-        {"$match": {"phone": {"$nin": [None, ""]}}},
-        {"$group": {
-            "_id": "$phone",
-            "count": {"$sum": 1},
-            "leads": {"$push": {"id": "$id", "clientName": "$clientName", "phone": "$phone",
-                                "createdAt": "$createdAt", "stageId": "$stageId", "amocrm_id": "$amocrm_id",
-                                "totalAmount": "$totalAmount", "manager": "$manager"}}
-        }},
-        {"$match": {"count": {"$gt": 1}}},
-        {"$limit": 200}
-    ]).to_list(length=200)
+    def _norm_phone(p):
+        digits = re.sub(r"\D", "", str(p or ""))
+        return digits[-9:] if len(digits) >= 9 else (digits or None)
 
-    return {
-        "byAmoId": [{"key": d["_id"], "count": d["count"], "leads": d["leads"]} for d in by_amo],
-        "byPhone": [{"key": d["_id"], "count": d["count"], "leads": d["leads"]} for d in by_phone],
-    }
+    amo_groups: Dict[str, list] = {}
+    phone_groups: Dict[str, list] = {}
+    for l in leads:
+        amo = l.get("amocrm_id")
+        if amo not in (None, ""):
+            amo_groups.setdefault(str(amo), []).append(l)
+        ph = _norm_phone(l.get("phone"))
+        if ph:
+            phone_groups.setdefault(ph, []).append(l)
+
+    by_amo = [{"key": k, "count": len(v), "leads": v} for k, v in amo_groups.items() if len(v) > 1]
+    by_phone = [{"key": k, "count": len(v), "leads": v} for k, v in phone_groups.items() if len(v) > 1]
+    by_amo.sort(key=lambda g: -g["count"])
+    by_phone.sort(key=lambda g: -g["count"])
+    return {"byAmoId": by_amo[:200], "byPhone": by_phone[:200]}
 
 
 @router.post("/merge-duplicates")
@@ -1403,45 +1403,73 @@ async def _linked_kp_ref(amocrm_id) -> tuple:
 
 @router.get("/kp-duplicates")
 async def find_kp_duplicates(include_obsolete: bool = Query(True)):
-    """Global sweep: amoCRM deals that have MORE THAN ONE КП (calculator_pdfs).
+    """Global sweep: CRM deals that have MORE THAN ONE КП (calculator_pdfs).
 
-    Returns one group per amoCRM id, each with the full ordered list of КП
-    (oldest→newest) so the user can decide per-item what to keep/mark/delete.
+    Scoped to amoCRM ids that exist in `sauna_crm_leads` (the only actionable /
+    displayable dupes) so we hit the (amocrm_id, created_at) index via an $in
+    lookup instead of scanning the whole — potentially huge — calculator_pdfs
+    collection (which times out on production). Grouping is normalized to string
+    to catch КП stored with mixed int/str amocrm_id forms.
     """
-    match = {"amocrm_id": {"$nin": [None, ""]}}
+    # 1. Collect amocrm_id + linked KP refs from all leads (small, fast collection).
+    leads = await db.sauna_crm_leads.find(
+        {"amocrm_id": {"$nin": [None, ""]}},
+        {"_id": 0, "id": 1, "clientName": 1, "amocrm_id": 1, "documents": 1}
+    ).to_list(5000)
+    if not leads:
+        return {"groups": [], "total": 0}
+
+    lead_by_amo: Dict[str, dict] = {}
+    query_ids: set = set()
+    for l in leads:
+        amo = l.get("amocrm_id")
+        if amo in (None, ""):
+            continue
+        skey = str(amo)
+        lead_by_amo.setdefault(skey, l)
+        query_ids.add(skey)
+        if skey.isdigit():
+            query_ids.add(int(skey))
+
+    # 2. One indexed lookup for all КП of those deals (pdf_data excluded).
+    pdf_filter = {"amocrm_id": {"$in": list(query_ids)}}
     if not include_obsolete:
-        match["obsolete"] = {"$ne": True}
-    pipeline = [
-        {"$match": match},
-        {"$group": {"_id": "$amocrm_id", "count": {"$sum": 1}}},
-        {"$match": {"count": {"$gt": 1}}},
-        {"$sort": {"count": -1}},
-        {"$limit": 200},
-    ]
-    groups_raw = await db.calculator_pdfs.aggregate(pipeline).to_list(200)
+        pdf_filter["obsolete"] = {"$ne": True}
+    all_pdfs = await db.calculator_pdfs.find(
+        pdf_filter, {"pdf_data": 0}
+    ).max_time_ms(8000).to_list(5000)
+
+    # 3. Group in Python, normalizing amocrm_id to string.
+    by_amo: Dict[str, list] = {}
+    for p in all_pdfs:
+        by_amo.setdefault(str(p.get("amocrm_id")), []).append(p)
 
     groups = []
-    for g in groups_raw:
-        amo = g["_id"]
-        query_ids = [str(amo)] + ([int(amo)] if str(amo).isdigit() else [])
-        pdfs = await db.calculator_pdfs.find(
-            {"amocrm_id": {"$in": query_ids}},
-            {"pdf_data": 0}
-        ).sort("created_at", 1).to_list(200)
-        lead, linked_url, linked_order = await _linked_kp_ref(amo)
+    for amo, pdfs in by_amo.items():
+        if len(pdfs) <= 1:
+            continue
+        pdfs.sort(key=lambda x: x.get("created_at") or "")
+        lead = lead_by_amo.get(amo)
+        linked_url = linked_order = None
+        if lead:
+            kp_doc = next((d for d in (lead.get("documents") or []) if d.get("type") == "kp"), None)
+            if kp_doc:
+                linked_url = kp_doc.get("url")
+                linked_order = kp_doc.get("orderId")
         rows = [
             _build_kp_row(p, linked_url, linked_order, i + 1, i == len(pdfs) - 1)
             for i, p in enumerate(pdfs)
         ]
         groups.append({
-            "amocrm_id": str(amo),
+            "amocrm_id": amo,
             "count": len(rows),
             "leadId": lead.get("id") if lead else None,
             "clientName": (lead.get("clientName") if lead else None)
                           or next((r["clientName"] for r in reversed(rows) if r.get("clientName")), ""),
             "pdfs": rows,
         })
-    return {"groups": groups, "total": len(groups)}
+    groups.sort(key=lambda g: -g["count"])
+    return {"groups": groups[:200], "total": len(groups)}
 
 
 @router.get("/leads/{lead_id}/kp-duplicates")
@@ -1451,20 +1479,42 @@ async def lead_kp_duplicates(lead_id: str):
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")
     amo = lead.get("amocrm_id")
-    if not amo:
+    kp_docs_on_lead = [d for d in (lead.get("documents") or []) if d.get("type") == "kp"]
+    order_ids = [d.get("orderId") for d in kp_docs_on_lead if d.get("orderId")]
+    if lead.get("calculatorOrderId"):
+        order_ids.append(lead.get("calculatorOrderId"))
+
+    or_clauses = []
+    if amo:
+        query_ids = [str(amo)] + ([int(amo)] if str(amo).isdigit() else [])
+        or_clauses.append({"amocrm_id": {"$in": query_ids}})
+    if order_ids:
+        or_clauses.append({"order_id": {"$in": list(set(order_ids))}})
+    if not or_clauses:
         return {"amocrm_id": None, "leadId": lead_id, "clientName": lead.get("clientName"), "count": 0, "pdfs": []}
-    query_ids = [str(amo)] + ([int(amo)] if str(amo).isdigit() else [])
+
     pdfs = await db.calculator_pdfs.find(
-        {"amocrm_id": {"$in": query_ids}}, {"pdf_data": 0}
-    ).sort("created_at", 1).to_list(200)
-    kp_doc = next((d for d in (lead.get("documents") or []) if d.get("type") == "kp"), None)
+        {"$or": or_clauses}, {"pdf_data": 0}
+    ).max_time_ms(6000).to_list(200)
+    # dedupe by _id (a doc could match both amocrm_id and order_id clauses) & sort oldest->newest
+    seen_ids = set()
+    uniq = []
+    for p in pdfs:
+        pid = str(p.get("_id"))
+        if pid in seen_ids:
+            continue
+        seen_ids.add(pid)
+        uniq.append(p)
+    uniq.sort(key=lambda x: x.get("created_at") or "")
+    pdfs = uniq
+    kp_doc = kp_docs_on_lead[0] if kp_docs_on_lead else None
     linked_url = kp_doc.get("url") if kp_doc else None
     linked_order = kp_doc.get("orderId") if kp_doc else None
     rows = [
         _build_kp_row(p, linked_url, linked_order, i + 1, i == len(pdfs) - 1)
         for i, p in enumerate(pdfs)
     ]
-    return {"amocrm_id": str(amo), "leadId": lead_id, "clientName": lead.get("clientName"),
+    return {"amocrm_id": str(amo) if amo else None, "leadId": lead_id, "clientName": lead.get("clientName"),
             "count": len(rows), "pdfs": rows}
 
 

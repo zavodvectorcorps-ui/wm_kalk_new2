@@ -486,6 +486,7 @@ async def create_indexes():
     # Compound indexes for fast "freshest KP" lookups (sort by createdAt desc within an amocrm_id)
     try:
         await db.calculator_pdfs.create_index([("amocrm_id", 1), ("created_at", -1)])
+        await db.calculator_pdfs.create_index("created_at")
         await db.sauna_orders.create_index([("amocrm_id", 1), ("createdAt", -1)])
         await db.balia_orders.create_index([("amocrm_id", 1), ("createdAt", -1)])
         await db.orders.create_index([("amocrm_id", 1), ("createdAt", -1)])
