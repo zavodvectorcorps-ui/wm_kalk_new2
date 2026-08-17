@@ -2688,3 +2688,29 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
 - Проблема пользователя «не видит дубли ни по телефону, ни по КП» — решена (был таймаут).
 - Данные/индекс правились на прод-БД напрямую через maintenance-эндпоинты — сохраняются,
   повторный редеплой для этого не нужен.
+
+## Session — Aug 17, 2026 (12): роль ai_agent (Claude) + MCP-коннектор
+- Авторизация: сервисный Bearer-ключ `AI_AGENT_SERVICE_KEY` (в backend/.env, вне репо).
+  Реализовано по integration-плейбуку: combined-auth (сервисный ключ ЛИБО admin-JWT),
+  hmac.compare_digest, fail-closed. Файл services/ai_agent_auth.py (принципал, require_scope,
+  log_ai_action -> ai_agent_audit, make/verify_diff_token — JWT, TTL 15 мин).
+- Роутер routes/ai_agent.py, префикс /api/ai (зарегистрирован в server.py):
+  READ (все разделы): /context, /orders, /orders/{id}, /pricing, /tech-cards[/{id}],
+  /components, /procurement/requests, /audit.
+  WRITE двухшагово (preview->apply, token): /orders/{id}/update (status|comment|assignee),
+  /orders/{id}/recalculate (только totalCost+margin, НЕ total клиента),
+  /components/{id}/purchase-price (forward-only, recompute affected cards),
+  /tech-cards/{id}/update (items|note, recompute-and-sync). Всё пишет в ai_agent_audit.
+- Переиспользованы: sauna_orders._recompute_one/_flatten_options; sauna_tech_cards._recompute_and_sync.
+- MCP-сервер (Этап 4): /app/mcp/alicor_mcp_server.py (fastmcp, stdio) + requirements.txt +
+  README.md (подключение к Claude Desktop) + AGENT_GUIDE.md (инструкция агенту о сервисе/правилах).
+  ВАЖНО: fastmcp НЕ ставить в backend venv (конфликт starlette с FastAPI) — MCP запускается
+  отдельным процессом у пользователя. В backend venv fastmcp/mcp/sse-starlette удалены, starlette
+  возвращён к 0.37.2.
+- Тесты (preview): 401 без/с неверным ключом; сервисный ключ (header и Bearer) ok; admin-JWT ok;
+  non-admin JWT 401; order update preview->apply; bad token 400; component price preview->apply;
+  recalc preview->apply (total не меняется); audit пишется (initiator maxim_via_claude).
+- ⚠️ Для ПРОДА: нужен РЕДЕПЛОЙ + переменная AI_AGENT_SERVICE_KEY должна быть в prod-окружении
+  (если деплой не подхватит из backend/.env — задать через секреты деплоя/поддержку). Иначе
+  /api/ai fail-closed (401).
+- Ключ AI_AGENT_SERVICE_KEY хранится в /app/backend/.env (не печатать в чат/логи/фронт).
