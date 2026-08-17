@@ -1,6 +1,6 @@
 """amoCRM webhook integration routes."""
 from fastapi import APIRouter, HTTPException, Request, Header
-from fastapi.responses import Response
+from fastapi.responses import Response, RedirectResponse
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timezone
@@ -2447,12 +2447,16 @@ async def upload_calculator_pdf_to_amocrm(
                 cloudinary_url = cloudinary_result["url"]
                 cloudinary_uploaded = True
                 logger.info(f"PDF uploaded to Cloudinary: {cloudinary_url}")
-                # Also store cloudinary_url in calculator_pdfs for easy access
+                # Also store cloudinary_url in calculator_pdfs for easy access.
+                # Drop the raw pdf_data — the file now lives on Cloudinary, so keeping
+                # the bytes in Mongo only bloats the collection (root cause of the
+                # calculator_pdfs read timeouts). Downloads redirect to cloudinary_url.
                 try:
                     pdf_collection = db["calculator_pdfs"]
                     pdf_collection.update_one(
                         {"order_id": order_id},
-                        {"$set": {"cloudinary_url": cloudinary_url}}
+                        {"$set": {"cloudinary_url": cloudinary_url},
+                         "$unset": {"pdf_data": ""}}
                     )
                 except Exception:
                     pass
@@ -2805,10 +2809,18 @@ async def download_calculator_pdf(order_id: str):
     
     pdf_collection = db["calculator_pdfs"]
     pdf_doc = pdf_collection.find_one({"order_id": order_id}, {"_id": 0})
-    
-    if not pdf_doc or not pdf_doc.get("pdf_data"):
+
+    if not pdf_doc:
         return {"status": "error", "message": "PDF not found"}
-    
+
+    # PDF bytes are no longer stored in the DB once the file is on Cloudinary —
+    # redirect to the hosted copy instead of serving from the (bloated) DB.
+    if not pdf_doc.get("pdf_data"):
+        cloud = pdf_doc.get("cloudinary_url")
+        if cloud:
+            return RedirectResponse(url=cloud)
+        return {"status": "error", "message": "PDF not found"}
+
     pdf_bytes = pdf_doc["pdf_data"]
     filename = pdf_doc.get("filename", f"KP_{order_id}.pdf")
     
@@ -2819,6 +2831,44 @@ async def download_calculator_pdf(order_id: str):
             "Content-Disposition": f'attachment; filename="{filename}"'
         }
     )
+
+@router.post("/kp-cleanup-pdf-data")
+async def kp_cleanup_pdf_data(apply: bool = False):
+    """Maintenance: strip the heavy `pdf_data` bytes from calculator_pdfs docs that
+    already have a `cloudinary_url` (the PDF is safely hosted on Cloudinary, so the
+    in-DB copy only bloats the collection and causes read timeouts).
+
+    - GET-style dry run (default): returns counts, changes nothing.
+    - `?apply=true`: unsets pdf_data on the cleanable docs.
+    Docs WITHOUT a cloudinary_url are never touched (they keep serving from the DB).
+    """
+    col = db["calculator_pdfs"]
+    total = col.count_documents({})
+    with_pdf = col.count_documents({"pdf_data": {"$exists": True, "$ne": None}})
+    cleanable = col.count_documents({
+        "pdf_data": {"$exists": True, "$ne": None},
+        "cloudinary_url": {"$exists": True, "$nin": [None, ""]},
+    })
+    kept_no_cloud = with_pdf - cleanable
+    result = {
+        "total_docs": total,
+        "with_pdf_data": with_pdf,
+        "cleanable_has_cloudinary": cleanable,
+        "kept_no_cloudinary": kept_no_cloud,
+        "applied": False,
+        "modified": 0,
+    }
+    if apply and cleanable:
+        r = col.update_many(
+            {"pdf_data": {"$exists": True, "$ne": None},
+             "cloudinary_url": {"$exists": True, "$nin": [None, ""]}},
+            {"$unset": {"pdf_data": ""}},
+        )
+        result["applied"] = True
+        result["modified"] = r.modified_count
+    return result
+
+
 
 
 @router.get("/calculator-pdf-versions/{order_id}")

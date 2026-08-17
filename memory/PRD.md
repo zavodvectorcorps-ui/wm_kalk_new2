@@ -2604,3 +2604,20 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
   /duplicates без ошибок. Прод-проверка — ПОСЛЕ РЕДЕПЛОЯ.
 - ⚠️ РЕДЕПЛОЙ ОБЯЗАТЕЛЕН. После деплоя индексы соберутся в фоне (Atlas), запросы станут <1с;
   max_time_ms гарантирует отсутствие 10с-зависания даже во время построения индекса.
+
+## Session — Aug 17, 2026 (6): устранение КОРНЯ — pdf_data дублируется при живом Cloudinary
+- Находка: при генерации КП сырой PDF (`pdf_data`) писался в calculator_pdfs (1/заказ) И в
+  calculator_pdf_versions (до 10/заказ), ПРИ ТОМ что PDF уже заливается в Cloudinary
+  (cloudinary_url). Именно pdf_data в базе раздувал calculator_pdfs → таймауты чтения.
+- FIX A: `GET /api/integrations/amocrm/calculator-pdf/{order_id}` — если pdf_data нет, делает
+  RedirectResponse на cloudinary_url (иначе fallback на pdf_data). Импортирован RedirectResponse.
+- FIX B: после успешной заливки в Cloudinary calculator_pdfs теперь `$unset pdf_data` (храним
+  только ссылку). Если Cloudinary недоступен — pdf_data остаётся как fallback.
+- FIX C (разовая чистка): `POST /api/integrations/amocrm/kp-cleanup-pdf-data` — dry-run по
+  умолчанию (возвращает counts), `?apply=true` обнуляет pdf_data ТОЛЬКО у записей с
+  cloudinary_url. Записи без cloudinary_url не трогаются (качаются из базы как раньше).
+- calculator_pdf_versions НЕ трогаем (по умолчанию пользователя) — там нет per-версия
+  cloudinary_url; download версии по-прежнему из pdf_data.
+- Редактирование заказа не затронуто (берёт данные из sauna_orders, а не pdf_data).
+- Проверено на PREVIEW: dry-run отвечает корректно (total/with_pdf/cleanable).
+- ⚠️ ПОСЛЕ РЕДЕПЛОЯ: 1) прогнать dry-run на проде; 2) выполнить `?apply=true` для чистки.
