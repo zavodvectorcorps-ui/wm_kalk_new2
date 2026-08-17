@@ -2769,3 +2769,21 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
 - Возможный риск: если Claude ищет AS-metadata по root-insertion (/.well-known/...-server/api/mcp),
   путь уйдёт на фронт. Мы отдаём по path-append ({issuer}/.well-known/...), как в MCP-спеке. Если
   discovery не сработает — смотреть, какой URL дёргает Claude, и добавить.
+
+## Session — Aug 18, 2026 (16): фикс OAuth discovery (Claude открывал калькулятор)
+- Причина: корневые /.well-known/oauth-* на проде отдавали HTML фронтенда (калькулятор),
+  а не JSON. Claude при discovery получал калькулятор → авторизация ломалась/открывался калькулятор.
+- Фикс: добавлены статические файлы frontend/public/.well-known/oauth-authorization-server и
+  oauth-protected-resource (issuer=origin, endpoints=/api/mcp/oauth/*) — резервная корневая цепочка.
+  ВНИМАНИЕ: фронтенд отдаёт их с Content-Type application/octet-stream (не json) — риск, если Claude
+  строг к content-type.
+- Основная цепочка — на бэкенде (RFC 9728): 401 → resource_metadata (/api/mcp/.well-known/
+  oauth-protected-resource, application/json) → authorization_servers=[{base}/api/mcp] → append
+  AS metadata (/api/mcp/.well-known/oauth-authorization-server, application/json) → DCR/authorize/token.
+  Проверено на preview e2e (append): DCR→authorize(пароль)→token→MCP initialize 200.
+- Также усилён DCR (полный RFC7591 ответ + логирование входящего запроса) и добавлены claude.ai/
+  claude.com в CORS.
+- Бэкенд: uvicorn --workers 1 (in-memory сессии MCP ок; "different loop" был деплой-транзиент).
+- Дальше: РЕДЕПЛОЙ (нужны и фронт-файлы, и бэк). Пользователю — переподключить коннектор БЕЗ ручного
+  Client ID (авто-DCR). Если снова калькулятор/ошибка — снять логи прода через deployment_agent
+  (в /oauth/register логируется входящий запрос Claude).

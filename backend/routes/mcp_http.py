@@ -238,8 +238,8 @@ async def _forward(tool: dict, args: dict) -> dict:
 # ---- OAuth 2.1 discovery + endpoints (all under /api so ingress routes here) ----
 @router.get("/api/mcp/.well-known/oauth-protected-resource")
 async def protected_resource_metadata(request: Request):
-    base = _public_base(request)
-    return {"resource": _resource(request), "authorization_servers": [f"{base}/api/mcp"],
+    return {"resource": _resource(request),
+            "authorization_servers": [f"{_public_base(request)}/api/mcp"],
             "scopes_supported": ["mcp:use"],
             "bearer_methods_supported": ["header"]}
 
