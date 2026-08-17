@@ -77,3 +77,36 @@ python alicor_mcp_server.py   # запустится stdio-сервер; Ctrl+C 
 См. `AGENT_GUIDE.md` (полный список и сценарии). Все записи — двухшаговые
 (`*_preview` → показать diff → `*_apply` с token). Цена клиента (`total`) никогда
 не меняется автоматически.
+
+---
+
+## Remote-подключение к claude.ai (custom connector) — БЕЗ локального сервера
+
+Помимо локального stdio-сервера, бэкенд теперь сам отдаёт remote-MCP по HTTPS
+(Streamable HTTP), поэтому коннектор доступен постоянно и не завязан на ваш ПК.
+
+**URL коннектора:**
+```
+https://spa-planner-replaced-1767401260.emergent.host/api/mcp
+```
+
+**Авторизация:** тип — **Request headers** (заголовок запроса).
+Заголовок: `Authorization`, значение: `Bearer <MCP_BEARER_TOKEN>`.
+`MCP_BEARER_TOKEN` — отдельный публичный токен коннектора (НЕ равен внутреннему
+`AI_AGENT_SERVICE_KEY`, который остаётся только на сервере и наружу не выходит).
+
+### Как добавить в claude.ai
+1. Customize → Connectors → **Add custom connector**.
+2. URL: `https://spa-planner-replaced-1767401260.emergent.host/api/mcp`.
+3. Тип авторизации: **Request headers** → добавьте `Authorization` = `Bearer <ваш MCP_BEARER_TOKEN>`.
+4. Add → Connect. Появятся инструменты (get_context, list_orders, *_preview/apply и т.д.).
+5. Вставьте `AGENT_GUIDE.md` в инструкции проекта Claude.
+
+> Заголовочная авторизация в claude.ai сейчас в бете. Если ваш аккаунт её не
+> показывает — напишите, добавлю полноценный OAuth (authorize/token/DCR/PKCE);
+> метаданные ресурса (`/.well-known/oauth-protected-resource`) сервер уже отдаёт,
+> так что апгрейд до OAuth — следующий шаг без переделки инструментов.
+
+Ротация доступа: смените `MCP_BEARER_TOKEN` в env бэкенда и передеплойте — старый
+токен сразу перестанет работать. Внутренний `AI_AGENT_SERVICE_KEY` при этом не
+меняется.

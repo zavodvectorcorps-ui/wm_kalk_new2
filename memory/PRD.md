@@ -2727,3 +2727,24 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
 - ⚠️ НУЖЕН РЕДЕПЛОЙ — чтобы фикс попал на прод и калькулятор поднялся.
 - AI-фича: на проде код /api/ai задеплоен, ключ AI_AGENT_SERVICE_KEY подхватился (context=200),
   но чтение падало из-за той же loop-проблемы; после редеплоя с фиксом заработает.
+
+## Session — Aug 17, 2026 (14): remote MCP (Streamable HTTP) в бэкенде для claude.ai
+- Требование: захостить MCP по HTTPS рядом с бэкендом, OAuth/авторизация на эндпоинте,
+  внутренний AI_AGENT_SERVICE_KEY наружу не светить.
+- Ограничение: fastmcp несовместим со starlette<0.38 (ломает FastAPI) → реализовано НАТИВНО.
+- routes/mcp_http.py (mounted, no fastmcp): Streamable HTTP на POST /api/mcp
+  (initialize→Mcp-Session-Id, notifications/initialized→202, ping, tools/list, tools/call),
+  DELETE /api/mcp, discovery /.well-known/oauth-protected-resource. Протоколы 2025-03-26/06-18/11-25.
+- Auth: публичный bearer MCP_BEARER_TOKEN (env, отдельный от AI_AGENT_SERVICE_KEY). 401 отдаёт
+  WWW-Authenticate с resource_metadata. tools/call форвардит на /api/ai/* по loopback
+  127.0.0.1:8001 с X-AI-Agent-Key (внутренний ключ только на сервере, наружу не уходит).
+- 17 инструментов = зеркало /api/ai (read + двухшаговые preview/apply). Логика preview→apply,
+  total неизменен, forward-only, diff-token 15 мин — без изменений (в слое /api/ai).
+- Проверено на preview: 401 без токена; initialize/tools-list/tools-call get_context;
+  двухшаговый order_update preview→apply через MCP — ок.
+- URL коннектора (prod): https://spa-planner-replaced-1767401260.emergent.host/api/mcp
+  Авторизация в claude.ai: Request headers → Authorization: Bearer <MCP_BEARER_TOKEN>.
+- MCP_BEARER_TOKEN и AI_AGENT_SERVICE_KEY — в backend/.env (не печатать в лог/фронт).
+- Полноценный OAuth (authorize/token/register/PKCE/DCR) НЕ делали (большой, непроверяем против
+  claude.ai здесь). Discovery-метаданные уже есть → апгрейд возможен без переделки инструментов.
+- ⚠️ Нужен РЕДЕПЛОЙ; MCP_BEARER_TOKEN должен быть в prod-env (как AI_AGENT_SERVICE_KEY подхватился).
