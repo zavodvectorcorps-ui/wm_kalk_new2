@@ -2882,6 +2882,109 @@ async def kp_cleanup_pdf_data(apply: bool = False, batch: int = 150):
 
 
 
+@router.get("/kp-index-status")
+async def kp_index_status():
+    """Diagnostic: list indexes on calculator_pdfs (fast — reads catalog, no scan)."""
+    def _work():
+        col = db["calculator_pdfs"]
+        info = col.index_information()
+        return {"indexes": {name: spec.get("key") for name, spec in info.items()}}
+    try:
+        return await asyncio.to_thread(_work)
+    except Exception as e:
+        return {"error": str(e)}
+
+
+_kp_index_build = {"status": "idle", "detail": ""}
+
+
+@router.post("/kp-ensure-index")
+async def kp_ensure_index():
+    """Build the (amocrm_id, created_at) + created_at indexes on calculator_pdfs in a
+    background thread (Atlas builds them non-blocking). Poll /kp-index-status to confirm.
+    Once present, /leads and /kp-duplicates fetch only matching docs → fast even while
+    the collection is still bloated."""
+    import threading
+    if _kp_index_build["status"] == "running":
+        return {"status": "running", "detail": _kp_index_build["detail"]}
+
+    def _build():
+        _kp_index_build["status"] = "running"
+        _kp_index_build["detail"] = "building"
+        try:
+            col = db["calculator_pdfs"]
+            col.create_index([("amocrm_id", 1), ("created_at", -1)])
+            col.create_index("created_at")
+            _kp_index_build["status"] = "done"
+            _kp_index_build["detail"] = "indexes created"
+        except Exception as e:
+            _kp_index_build["status"] = "error"
+            _kp_index_build["detail"] = str(e)
+
+    threading.Thread(target=_build, daemon=True).start()
+    return {"status": "started", "note": "poll GET /kp-index-status"}
+
+
+@router.get("/kp-ensure-index/status")
+async def kp_ensure_index_status():
+    return dict(_kp_index_build)
+
+
+@router.post("/kp-migrate-pdf-data")
+async def kp_migrate_pdf_data(apply: bool = False, batch: int = 20):
+    """Migrate docs that still have `pdf_data` but NO `cloudinary_url`: upload the bytes
+    to Cloudinary, store the url, then drop pdf_data. Bounded batch. Call repeatedly
+    until `more=false`. Requires Cloudinary to be configured."""
+    if not is_cloudinary_configured():
+        return {"error": "Cloudinary not configured — cannot migrate safely"}
+    col = db["calculator_pdfs"]
+
+    def _fetch():
+        return list(
+            col.find(
+                {"pdf_data": {"$exists": True, "$ne": None},
+                 "$or": [{"cloudinary_url": {"$exists": False}},
+                         {"cloudinary_url": None}, {"cloudinary_url": ""}]},
+                {"_id": 1, "pdf_data": 1, "filename": 1, "order_id": 1},
+            ).max_time_ms(25000).limit(batch)
+        )
+
+    try:
+        docs = await asyncio.to_thread(_fetch)
+    except Exception as e:
+        return {"error": str(e), "hint": "reduce ?batch="}
+
+    found = len(docs)
+    migrated = 0
+    errors = 0
+    if apply:
+        for d in docs:
+            try:
+                fname = d.get("filename") or f"KP_{d.get('order_id','')}.pdf"
+                up = await cloudinary_upload_pdf(d["pdf_data"], fname)
+                url = (up or {}).get("url")
+                if url:
+                    def _upd(_id=d["_id"], _url=url):
+                        col.update_one({"_id": _id},
+                                       {"$set": {"cloudinary_url": _url}, "$unset": {"pdf_data": ""}})
+                    await asyncio.to_thread(_upd)
+                    migrated += 1
+                else:
+                    errors += 1
+            except Exception:
+                errors += 1
+    return {
+        "batch_size": batch,
+        "found_needs_migration": found,
+        "applied": apply,
+        "migrated": migrated,
+        "errors": errors,
+        "more": found >= batch,
+    }
+
+
+
+
 
 @router.get("/calculator-pdf-versions/{order_id}")
 async def list_calculator_pdf_versions(order_id: str):

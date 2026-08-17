@@ -2645,3 +2645,21 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
   asyncio.to_thread (не блокирует loop). Возвращает `more` — звать повторно пока more=false.
 - Проверено на preview: batch=50 → found 2, cleanable 0 (нет cloudinary в тестовых), more=false.
 - ⚠️ Нужен РЕДЕПЛОЙ (эта правка + версии КП из сессии 7 ещё не на проде).
+
+## Session — Aug 17, 2026 (9): корень медленного прода = ОТСУТСТВИЕ индекса на calculator_pdfs
+- Замеры на новом проде (после деплоя): /leads=11.2с, /kp-duplicates=таймаут(10.2с),
+  cleanup dry-run: первые 50 записей БЕЗ cloudinary_url. Вывод: на проде НЕТ индекса
+  (amocrm_id, created_at) → запросы сканируют раздутую коллекцию → таймаут. В preview
+  индекс есть → там быстро.
+- РЕШЕНИЕ (главное): поднять индекс на проде. Новые эндпоинты (amocrm.py):
+  - GET `/api/integrations/amocrm/kp-index-status` — список индексов (быстро, без скана).
+  - POST `/api/integrations/amocrm/kp-ensure-index` — строит (amocrm_id,created_at)+created_at
+    в фоновом потоке (Atlas hybrid build, не блокирует). Идемпотентно.
+  - GET `/api/integrations/amocrm/kp-ensure-index/status` — прогресс сборки.
+  Как только индекс есть → /leads и /kp-duplicates достают только нужные записи → быстро,
+  ДАЖЕ без чистки коллекции.
+- Доп. эндпоинт POST `/api/integrations/amocrm/kp-migrate-pdf-data?apply=&batch=20` — для
+  старых записей БЕЗ cloudinary_url: заливает pdf_data в Cloudinary, ставит url, удаляет
+  pdf_data (батчами). Для уменьшения размера БД (после того как скорость починена индексом).
+- Проверено на preview: index-status, ensure-index (done, идемпотентно), migrate dry-run.
+- ⚠️ Нужен РЕДЕПЛОЙ. После: ensure-index на проде → подтвердить индекс → замерить /leads.
