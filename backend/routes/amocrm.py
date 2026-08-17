@@ -2406,9 +2406,9 @@ async def upload_calculator_pdf_to_amocrm(
             pdf_collection.update_one(
                 {"order_id": order_id}, {"$set": {"currentVersion": next_ver}}
             )
-            # Trim to last 10 versions
+            # Trim to last 2 versions (keep current + previous)
             old = list(
-                vcol.find({"order_id": order_id}, {"_id": 1}).sort("version", -1).skip(10)
+                vcol.find({"order_id": order_id}, {"_id": 1}).sort("version", -1).skip(2)
             )
             if old:
                 vcol.delete_many({"_id": {"$in": [o["_id"] for o in old]}})

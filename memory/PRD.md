@@ -2621,3 +2621,18 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
 - Редактирование заказа не затронуто (берёт данные из sauna_orders, а не pdf_data).
 - Проверено на PREVIEW: dry-run отвечает корректно (total/with_pdf/cleanable).
 - ⚠️ ПОСЛЕ РЕДЕПЛОЯ: 1) прогнать dry-run на проде; 2) выполнить `?apply=true` для чистки.
+
+## Session — Aug 17, 2026 (7): история версий КП → 2 копии + UI просмотра/отката
+- Новый прод-URL (после деплоя пользователя): https://spa-planner-replaced-1767401260.emergent.host
+  (preview = рабочая среда; wm-kalkulator.pl — прежний прод).
+- Проверено, что чистка pdf_data не ломает 4 флоу: редактирование заказа (из sauna_orders),
+  скачивание КП (redirect на cloudinary_url), договор (fallback pdf_data→cloudinary_url→
+  order.kpCloudinaryUrl уже есть), передача в амо (берёт байты из тела запроса, не из БД).
+- calculator_pdf_versions: обрезка истории 10→2 (amocrm.py ~2410). При редактировании КП
+  обновляется (новая версия), хранятся 2 последние.
+- Новый UI: `KpVersionsModal.jsx` (кнопка «Версии КП» в карточке лида, показывается при
+  наличии calculatorOrderId; data-testid lead-kp-versions-btn / kp-versions-modal). Список
+  версий (v#, дата, менеджер, сумма, бейдж «Текущая»), скачать (GET .../version/{v}),
+  откатить (POST .../rollback/{v}). Использует существующие эндпоинты amocrm.
+- Проверено на PREVIEW: список версий, модалка, откат v2→v1 (currentVersion меняется). E2E скрин ок.
+- ⚠️ Изменения бэкенда+фронта в preview → нужен РЕДЕПЛОЙ на новый прод-URL.

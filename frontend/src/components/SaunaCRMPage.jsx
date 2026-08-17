@@ -17,12 +17,13 @@ import {
   ExternalLink, Send, Loader2, Plus, X, Search,
   ChevronDown, ChevronUp, Package, Star, StarOff,
   Wrench, Calculator, Link2, Unlink, Hammer, AlertTriangle, ArrowUpDown,
-  MessageSquare, Eye, Users, Volume2, VolumeX
+  MessageSquare, Eye, Users, Volume2, VolumeX, History
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getApiUrl } from '../utils/api';
 import { DuplicatesModal } from './DuplicatesModal';
 import { KpDuplicatesModal } from './KpDuplicatesModal';
+import { KpVersionsModal } from './KpVersionsModal';
 
 const CAL_DATE_FIELDS = [
   { id: 'advancePaymentDate', label: 'Аванс' },
@@ -77,6 +78,8 @@ const SaunaCRMPage = () => {
   const [showDuplicatesModal, setShowDuplicatesModal] = useState(false);
   const [showKpDuplicatesModal, setShowKpDuplicatesModal] = useState(false);
   const [kpDupLeadId, setKpDupLeadId] = useState(null);
+  const [showKpVersionsModal, setShowKpVersionsModal] = useState(false);
+  const [kpVersionsOrderId, setKpVersionsOrderId] = useState(null);
   const [settingsForm, setSettingsForm] = useState(null);
   
   // Search & Filters
@@ -1780,6 +1783,11 @@ const SaunaCRMPage = () => {
                 <div className="flex items-center justify-between mb-3">
                   <Label className="text-sm font-semibold flex items-center gap-2"><FileText className="w-4 h-4" />Документы</Label>
                   <div className="flex items-center gap-2">
+                    {selectedLead?.calculatorOrderId && (
+                      <Button size="sm" variant="outline" onClick={() => { setKpVersionsOrderId(selectedLead.calculatorOrderId); setShowKpVersionsModal(true); }} data-testid="lead-kp-versions-btn">
+                        <History className="w-4 h-4 mr-1" />Версии КП
+                      </Button>
+                    )}
                     {selectedLead?.amocrm_id && (
                       <Button size="sm" variant="outline" onClick={() => { setKpDupLeadId(selectedLead.id); setShowKpDuplicatesModal(true); }} data-testid="lead-kp-duplicates-btn">
                         <FileText className="w-4 h-4 mr-1" />Дубли КП
@@ -1861,6 +1869,12 @@ const SaunaCRMPage = () => {
         open={showKpDuplicatesModal}
         leadId={kpDupLeadId}
         onClose={() => setShowKpDuplicatesModal(false)}
+        onChanged={fetchLeads}
+      />
+      <KpVersionsModal
+        open={showKpVersionsModal}
+        orderId={kpVersionsOrderId}
+        onClose={() => setShowKpVersionsModal(false)}
         onChanged={fetchLeads}
       />
       {selectedLead && (
