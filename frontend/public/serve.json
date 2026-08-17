@@ -1,0 +1,12 @@
+{
+  "headers": [
+    {
+      "source": ".well-known/oauth-authorization-server",
+      "headers": [{ "key": "Content-Type", "value": "application/json" }]
+    },
+    {
+      "source": ".well-known/oauth-protected-resource",
+      "headers": [{ "key": "Content-Type", "value": "application/json" }]
+    }
+  ]
+}
