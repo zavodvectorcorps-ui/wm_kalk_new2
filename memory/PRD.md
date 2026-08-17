@@ -2714,3 +2714,16 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
   (если деплой не подхватит из backend/.env — задать через секреты деплоя/поддержку). Иначе
   /api/ai fail-closed (401).
 - Ключ AI_AGENT_SERVICE_KEY хранится в /app/backend/.env (не печатать в чат/логи/фронт).
+
+## Session — Aug 17, 2026 (13): P0 — прод лёг после деплоя ("different loop")
+- Симптом: на проде ВСЕ db-эндпоинты (prices, /sauna/orders, /api/ai/*) → 500
+  "Task got Future attached to a different loop"; калькулятор пустой (prices 500).
+  Логин работал (попадал на здоровый воркер) → проблема per-worker привязки motor к loop.
+  На preview тот же код работал (200).
+- FIX (database.py): get_client() теперь отслеживает event loop и ПЕРЕСОЗДАЁТ motor-клиент
+  при смене loop (_client_loop; при смене — _db=None для ре-бинда). Внутри одного воркера loop
+  стабилен → лишних пересозданий нет; при рассинхроне loop клиент восстанавливается.
+- Проверено на preview: prices/orders/ai/leads = 200 после фикса.
+- ⚠️ НУЖЕН РЕДЕПЛОЙ — чтобы фикс попал на прод и калькулятор поднялся.
+- AI-фича: на проде код /api/ai задеплоен, ключ AI_AGENT_SERVICE_KEY подхватился (context=200),
+  но чтение падало из-за той же loop-проблемы; после редеплоя с фиксом заработает.

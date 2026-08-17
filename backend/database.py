@@ -12,14 +12,32 @@ MONGO_URL = os.environ.get('MONGO_URL', '')
 DB_NAME = os.environ.get('DB_NAME', 'test_database')
 
 # Lazy initialization - client created on first use
+import asyncio
+
 _client = None
 _db = None
+_client_loop = None
+
+
+def _current_loop():
+    try:
+        return asyncio.get_running_loop()
+    except RuntimeError:
+        return None
 
 
 def get_client():
-    """Get MongoDB client with lazy initialization."""
-    global _client
-    if _client is None:
+    """Get MongoDB client, rebinding it to the current running event loop.
+
+    Motor's client is bound to the loop it was created on. Under some deploy
+    runtimes (multi-worker / loop replaced after startup) the singleton ends up
+    bound to a loop that no longer serves requests, causing
+    'Task got Future attached to a different loop' on every DB call. We detect a
+    loop change and transparently recreate the client for the active loop.
+    """
+    global _client, _db, _client_loop
+    loop = _current_loop()
+    if _client is None or (loop is not None and _client_loop is not loop):
         _client = AsyncIOMotorClient(
             MONGO_URL,
             serverSelectionTimeoutMS=5000,  # 5 seconds to select server
@@ -32,14 +50,17 @@ def get_client():
             retryReads=True,                 # Retry failed reads
             appname="wm-calculator",         # App name for monitoring
         )
+        _client_loop = loop
+        _db = None  # force db re-bind to the new client
     return _client
 
 
 def get_db():
-    """Get database instance with lazy initialization."""
+    """Get database instance bound to the current-loop client."""
     global _db
+    client = get_client()
     if _db is None:
-        _db = get_client()[DB_NAME]
+        _db = client[DB_NAME]
     return _db
 
 
