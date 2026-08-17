@@ -20,12 +20,22 @@ from __future__ import annotations
 
 import os
 import hmac
+import time
+import json as _json
+import base64
+import hashlib
+import secrets
 from copy import deepcopy
 from uuid import uuid4
+from datetime import datetime, timezone, timedelta
 
+import jwt
 import httpx
-from fastapi import APIRouter, Request, Response
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, Request, Response, Form
+from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse
+
+from config import JWT_SECRET, JWT_ALGORITHM
+from database import db
 
 router = APIRouter()
 
@@ -39,6 +49,45 @@ _sessions: dict[str, dict] = {}
 
 def _mcp_token() -> str:
     return os.environ.get("MCP_BEARER_TOKEN", "")
+
+
+def _oauth_password() -> str:
+    return os.environ.get("MCP_OAUTH_PASSWORD", "")
+
+
+def _issuer(request: Request) -> str:
+    return f"{_public_base(request)}/api/mcp"
+
+
+def _resource(request: Request) -> str:
+    return f"{_public_base(request)}/api/mcp"
+
+
+def _b64url(data: bytes) -> str:
+    return base64.urlsafe_b64encode(data).decode().rstrip("=")
+
+
+def _make_access_token(request: Request, subject: str = "maxim") -> dict:
+    now = datetime.now(timezone.utc)
+    payload = {
+        "typ": "mcp_access", "sub": subject, "scope": "mcp:use",
+        "aud": _resource(request), "iss": _public_base(request),
+        "iat": now, "exp": now + timedelta(hours=8),
+    }
+    at = jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+    rp = {"typ": "mcp_refresh", "sub": subject, "iat": now, "exp": now + timedelta(days=30)}
+    rt = jwt.encode(rp, JWT_SECRET, algorithm=JWT_ALGORITHM)
+    return {"access_token": at, "refresh_token": rt, "token_type": "Bearer",
+            "expires_in": 8 * 3600, "scope": "mcp:use"}
+
+
+def _valid_oauth_token(token: str) -> bool:
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM],
+                             options={"verify_aud": False})
+    except jwt.InvalidTokenError:
+        return False
+    return payload.get("typ") == "mcp_access" and "mcp:use" in str(payload.get("scope", ""))
 
 
 def _service_key() -> str:
@@ -141,18 +190,19 @@ def _rpc_error(rid, code, message):
 
 
 def _authed(request: Request) -> bool:
-    expected = _mcp_token()
-    if not expected:
-        return False
     auth = request.headers.get("authorization", "")
     if not auth.lower().startswith("bearer "):
         return False
-    return hmac.compare_digest(auth.split(" ", 1)[1].strip(), expected)
+    token = auth.split(" ", 1)[1].strip()
+    expected = _mcp_token()
+    # 1) static connector token (beta header method), 2) OAuth access token
+    if expected and hmac.compare_digest(token, expected):
+        return True
+    return _valid_oauth_token(token)
 
 
 def _unauth_response(request: Request) -> JSONResponse:
-    base = _public_base(request)
-    meta = f'{base}/.well-known/oauth-protected-resource'
+    meta = f'{_public_base(request)}/api/mcp/.well-known/oauth-protected-resource'
     return JSONResponse(
         _rpc_error(None, -32001, "Unauthorized"), status_code=401,
         headers={"WWW-Authenticate":
@@ -185,12 +235,159 @@ async def _forward(tool: dict, args: dict) -> dict:
     return data
 
 
-# ---- discovery (helps future OAuth upgrade; harmless now) -------------------
-@router.get("/.well-known/oauth-protected-resource")
+# ---- OAuth 2.1 discovery + endpoints (all under /api so ingress routes here) ----
+@router.get("/api/mcp/.well-known/oauth-protected-resource")
 async def protected_resource_metadata(request: Request):
     base = _public_base(request)
-    return {"resource": f"{base}/api/mcp", "authorization_servers": [base],
-            "scopes_supported": ["mcp:use"]}
+    return {"resource": _resource(request), "authorization_servers": [f"{base}/api/mcp"],
+            "scopes_supported": ["mcp:use"],
+            "bearer_methods_supported": ["header"]}
+
+
+@router.get("/api/mcp/.well-known/oauth-authorization-server")
+async def authorization_server_metadata(request: Request):
+    iss = _issuer(request)
+    return {
+        "issuer": iss,
+        "authorization_endpoint": f"{iss}/oauth/authorize",
+        "token_endpoint": f"{iss}/oauth/token",
+        "registration_endpoint": f"{iss}/oauth/register",
+        "response_types_supported": ["code"],
+        "grant_types_supported": ["authorization_code", "refresh_token"],
+        "code_challenge_methods_supported": ["S256"],
+        "token_endpoint_auth_methods_supported": ["none"],
+        "scopes_supported": ["mcp:use"],
+    }
+
+
+@router.post("/api/mcp/oauth/register")
+async def oauth_register(request: Request):
+    """Dynamic Client Registration (RFC 7591) — public client, no secret."""
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    client_id = "mcp-" + secrets.token_urlsafe(16)
+    redirect_uris = body.get("redirect_uris") or []
+    await db.mcp_oauth_clients.insert_one({
+        "client_id": client_id,
+        "redirect_uris": redirect_uris,
+        "client_name": body.get("client_name"),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+    resp = {
+        "client_id": client_id,
+        "redirect_uris": redirect_uris,
+        "token_endpoint_auth_method": "none",
+        "grant_types": ["authorization_code", "refresh_token"],
+        "response_types": ["code"],
+    }
+    return JSONResponse(resp, status_code=201)
+
+
+def _authorize_form(request: Request, params: dict, error: str = "") -> HTMLResponse:
+    iss = _issuer(request)
+    hidden = "".join(
+        f'<input type="hidden" name="{k}" value="{(v or "").replace(chr(34), "&quot;")}">'
+        for k, v in params.items()
+    )
+    err = f'<p style="color:#dc2626;margin:0 0 12px">{error}</p>' if error else ""
+    html = f"""<!doctype html><html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Alicor SPA — доступ для Claude</title></head>
+<body style="font-family:system-ui,Segoe UI,Roboto,sans-serif;background:#0f172a;color:#e2e8f0;display:flex;min-height:100vh;align-items:center;justify-content:center;margin:0">
+<form method="post" action="{iss}/oauth/authorize"
+ style="background:#1e293b;padding:32px;border-radius:16px;max-width:360px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,.4)">
+<h2 style="margin:0 0 6px">Alicor SPA</h2>
+<p style="margin:0 0 20px;color:#94a3b8;font-size:14px">Разрешить доступ Claude к производству/калькулятору</p>
+{err}
+<label style="font-size:13px;color:#cbd5e1">Пароль доступа</label>
+<input name="password" type="password" autofocus required
+ style="width:100%;box-sizing:border-box;padding:12px;margin:6px 0 20px;border-radius:10px;border:1px solid #334155;background:#0f172a;color:#e2e8f0">
+{hidden}
+<button type="submit"
+ style="width:100%;padding:12px;border:0;border-radius:10px;background:#2563eb;color:#fff;font-size:15px;cursor:pointer">Разрешить</button>
+</form></body></html>"""
+    return HTMLResponse(html)
+
+
+@router.get("/api/mcp/oauth/authorize")
+async def oauth_authorize_get(request: Request):
+    q = dict(request.query_params)
+    if q.get("response_type") != "code":
+        return JSONResponse({"error": "unsupported_response_type"}, status_code=400)
+    if q.get("code_challenge_method") != "S256" or not q.get("code_challenge"):
+        return JSONResponse({"error": "invalid_request", "error_description": "PKCE S256 required"}, status_code=400)
+    keep = {k: q.get(k, "") for k in
+            ["client_id", "redirect_uri", "state", "code_challenge",
+             "code_challenge_method", "scope", "resource"]}
+    return _authorize_form(request, keep)
+
+
+@router.post("/api/mcp/oauth/authorize")
+async def oauth_authorize_post(
+    request: Request,
+    password: str = Form(""),
+    client_id: str = Form(""),
+    redirect_uri: str = Form(""),
+    state: str = Form(""),
+    code_challenge: str = Form(""),
+    code_challenge_method: str = Form(""),
+    scope: str = Form(""),
+    resource: str = Form(""),
+):
+    params = {"client_id": client_id, "redirect_uri": redirect_uri, "state": state,
+              "code_challenge": code_challenge, "code_challenge_method": code_challenge_method,
+              "scope": scope, "resource": resource}
+    expected = _oauth_password()
+    if not expected or not hmac.compare_digest(password, expected):
+        return _authorize_form(request, params, error="Неверный пароль")
+    if not redirect_uri.startswith("https://"):
+        return JSONResponse({"error": "invalid_request", "error_description": "redirect_uri must be https"}, status_code=400)
+    code = secrets.token_urlsafe(32)
+    await db.mcp_oauth_codes.insert_one({
+        "code": code, "redirect_uri": redirect_uri,
+        "code_challenge": code_challenge, "resource": resource or _resource(request),
+        "client_id": client_id, "used": False,
+        "exp": time.time() + 300,
+    })
+    sep = "&" if "?" in redirect_uri else "?"
+    url = f"{redirect_uri}{sep}code={code}"
+    if state:
+        url += f"&state={state}"
+    return RedirectResponse(url, status_code=302)
+
+
+@router.post("/api/mcp/oauth/token")
+async def oauth_token(request: Request):
+    form = await request.form()
+    grant = form.get("grant_type")
+    if grant == "refresh_token":
+        rt = form.get("refresh_token", "")
+        try:
+            payload = jwt.decode(rt, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+            assert payload.get("typ") == "mcp_refresh"
+        except Exception:
+            return JSONResponse({"error": "invalid_grant"}, status_code=400)
+        return JSONResponse(_make_access_token(request, payload.get("sub", "maxim")))
+
+    if grant != "authorization_code":
+        return JSONResponse({"error": "unsupported_grant_type"}, status_code=400)
+
+    code = form.get("code", "")
+    verifier = form.get("code_verifier", "")
+    redirect_uri = form.get("redirect_uri", "")
+    doc = await db.mcp_oauth_codes.find_one({"code": code})
+    if not doc or doc.get("used") or doc.get("exp", 0) < time.time():
+        return JSONResponse({"error": "invalid_grant"}, status_code=400)
+    if doc.get("redirect_uri") != redirect_uri:
+        return JSONResponse({"error": "invalid_grant", "error_description": "redirect_uri mismatch"}, status_code=400)
+    # PKCE S256 verification
+    challenge = _b64url(hashlib.sha256(verifier.encode()).digest())
+    if not hmac.compare_digest(challenge, doc.get("code_challenge", "")):
+        return JSONResponse({"error": "invalid_grant", "error_description": "PKCE failed"}, status_code=400)
+    await db.mcp_oauth_codes.update_one({"code": code}, {"$set": {"used": True}})
+    return JSONResponse(_make_access_token(request))
 
 
 # ---- Streamable HTTP endpoint ----------------------------------------------

@@ -110,3 +110,34 @@ https://spa-planner-replaced-1767401260.emergent.host/api/mcp
 Ротация доступа: смените `MCP_BEARER_TOKEN` в env бэкенда и передеплойте — старый
 токен сразу перестанет работать. Внутренний `AI_AGENT_SERVICE_KEY` при этом не
 меняется.
+
+---
+
+## OAuth-подключение к claude.ai (если нет опции «Request headers»)
+
+Сервер теперь работает как полноценный OAuth 2.1 Authorization Server
+(Dynamic Client Registration + PKCE S256). В claude.ai НЕ нужно ничего, кроме URL —
+Claude сам обнаружит OAuth и проведёт вход.
+
+**URL коннектора (тот же):**
+```
+https://spa-planner-replaced-1767401260.emergent.host/api/mcp
+```
+
+**Как добавить:**
+1. Customize → Connectors → **Add custom connector**.
+2. Вставьте URL выше. Поля Client ID / Client Secret **оставьте пустыми** (используется DCR).
+3. **Add** → **Connect**.
+4. Откроется страница входа «Alicor SPA — доступ для Claude» → введите **пароль доступа**
+   (env `MCP_OAUTH_PASSWORD`) → «Разрешить».
+5. Claude вернётся и подключит коннектор; появятся инструменты. Вставьте `AGENT_GUIDE.md`
+   в инструкции проекта.
+
+OAuth-эндпоинты (всё под `/api`, доступно через ingress):
+- `/api/mcp/.well-known/oauth-protected-resource`
+- `/api/mcp/.well-known/oauth-authorization-server`
+- `/api/mcp/oauth/register` (DCR), `/api/mcp/oauth/authorize`, `/api/mcp/oauth/token`
+
+Доступ по-прежнему двойной: статический `MCP_BEARER_TOKEN` (если появится опция заголовков)
+ИЛИ OAuth-токен. Внутренний `AI_AGENT_SERVICE_KEY` наружу не выходит.
+Ротация: смените `MCP_OAUTH_PASSWORD` (вход) и/или `MCP_BEARER_TOKEN` в env и передеплойте.

@@ -2748,3 +2748,24 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
 - Полноценный OAuth (authorize/token/register/PKCE/DCR) НЕ делали (большой, непроверяем против
   claude.ai здесь). Discovery-метаданные уже есть → апгрейд возможен без переделки инструментов.
 - ⚠️ Нужен РЕДЕПЛОЙ; MCP_BEARER_TOKEN должен быть в prod-env (как AI_AGENT_SERVICE_KEY подхватился).
+
+## Session — Aug 17, 2026 (15): OAuth 2.1 для remote MCP (claude.ai нет «Request headers»)
+- У пользователя в claude.ai нет beta-опции заголовков → реализован полноценный OAuth 2.1 AS
+  прямо в бэкенде (routes/mcp_http.py), всё под /api (корневой /.well-known уходит на фронт!).
+- Эндпоинты: GET /api/mcp/.well-known/oauth-protected-resource,
+  GET /api/mcp/.well-known/oauth-authorization-server, POST /api/mcp/oauth/register (DCR, public
+  client, no secret), GET/POST /api/mcp/oauth/authorize (HTML-форма входа, пароль=MCP_OAUTH_PASSWORD),
+  POST /api/mcp/oauth/token (form-urlencoded, PKCE S256, authorization_code+refresh_token).
+- Токены: access/refresh — JWT (JWT_SECRET), access typ=mcp_access scope=mcp:use aud=resource 8ч,
+  refresh 30д. Коды — mcp_oauth_codes (TTL 5 мин, single-use), клиенты — mcp_oauth_clients.
+- /api/mcp принимает Bearer: статический MCP_BEARER_TOKEN ИЛИ валидный OAuth access. Внутренний
+  AI_AGENT_SERVICE_KEY наружу не уходит (форвард на /api/ai по loopback).
+- Проверено на preview e2e: PRM/AS metadata, DCR, authorize(GET форма/POST 302+code), неверный
+  пароль→форма, token(PKCE), reuse-code→400, MCP initialize по OAuth-токену→200, garbage→401, refresh→200.
+- claude.ai: Add custom connector → URL .../api/mcp, Client ID/Secret пусто (DCR) → Connect →
+  ввести MCP_OAUTH_PASSWORD на странице входа.
+- env: MCP_OAUTH_PASSWORD добавлен в backend/.env.
+- ⚠️ РЕДЕПЛОЙ: нужны MCP_OAUTH_PASSWORD (+ ранее MCP_BEARER_TOKEN, AI_AGENT_SERVICE_KEY) в prod-env.
+- Возможный риск: если Claude ищет AS-metadata по root-insertion (/.well-known/...-server/api/mcp),
+  путь уйдёт на фронт. Мы отдаём по path-append ({issuer}/.well-known/...), как в MCP-спеке. Если
+  discovery не сработает — смотреть, какой URL дёргает Claude, и добавить.
