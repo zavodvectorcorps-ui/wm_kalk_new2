@@ -2801,3 +2801,17 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
 - env добавлен: MCP_OAUTH_METADATA_URL. Нужен РЕДЕПЛОЙ.
 - Коннектор claude.ai: URL https://spa-planner-replaced-1767401260.emergent.host/api/mcp, Client ID/Secret пусто,
   пароль страницы = MCP_OAUTH_PASSWORD (MQwRuzGxBYqF).
+
+## Session — Aug 18, 2026 (18): remote OAuth заработал через al-spa.pl (готово)
+- Причина всех прошлых сбоев: платформа отдаёт корневой /.well-known фронтендом без корректного
+  content-type. Решение (Option B): метаданные вынесены на al-spa.pl (LiteSpeed).
+- LiteSpeed: .htaccess во вложенной .well-known игнорировался; сработал КОРНЕВОЙ .htaccess с
+  RewriteRule extensionless -> .json. Теперь ВСЕ 4 URL (extensionless + .json) отдают application/json.
+- Итоговые файлы у пользователя: /app/mcp/hostido/.well-known/{oauth-authorization-server[.json],
+  oauth-protected-resource[.json]} + КОРНЕВОЙ .htaccess (mcp/hostido/root-htaccess.txt).
+- Backend env MCP_OAUTH_METADATA_URL -> al-spa.pl protected-resource. issuer=https://al-spa.pl,
+  endpoints -> Emergent /api/mcp/oauth/*.
+- ПРОВЕРЕНО НА ПРОДЕ e2e (имитация Claude): 401->al-spa metadata->DCR 201->authorize(пароль)->
+  token->MCP initialize 200->tools/list 17. РАБОТАЕТ.
+- Коннектор claude.ai: URL https://spa-planner-...emergent.host/api/mcp, Client ID/Secret пусто,
+  пароль MCP_OAUTH_PASSWORD=MQwRuzGxBYqF.
