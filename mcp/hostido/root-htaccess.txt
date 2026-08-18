@@ -1,0 +1,8 @@
+# Разместите ЭТОТ файл в КОРНЕ сайта al-spa.pl (public_html/.htaccess),
+# НЕ в папке .well-known. Он отдаёт extensionless discovery-URL из .json-файлов,
+# чтобы LiteSpeed поставил Content-Type: application/json.
+# Если в корне уже есть .htaccess — добавьте эти строки в начало.
+
+RewriteEngine On
+RewriteRule ^\.well-known/oauth-authorization-server$ /.well-known/oauth-authorization-server.json [L]
+RewriteRule ^\.well-known/oauth-protected-resource$ /.well-known/oauth-protected-resource.json [L]
