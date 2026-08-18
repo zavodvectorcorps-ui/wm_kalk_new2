@@ -1,9 +1,14 @@
-# Force JSON content-type + CORS for the OAuth discovery documents.
-<Files "oauth-authorization-server">
+RewriteEngine On
+# Serve the extensionless discovery URLs from the .json files so LiteSpeed
+# sends Content-Type: application/json (content-type is derived from extension).
+RewriteRule ^oauth-authorization-server$ oauth-authorization-server.json [L]
+RewriteRule ^oauth-protected-resource$ oauth-protected-resource.json [L]
+
+# Belt-and-suspenders: force JSON + CORS for both the extensionless and .json paths.
+<FilesMatch "^oauth-(authorization-server|protected-resource)(\.json)?$">
   ForceType application/json
-  Header set Access-Control-Allow-Origin "*"
-</Files>
-<Files "oauth-protected-resource">
-  ForceType application/json
-  Header set Access-Control-Allow-Origin "*"
-</Files>
+  <IfModule mod_headers.c>
+    Header set Content-Type "application/json"
+    Header set Access-Control-Allow-Origin "*"
+  </IfModule>
+</FilesMatch>
