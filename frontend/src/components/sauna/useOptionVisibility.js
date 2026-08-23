@@ -43,19 +43,9 @@ export const useOptionVisibility = (formData) => {
       }
     }
     
-    // Decision logic
-    if (hasModelRules && hasOptionRules) {
-      if (modelMatches && optionMatches) {
-        return false;
-      }
-    } else if (hasModelRules) {
-      if (modelMatches) {
-        return false;
-      }
-    } else if (hasOptionRules) {
-      if (optionMatches) {
-        return false;
-      }
+    // Decision logic (independent OR): hide if ANY rule matches.
+    if (modelMatches || optionMatches) {
+      return false;
     }
     
     // LEGACY: Support old compatibleModels/compatibleWithOptions

@@ -2879,3 +2879,15 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
   есть; в калькуляторе при выборе модели в «Ławki» осталась только одна опция. Тестовые данные возвращены.
 - Также ранее в сессии: диагностика — сама несовместимость работает корректно (не баг, а конфиг per-option).
 - Frontend изменения → нужен РЕДЕПЛОЙ для PROD.
+
+## Session — Aug 24, 2026 (fork, bugfix): несовместимость model+option — логика AND → OR
+- СИМПТОМ: пользователь задал у опций incompatibleModels=[Żagel Mini] И ALSO отметил опцию в другой
+  категории (Piec wprost в incompatibleWithOptions). Фильтр по модели «игнорировался».
+- КОРЕНЬ: в filterCompatibleOptions (SaunaCalculator.jsx) и isOptionVisible (useOptionVisibility.js)
+  при наличии И model-rules, И option-rules применялась логика AND: скрыть только если модель совпала
+  И выбрана несовместимая опция. Т.е. пока Piec wprost не выбран — фильтр по модели не срабатывал.
+- ФИКС: заменено на независимое OR — скрывать, если срабатывает ЛЮБОЕ условие
+  (modelOrVariantMatches || optionMatches). В обоих файлах.
+- ПРОВЕРЕНО e2e: у опции заданы обе rules (model=beczka200 + option=dostawa_251_400km); при выборе
+  ТОЛЬКО модели (без второго условия) опция теперь скрывается. Тестовые данные возвращены.
+- Frontend изменения → нужен РЕДЕПЛОЙ для PROD.
