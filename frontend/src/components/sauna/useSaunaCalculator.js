@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'sonner';
 import axios from 'axios';
-import { API_URL, getTranslation, getImageUrl, getInitialFormData } from './constants';
+import { API_URL, getTranslation, getImageUrl, getInitialFormData, normalizeMediaUrls } from './constants';
 import { useOptionVisibility } from './useOptionVisibility';
 import { useLayoutCatalog } from './useLayoutCatalog';
 
@@ -89,7 +89,8 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
   const fetchPrices = useCallback(async () => {
     try {
       const response = await axios.get(`${API_URL}/api/sauna/prices`);
-      setPrices(response.data);
+      const normalized = normalizeMediaUrls(response.data);
+      setPrices(normalized);
       
       // Initialize selections for each category with default options
       const initialSelections = {};

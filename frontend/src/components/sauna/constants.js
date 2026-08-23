@@ -13,12 +13,40 @@ const getApiUrl = () => {
 };
 export const API_URL = getApiUrl();
 
-// Helper to get full image URL
+// Helper to get full image URL. Also repairs legacy absolute URLs that were
+// saved pointing at old preview hosts (e.g. sauna-catalog.preview.emergentagent.com)
+// — the files live in our own DB and are served from /api/uploads on the current
+// host, so we rewrite any such absolute link to the current backend origin.
 export const getImageUrl = (url) => {
   if (!url) return '';
-  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  if (url.startsWith('data:')) return url;
   if (url.startsWith('/api/')) return `${API_URL}${url}`;
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    const marker = url.indexOf('/api/uploads/') !== -1
+      ? '/api/uploads/'
+      : (url.indexOf('/api/static/') !== -1 ? '/api/static/' : null);
+    if (marker) return `${API_URL}${url.slice(url.indexOf(marker))}`;
+    return url;
+  }
   return url;
+};
+
+// Recursively rewrite any string value that references our upload/static route
+// so every image in the prices tree resolves against the current host.
+export const normalizeMediaUrls = (data) => {
+  if (Array.isArray(data)) return data.map(normalizeMediaUrls);
+  if (data && typeof data === 'object') {
+    const out = {};
+    for (const [k, v] of Object.entries(data)) {
+      if (typeof v === 'string' && (v.includes('/api/uploads/') || v.includes('/api/static/'))) {
+        out[k] = getImageUrl(v);
+      } else {
+        out[k] = normalizeMediaUrls(v);
+      }
+    }
+    return out;
+  }
+  return data;
 };
 
 // Category icons mapping

@@ -2826,3 +2826,20 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
   условие показа селектора вариантов проверяет наличие видимых вариантов. Пустые группы скрываются авто (map строится из видимых моделей).
 - ПРОВЕРЕНО скриншотом: toggle на модели виден, при клике появляется бейдж «Скрыта», авто-сохранение.
 - Только фронтенд-изменения → нужен РЕДЕПЛОЙ для появления на PROD.
+
+## Session — Aug 23, 2026 (fork, bugfix): пропали картинки на PROD (исправлено)
+- СИМПТОМ: часть картинок опций/вариантов не грузилась в калькуляторе на PROD (битые img).
+- КОРЕНЬ: в sauna_prices у части imageUrl сохранён АБСОЛЮТНЫЙ URL на мёртвый preview-домен
+  (sauna-catalog.preview.emergentagent.com, sauna-variant...). Сами файлы лежат в БД (коллекция
+  images, отдаются с /api/uploads/), но старый хост недоступен → 404.
+- ФИКС (host-agnostic):
+  - Backend GET /api/sauna/prices (sauna_crud.py): _normalize_media_urls рекурсивно переписывает
+    любой абсолютный http(s)://<host>/api/uploads|static/ → относительный /api/uploads|static/.
+    Работает в любом окружении, чинит и UI, и PDF. Self-healing (POST может сохранить абсолютный —
+    на следующем GET снова станет относительным).
+  - Frontend: constants.js getImageUrl теперь чинит устаревшие абсолютные URL; добавлен
+    normalizeMediaUrls (deep) и применён в useSaunaCalculator.js после fetch. utils/api.js:
+    добавлен resolveMediaUrl (на будущее).
+- ПРОВЕРЕНО curl: stale-хостов в ответе 0; ранее битые id (1f6c..., 0277..., 0576...) отдают 200 image/jpeg.
+- ВНИМАНИЕ: фикс переписывает хост на ТЕКУЩИЙ. Сработает на PROD только если blob этого id есть в
+  PROD-коллекции images (обычно есть). Требуется РЕДЕПЛОЙ.

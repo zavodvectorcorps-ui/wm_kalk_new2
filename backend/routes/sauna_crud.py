@@ -4,6 +4,7 @@ from fastapi.responses import StreamingResponse
 from datetime import datetime, timezone
 from urllib.parse import quote
 import io
+import re
 import logging
 
 from database import db
@@ -22,6 +23,23 @@ router = APIRouter(tags=["Sauna CRUD"])
 # PRICES
 # =============================================
 
+# Rewrites legacy absolute image URLs that point at old preview hosts
+# (e.g. https://sauna-catalog.preview.emergentagent.com/api/uploads/xxx) down to
+# a relative path (/api/uploads/xxx). The files live in our own DB and are served
+# from the current host, so relative paths resolve correctly on any environment.
+_ABS_UPLOAD_RE = re.compile(r'https?://[^/\s"]+(/api/(?:uploads|static)/)', re.IGNORECASE)
+
+
+def _normalize_media_urls(data):
+    if isinstance(data, list):
+        return [_normalize_media_urls(x) for x in data]
+    if isinstance(data, dict):
+        return {k: _normalize_media_urls(v) for k, v in data.items()}
+    if isinstance(data, str) and ('/api/uploads/' in data or '/api/static/' in data):
+        return _ABS_UPLOAD_RE.sub(r'\1', data)
+    return data
+
+
 @router.get("/prices")
 async def get_sauna_prices(response: Response):
     """Get sauna pricing data"""
@@ -31,6 +49,8 @@ async def get_sauna_prices(response: Response):
         prices = default_sauna_prices
     else:
         prices.pop('_id', None)
+    
+    prices = _normalize_media_urls(prices)
     
     # Cache for 5 minutes (prices don't change often)
     response.headers["Cache-Control"] = "public, max-age=300"
