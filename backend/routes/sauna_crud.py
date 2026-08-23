@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from urllib.parse import quote
 import io
 import re
+import asyncio
 import logging
 
 from database import db
@@ -56,6 +57,144 @@ async def get_sauna_prices(response: Response):
     response.headers["Cache-Control"] = "public, max-age=300"
     
     return prices
+
+
+# =============================================
+# IMAGE INTEGRITY CHECK (admin)
+# =============================================
+
+def _collect_image_refs(prices: dict, calc_label: str) -> list:
+    """Collect all image references with human-readable context from a prices doc."""
+    refs = []
+
+    def add(url, section, item, field):
+        if isinstance(url, str) and url.strip():
+            refs.append({"calculator": calc_label, "section": section, "item": item or "—", "field": field, "url": url.strip()})
+
+    # Global model hint
+    add(prices.get("modelsHintImageUrl"), "Общее", "Подсказка моделей", "modelsHintImageUrl")
+
+    for m in prices.get("models", []) or []:
+        mname = m.get("name") or m.get("id") or "Модель"
+        add(m.get("imageUrl"), "Модели", mname, "imageUrl")
+        add(m.get("hintImageUrl"), "Модели", mname, "hintImageUrl")
+        add(m.get("modelGroupImageUrl"), "Модели", mname, "modelGroupImageUrl")
+        for i, g in enumerate(m.get("galleryImages", []) or []):
+            add(g, "Галерея модели", mname, f"galleryImages[{i}]")
+        for v in m.get("variants", []) or []:
+            vname = v.get("namePl") or v.get("name") or v.get("nameRu") or v.get("id") or "Вариант"
+            add(v.get("imageUrl"), "Варианты модели", f"{mname} → {vname}", "imageUrl")
+
+    for c in prices.get("categories", []) or []:
+        cname = c.get("name") or c.get("id") or "Категория"
+        for o in c.get("options", []) or []:
+            oname = o.get("name") or o.get("id") or "Опция"
+            label = f"{cname} → {oname}"
+            add(o.get("imageUrl"), "Опции", label, "imageUrl")
+            add(o.get("hintImageUrl"), "Опции", label, "hintImageUrl")
+            for v in (o.get("variants", []) or []) + (o.get("subOptions", []) or []):
+                vname = v.get("namePl") or v.get("name") or v.get("nameRu") or v.get("id") or "Вариант"
+                add(v.get("imageUrl"), "Варианты опции", f"{label} → {vname}", "imageUrl")
+
+    return refs
+
+
+async def _check_url_reachable(url: str, client) -> tuple:
+    """Return (status, reason) where status is 'ok' | 'broken' | 'uncertain'.
+    Uploads are validated against the DB; external URLs via HTTP.
+    - broken   : file definitely missing (404/410, DNS/connection failure, missing DB record)
+    - uncertain: host blocks automated checks (401/403/429) or transient 5xx — likely fine in browser
+    """
+    if url.startswith("data:"):
+        return "ok", "data-uri"
+    # Files stored in our own DB, served from /api/uploads/<id>
+    if "/api/uploads/" in url:
+        file_part = url.split("/api/uploads/", 1)[1].split("?", 1)[0].split("#", 1)[0]
+        file_id = file_part.rsplit(".", 1)[0] if "." in file_part else file_part
+        doc = await db.images.find_one({"id": file_id}, {"_id": 1})
+        return ("ok", "db") if doc else ("broken", "нет файла в базе")
+    # Internal static or relative path
+    if url.startswith("/"):
+        target = f"http://localhost:8001{url}"
+    elif url.startswith("http://") or url.startswith("https://"):
+        target = url
+    else:
+        return "broken", "неизвестный формат ссылки"
+
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                      "(KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+        "Accept": "image/avif,image/webp,image/*,*/*;q=0.8",
+    }
+    last_reason = "недоступно"
+    for attempt in range(2):
+        try:
+            r = await client.get(target, follow_redirects=True, timeout=8.0, headers=headers)
+            code = r.status_code
+            if code < 400:
+                return "ok", str(code)
+            if code in (404, 410):
+                return "broken", f"HTTP {code} (не найдено)"
+            if code in (401, 403, 429):
+                last_reason = f"HTTP {code} (хост блокирует проверку)"
+                if code == 429 and attempt == 0:
+                    await asyncio.sleep(1.0)
+                    continue
+                return "uncertain", last_reason
+            # 5xx and others
+            last_reason = f"HTTP {code}"
+            return "uncertain", last_reason
+        except Exception as e:
+            last_reason = f"недоступно ({type(e).__name__})"
+            return "broken", last_reason
+    return "uncertain", last_reason
+
+
+@router.get("/check-images")
+async def check_broken_images(scope: str = "all"):
+    """Scan sauna (and optionally balia) prices for broken/unreachable image URLs.
+
+    scope: 'sauna' | 'balia' | 'all' (default)
+    """
+    import httpx
+
+    refs = []
+    if scope in ("sauna", "all"):
+        sauna = await db.sauna_prices.find_one({"_id": "default"}) or {}
+        refs += _collect_image_refs(sauna, "Сауны")
+    if scope in ("balia", "all"):
+        balia = await db.prices.find_one({"_id": "default"}) or {}
+        refs += _collect_image_refs(balia, "Бали")
+
+    # De-duplicate URL checks (many refs can share the same URL)
+    unique_urls = list({r["url"] for r in refs})
+    sem = asyncio.Semaphore(12)
+    results = {}
+
+    async with httpx.AsyncClient() as client:
+        async def run(u):
+            async with sem:
+                results[u] = await _check_url_reachable(u, client)
+        await asyncio.gather(*(run(u) for u in unique_urls))
+
+    broken, uncertain = [], []
+    for r in refs:
+        status, reason = results.get(r["url"], ("broken", "не проверено"))
+        if status == "broken":
+            broken.append({**r, "reason": reason})
+        elif status == "uncertain":
+            uncertain.append({**r, "reason": reason})
+
+    return {
+        "scope": scope,
+        "total_images": len(refs),
+        "unique_urls": len(unique_urls),
+        "broken_count": len(broken),
+        "uncertain_count": len(uncertain),
+        "broken": broken,
+        "uncertain": uncertain,
+    }
+
 
 
 @router.post("/prices")

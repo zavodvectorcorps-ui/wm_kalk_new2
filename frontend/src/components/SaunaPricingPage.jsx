@@ -11,6 +11,7 @@ import { CustomerFieldsManager } from './CustomerFieldsManager';
 import { TechSpecAdminPage } from './TechSpecAdminPage';
 import { WizardStepsAdmin } from './sauna-pricing/WizardStepsAdmin';
 import PriceImportExport from './sauna-pricing/PriceImportExport';
+import { ImageIntegrityChecker } from './sauna-pricing/ImageIntegrityChecker';
 
 import { 
   useSaunaPricing, 
@@ -104,6 +105,7 @@ export const SaunaPricingPage = () => {
         {canEdit() && (
           <div className="flex items-center gap-2 flex-wrap">
             <AutoSavePill status={autoSaveStatus} />
+            <ImageIntegrityChecker />
             <PriceImportExport onImported={() => window.location.reload()} />
             <Button
               onClick={handleSaveAll}

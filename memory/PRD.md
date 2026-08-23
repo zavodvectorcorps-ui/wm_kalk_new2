@@ -2853,3 +2853,15 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
 - ПРОВЕРЕНО curl: PUT модели с hidden=true → persisted True; POST /prices с option.hidden=true →
   persisted True; затем возвращено в False.
 - BACKEND изменение → нужен РЕДЕПЛОЙ для PROD.
+
+## Session — Aug 23, 2026 (fork, feature): «Найти битые изображения» в админке (готово)
+- Backend: GET /api/sauna/check-images?scope=sauna|balia|all (sauna_crud.py). Собирает все image-ссылки
+  (модели/варианты/опции/галереи/подсказки) из sauna_prices И db.prices (Бали) с человекочитаемым контекстом.
+  Проверка: /api/uploads/<id> → наличие в db.images; внешние URL → httpx GET с браузерным User-Agent + ретрай на 429.
+  Классификация: broken (404/410/conn-fail/нет-в-базе) vs uncertain (401/403/429/5xx — хост блокирует ботов).
+- Frontend: components/sauna-pricing/ImageIntegrityChecker.jsx — кнопка «Найти битые изображения» в шапке
+  SaunaPricingPage (рядом с Экспорт/Импорт). Модал: сводка (Всего/Битых/Не проверено), список битых по группам
+  (Калькулятор·Секция → Название, поле, причина, ссылка + иконка открыть), сворачиваемый блок «не проверено».
+- ПРОВЕРЕНО: пустое состояние (Всего 32, Битых 0); подстановка несуществующего /api/uploads → «Битых: 1, нет
+  файла в базе» отображается в модале; затем возвращено. imgur больше не даёт ложных 429 (браузерный UA).
+- Backend+Frontend → нужен РЕДЕПЛОЙ для PROD.
