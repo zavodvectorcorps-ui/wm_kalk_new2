@@ -2843,3 +2843,13 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
 - ПРОВЕРЕНО curl: stale-хостов в ответе 0; ранее битые id (1f6c..., 0277..., 0576...) отдают 200 image/jpeg.
 - ВНИМАНИЕ: фикс переписывает хост на ТЕКУЩИЙ. Сработает на PROD только если blob этого id есть в
   PROD-коллекции images (обычно есть). Требуется РЕДЕПЛОЙ.
+
+## Session — Aug 23, 2026 (fork, bugfix): hidden не сохранялся (исправлено)
+- СИМПТОМ: скрываешь опцию/модель — после перезагрузки калькулятора скрытие пропадает.
+- КОРЕНЬ: models/sauna.py — SaunaModel и SaunaOption НЕ имели поля hidden и без extra="allow",
+  поэтому FastAPI выбрасывал флаг при model_dump() на сохранении (PUT /models/{id} и POST /prices).
+- ФИКС: добавлено hidden: bool = False в SaunaModel и SaunaOption. (Варианты — SaunaModelVariant/
+  OptionVariant уже с extra="allow", их hidden сохранялся.)
+- ПРОВЕРЕНО curl: PUT модели с hidden=true → persisted True; POST /prices с option.hidden=true →
+  persisted True; затем возвращено в False.
+- BACKEND изменение → нужен РЕДЕПЛОЙ для PROD.

@@ -38,6 +38,7 @@ class SaunaModel(BaseModel):
     imageUrl: str = ""
     sortOrder: int = 1
     active: bool = True
+    hidden: bool = False  # If true, model is hidden from the client calculator (kept in admin)
     # Model group for calculator grouping (e.g., "Квадро", "Бочка", "Викинг", "Парус")
     modelGroup: Optional[str] = None
     modelGroupImageUrl: Optional[str] = None
@@ -94,6 +95,7 @@ class SaunaOption(BaseModel):
     imageUrl: Optional[str] = None
     hasQuantity: bool = False
     isDefaultSelected: bool = False  # If true, option is selected by default in calculator
+    hidden: bool = False  # If true, option is hidden from the client calculator (kept in admin)
     techSpecId: Optional[str] = None  # Link to tech spec option ID
     techSpecCategoryId: Optional[str] = None  # Override category mapping for specific options
     hint: Optional[str] = None
