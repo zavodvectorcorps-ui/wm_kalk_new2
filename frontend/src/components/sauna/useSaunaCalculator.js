@@ -296,9 +296,48 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
     return totalPrice;
   }, [getSelectedModel, getSelectedModelVariant]);
 
+  // ===== Default package (per-model / per-variant preset) =====
+  // Variant package overrides model package per category.
+  const computeEffectivePackage = useCallback((model, variantId) => {
+    if (!model) return {};
+    const modelPkg = model.defaultPackage || {};
+    const variant = (model.variants || []).find(v => v.id === variantId);
+    const variantPkg = variant?.defaultPackage || {};
+    return { ...modelPkg, ...variantPkg };
+  }, []);
+
+  // Overlay a package onto existing selections (overwrites the package's categories).
+  const applyPackage = useCallback((prevSelections, prevQuantities, pkg) => {
+    const selections = { ...prevSelections };
+    const quantities = { ...prevQuantities };
+    Object.entries(pkg || {}).forEach(([catId, optIds]) => {
+      const cat = (prices.categories || []).find(c => c.id === catId);
+      if (!cat || !optIds || optIds.length === 0) return;
+      if (cat.inputType === 'checkbox') {
+        const obj = {};
+        optIds.forEach(id => {
+          obj[id] = true;
+          const o = (cat.options || []).find(x => x.id === id);
+          if (o?.hasQuantity) quantities[id] = quantities[id] || 1;
+        });
+        selections[catId] = obj;
+      } else {
+        selections[catId] = optIds[0];
+        const o = (cat.options || []).find(x => x.id === optIds[0]);
+        if (o?.hasQuantity) quantities[optIds[0]] = quantities[optIds[0]] || 1;
+      }
+    });
+    return { selections, quantities };
+  }, [prices.categories]);
+
   // Handle model variant change
   const handleModelVariantChange = (variantId) => {
-    setFormData(prev => ({ ...prev, selectedModelVariant: variantId }));
+    const model = getSelectedModel();
+    const pkg = computeEffectivePackage(model, variantId);
+    setFormData(prev => {
+      const { selections, quantities } = applyPackage(prev.selections, prev.quantities, pkg);
+      return { ...prev, selectedModelVariant: variantId, selections, quantities, packageMap: pkg };
+    });
   };
 
   // Get room sizes based on terrace selection and variant (uses isTerraceSelected from useOptionVisibility hook)
@@ -561,7 +600,11 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
     const newModel = prices.models?.find(m => m.id === modelId);
     const firstVariantId = newModel?.variants?.[0]?.id || '';
     
-    setFormData(prev => ({ ...prev, selectedModel: modelId, selectedModelVariant: firstVariantId }));
+    const pkg = computeEffectivePackage(newModel, firstVariantId);
+    setFormData(prev => {
+      const { selections, quantities } = applyPackage(prev.selections, prev.quantities, pkg);
+      return { ...prev, selectedModel: modelId, selectedModelVariant: firstVariantId, selections, quantities, packageMap: pkg };
+    });
     setAppliedDiscount(0);
     setCertificateDiscount(false);
     
@@ -771,6 +814,7 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
               categoryId: category.id,
               categoryName: category.name,
               optionId: option.id,
+              inPackage: (formData.packageMap?.[category.id] || []).includes(option.id),
               optionName: variantName ? `${option.name} (${variantName})` : option.name,
               price: finalPrice,
               costPrice: option.costPrice || 0,
@@ -838,6 +882,7 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
           categoryId: category.id,
           categoryName: category.name,
           optionId: option.id,
+          inPackage: (formData.packageMap?.[category.id] || []).includes(option.id),
           optionName: variantName ? `${option.name} (${variantName})` : option.name,
           price: finalPrice,
           costPrice: option.costPrice || 0,
@@ -864,7 +909,7 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
     });
     
     return options;
-  }, [prices.categories, formData.selections, formData.quantities, formData.variantSelections, getSelectedModel, isOptionVisible, getOptionBasePrice]);
+  }, [prices.categories, formData.selections, formData.quantities, formData.variantSelections, formData.packageMap, getSelectedModel, isOptionVisible, getOptionBasePrice]);
 
   // Save and generate PDF
   const handleSaveAndGeneratePDF = async (forceNew = false) => {

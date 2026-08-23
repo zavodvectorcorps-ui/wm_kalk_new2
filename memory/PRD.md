@@ -2891,3 +2891,23 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
 - ПРОВЕРЕНО e2e: у опции заданы обе rules (model=beczka200 + option=dostawa_251_400km); при выборе
   ТОЛЬКО модели (без второго условия) опция теперь скрывается. Тестовые данные возвращены.
 - Frontend изменения → нужен РЕДЕПЛОЙ для PROD.
+
+## Session — Aug 24, 2026 (feature): «Комплект по умолчанию» для модели/варианта
+- ЗАДАЧА: при выборе модели (напр. Żagel Mini) авто-подставлять набор опций (печь, лавка, освещение),
+  менеджер видит их выбранными и может менять; в PDF пометить «w zestawie».
+- ДАННЫЕ: SaunaModel.defaultPackage и SaunaModelVariant.defaultPackage = {categoryId: [optionIds]}
+  (radio → 1 элемент; checkbox → несколько). Вариант переопределяет модель по категории.
+- АДМИНКА: DefaultPackageEditor.jsx (select для radio, чекбоксы для checkbox). Встроен в ModelDialog:
+  секция «Комплект по умолчанию» на уровне модели (Add/Edit) + на уровне каждого варианта.
+  categories прокинуты из ModelsTab (prices.categories).
+- КАЛЬКУЛЯТОР (useSaunaCalculator.js): computeEffectivePackage + applyPackage. Применяется в
+  handleModelChange и handleModelVariantChange (перезапись категорий комплекта). packageMap хранится
+  в formData; getSelectedOptions добавляет inPackage к каждой позиции.
+- PDF (routes/sauna.py, ветка selected_options): при opt.inPackage к имени добавляется
+  <font color=#0EA5E9>(w zestawie)</font>.
+- ПРОВЕРЕНО e2e: PUT модели с defaultPackage персистит; выбор модели авто-выбирает лавку(radio)+
+  окно(checkbox, qty1)+LED RGB(checkbox); generate-pdf → 200, обе позиции с «(w zestawie)», обычная без.
+  Тестовые данные возвращены.
+- ПРИМЕЧАНИЕ: handleAddModel всё ещё не сохраняет variants при создании (предсуществующее поведение) —
+  комплект варианта задаётся после создания через редактирование. Комплект модели при add сохраняется.
+- Backend+Frontend → нужен РЕДЕПЛОЙ для PROD.

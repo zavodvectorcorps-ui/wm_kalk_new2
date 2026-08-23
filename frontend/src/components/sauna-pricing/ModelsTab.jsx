@@ -373,6 +373,7 @@ export const ModelsTab = ({
         onAdd={onAddModel}
         txt={txt}
         allModels={prices?.models || []}
+        categories={prices?.categories || []}
       />
 
       <EditModelDialog
@@ -383,6 +384,7 @@ export const ModelsTab = ({
         onSave={onSaveEditModel}
         txt={txt}
         allModels={prices?.models || []}
+        categories={prices?.categories || []}
       />
     </Card>
   );

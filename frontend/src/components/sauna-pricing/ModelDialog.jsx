@@ -14,6 +14,7 @@ import {
   DialogClose,
 } from '../ui/dialog';
 import { ImageUploader } from './ImageUploader';
+import { DefaultPackageEditor } from './DefaultPackageEditor';
 
 // Smart API URL
 const getApiUrl = () => { 
@@ -26,7 +27,7 @@ const getApiUrl = () => {
 const API_URL = getApiUrl();
 
 // Model Variants Editor Component
-const ModelVariantsEditor = ({ variants = [], onChange }) => {
+const ModelVariantsEditor = ({ variants = [], onChange, categories = [] }) => {
   const [uploadingImage, setUploadingImage] = useState(null);
   
   const handleAddVariant = () => {
@@ -343,6 +344,24 @@ const ModelVariantsEditor = ({ variants = [], onChange }) => {
                   </label>
                 )}
               </div>
+
+              {/* Default package override for this variant */}
+              {categories && categories.length > 0 && (
+                <div className="border-t pt-3 mt-3">
+                  <Label className="text-xs font-medium text-emerald-700 mb-1 block">
+                    📦 Комплект по умолчанию для этого варианта
+                  </Label>
+                  <p className="text-[11px] text-muted-foreground mb-2">
+                    Переопределяет комплект модели для этого варианта. Пусто — берётся комплект модели.
+                  </p>
+                  <DefaultPackageEditor
+                    categories={categories}
+                    value={variant.defaultPackage || {}}
+                    onChange={(v) => handleVariantChange(index, 'defaultPackage', v)}
+                    idPrefix={`pkg-variant-${index}`}
+                  />
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -442,7 +461,7 @@ const GalleryImagesEditor = ({ images = [], onChange }) => {
   );
 };
 
-export const AddModelDialog = ({ open, onOpenChange, newModel, setNewModel, onAdd, txt, allModels }) => {
+export const AddModelDialog = ({ open, onOpenChange, newModel, setNewModel, onAdd, txt, allModels, categories = [] }) => {
   const [uploadingHintImage, setUploadingHintImage] = useState(false);
   const [layoutSizes, setLayoutSizes] = useState([]);
   
@@ -564,7 +583,24 @@ export const AddModelDialog = ({ open, onOpenChange, newModel, setNewModel, onAd
         <ModelVariantsEditor
           variants={newModel.variants || []}
           onChange={(variants) => setNewModel(prev => ({ ...prev, variants }))}
+          categories={categories}
         />
+
+        {/* Default package for the model */}
+        {categories && categories.length > 0 && (
+          <div className="border-t pt-4 mt-4">
+            <Label className="text-sm font-medium text-emerald-700 mb-1 block">📦 Комплект по умолчанию (для этой модели)</Label>
+            <p className="text-xs text-muted-foreground mb-2">
+              Выбранные здесь опции будут автоматически подставлены при выборе модели в калькуляторе (менеджер сможет изменить). Помечаются «w zestawie» в PDF.
+            </p>
+            <DefaultPackageEditor
+              categories={categories}
+              value={newModel.defaultPackage || {}}
+              onChange={(v) => setNewModel(prev => ({ ...prev, defaultPackage: v }))}
+              idPrefix="pkg-newmodel"
+            />
+          </div>
+        )}
         
         {/* Room Sizes Section */}
         <div className="border-t pt-4 mt-4">
@@ -786,7 +822,7 @@ export const AddModelDialog = ({ open, onOpenChange, newModel, setNewModel, onAd
   );
 };
 
-export const EditModelDialog = ({ open, onOpenChange, editingModel, setEditingModel, onSave, txt, allModels }) => {
+export const EditModelDialog = ({ open, onOpenChange, editingModel, setEditingModel, onSave, txt, allModels, categories = [] }) => {
   const [uploadingHintImage, setUploadingHintImage] = useState(false);
   const [layoutSizes, setLayoutSizes] = useState([]);
   
@@ -908,7 +944,24 @@ export const EditModelDialog = ({ open, onOpenChange, editingModel, setEditingMo
           <ModelVariantsEditor
             variants={editingModel.variants || []}
             onChange={(variants) => setEditingModel(prev => ({ ...prev, variants }))}
+            categories={categories}
           />
+
+          {/* Default package for the model */}
+          {categories && categories.length > 0 && (
+            <div className="border-t pt-4 mt-4">
+              <Label className="text-sm font-medium text-emerald-700 mb-1 block">📦 Комплект по умолчанию (для этой модели)</Label>
+              <p className="text-xs text-muted-foreground mb-2">
+                Выбранные здесь опции будут автоматически подставлены при выборе модели в калькуляторе (менеджер сможет изменить). Помечаются «w zestawie» в PDF.
+              </p>
+              <DefaultPackageEditor
+                categories={categories}
+                value={editingModel.defaultPackage || {}}
+                onChange={(v) => setEditingModel(prev => ({ ...prev, defaultPackage: v }))}
+                idPrefix="pkg-editmodel"
+              />
+            </div>
+          )}
           
           {/* Room Sizes Section */}
           <div className="border-t pt-4 mt-4">

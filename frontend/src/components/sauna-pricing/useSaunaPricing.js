@@ -292,6 +292,7 @@ export const useSaunaPricing = () => {
       imageUrl: newModel.imageUrl,
       sortOrder: (prices.models?.length || 0) + 1,
       active: true,
+      defaultPackage: newModel.defaultPackage || {},
     };
     
     try {

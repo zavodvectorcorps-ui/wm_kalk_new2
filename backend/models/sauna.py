@@ -26,6 +26,8 @@ class SaunaModelVariant(BaseModel):
     relaxRoomSize: Optional[str] = ""  # Pokój wypoczynkowy
     steamRoomSize: Optional[str] = ""  # Pokój parowy
     entranceSide: Optional[str] = ""  # Strona wejścia
+    # Default package overrides for this variant: {categoryId: [optionId, ...]}
+    defaultPackage: Optional[Dict[str, List[str]]] = {}
 
 
 class SaunaModel(BaseModel):
@@ -39,6 +41,8 @@ class SaunaModel(BaseModel):
     sortOrder: int = 1
     active: bool = True
     hidden: bool = False  # If true, model is hidden from the client calculator (kept in admin)
+    # Default package for this model: {categoryId: [optionId, ...]} auto-selected when model chosen
+    defaultPackage: Optional[Dict[str, List[str]]] = {}
     # Model group for calculator grouping (e.g., "Квадро", "Бочка", "Викинг", "Парус")
     modelGroup: Optional[str] = None
     modelGroupImageUrl: Optional[str] = None

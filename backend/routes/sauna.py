@@ -1409,6 +1409,10 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
             
             if quantity > 1:
                 name = f"{name} (×{quantity})"
+
+            # Mark items that belong to the model's default package
+            if opt.get('inPackage'):
+                name = f'{name} <font color="#0EA5E9">(w zestawie)</font>'
             
             if is_gift:
                 # Show original price crossed out + gift label
