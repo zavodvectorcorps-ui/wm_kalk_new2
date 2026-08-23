@@ -593,6 +593,22 @@ export const AddModelDialog = ({ open, onOpenChange, newModel, setNewModel, onAd
             <p className="text-xs text-muted-foreground mb-2">
               Выбранные здесь опции будут автоматически подставлены при выборе модели в калькуляторе (менеджер сможет изменить). Помечаются «w zestawie» в PDF.
             </p>
+            {(allModels || []).filter(m => Object.keys(m.defaultPackage || {}).length > 0).length > 0 && (
+              <div className="mb-2 flex items-center gap-2">
+                <span className="text-xs text-muted-foreground whitespace-nowrap">Скопировать из:</span>
+                <select
+                  className="h-8 text-sm border rounded px-2 bg-white flex-1"
+                  data-testid="pkg-copy-from-newmodel"
+                  value=""
+                  onChange={(e) => { const src = (allModels || []).find(m => m.id === e.target.value); if (src) setNewModel(prev => ({ ...prev, defaultPackage: JSON.parse(JSON.stringify(src.defaultPackage || {})) })); }}
+                >
+                  <option value="">— выбрать модель —</option>
+                  {(allModels || []).filter(m => Object.keys(m.defaultPackage || {}).length > 0).map(m => (
+                    <option key={m.id} value={m.id}>{m.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             <DefaultPackageEditor
               categories={categories}
               value={newModel.defaultPackage || {}}
@@ -954,6 +970,22 @@ export const EditModelDialog = ({ open, onOpenChange, editingModel, setEditingMo
               <p className="text-xs text-muted-foreground mb-2">
                 Выбранные здесь опции будут автоматически подставлены при выборе модели в калькуляторе (менеджер сможет изменить). Помечаются «w zestawie» в PDF.
               </p>
+              {(allModels || []).filter(m => m.id !== editingModel.id && Object.keys(m.defaultPackage || {}).length > 0).length > 0 && (
+                <div className="mb-2 flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">Скопировать из:</span>
+                  <select
+                    className="h-8 text-sm border rounded px-2 bg-white flex-1"
+                    data-testid="pkg-copy-from-editmodel"
+                    value=""
+                    onChange={(e) => { const src = (allModels || []).find(m => m.id === e.target.value); if (src) setEditingModel(prev => ({ ...prev, defaultPackage: JSON.parse(JSON.stringify(src.defaultPackage || {})) })); }}
+                  >
+                    <option value="">— выбрать модель —</option>
+                    {(allModels || []).filter(m => m.id !== editingModel.id && Object.keys(m.defaultPackage || {}).length > 0).map(m => (
+                      <option key={m.id} value={m.id}>{m.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <DefaultPackageEditor
                 categories={categories}
                 value={editingModel.defaultPackage || {}}

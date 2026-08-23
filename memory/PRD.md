@@ -2911,3 +2911,13 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
 - ПРИМЕЧАНИЕ: handleAddModel всё ещё не сохраняет variants при создании (предсуществующее поведение) —
   комплект варианта задаётся после создания через редактирование. Комплект модели при add сохраняется.
 - Backend+Frontend → нужен РЕДЕПЛОЙ для PROD.
+
+## Session — Aug 24, 2026 (feature): бейдж «w zestawie» в калькуляторе + копирование комплекта
+- Бейдж: в SaunaCalculator.jsx (CategoryCard, checkbox+radio ветки) синяя пилюля «w zestawie» рядом с
+  названием опции, если option.id в formData.packageMap[category.id]. data-testid=pkg-badge-{optId}.
+- Копирование: в ModelDialog (Add+Edit) над DefaultPackageEditor — select «Скопировать из» со списком
+  моделей, у которых непустой defaultPackage; копирует deep-clone defaultPackage в текущую модель.
+  data-testid=pkg-copy-from-editmodel / pkg-copy-from-newmodel. Добавлен data-testid=model-edit-btn-{id}.
+- ПРОВЕРЕНО: бейдж виден на выбранной опции (2 бейджа); копирование из beczka200 → «Задано категорий: 2»,
+  select lawki = lawki_2_poziomy_zamkniete. Тестовые данные возвращены.
+- Frontend изменения → нужен РЕДЕПЛОЙ для PROD.

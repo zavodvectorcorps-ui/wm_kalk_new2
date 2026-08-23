@@ -1353,7 +1353,12 @@ const CheckboxOptions = ({ category, options, formData, foundationPrice, handleC
             />
             <CheckboxOrange id={`${category.id}-${option.id}`} checked={isChecked} onCheckedChange={(checked) => handleCheckboxChange(category.id, option.id, checked)} />
             <div className="flex-1">
-              <Label htmlFor={`${category.id}-${option.id}`} className="cursor-pointer text-sm leading-tight block font-medium">{option.name}</Label>
+              <Label htmlFor={`${category.id}-${option.id}`} className="cursor-pointer text-sm leading-tight block font-medium">
+                {option.name}
+                {(formData.packageMap?.[category.id] || []).includes(option.id) && (
+                  <span className="inline-block ml-2 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-sky-100 text-sky-700 align-middle" data-testid={`pkg-badge-${option.id}`}>w zestawie</span>
+                )}
+              </Label>
               <div className="flex items-center gap-2 flex-wrap">
                 {displayPrice > 0 ? (
                   <span className="text-xs text-amber-700 font-medium">
@@ -1601,7 +1606,12 @@ const RadioOptions = ({ category, options, formData, foundationPrice, handleRadi
               />
               <RadioGroupItemOrange value={option.id} id={`${category.id}-${option.id}`} />
               <div className="flex-1">
-                <Label htmlFor={`${category.id}-${option.id}`} className="cursor-pointer text-sm leading-tight block font-medium">{option.name}</Label>
+                <Label htmlFor={`${category.id}-${option.id}`} className="cursor-pointer text-sm leading-tight block font-medium">
+                  {option.name}
+                  {(formData.packageMap?.[category.id] || []).includes(option.id) && (
+                    <span className="inline-block ml-2 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-sky-100 text-sky-700 align-middle" data-testid={`pkg-badge-${option.id}`}>w zestawie</span>
+                  )}
+                </Label>
                 <div className="flex items-center gap-2 flex-wrap">
                   {displayPrice > 0 ? (
                     <span className="text-xs text-amber-700 font-medium">

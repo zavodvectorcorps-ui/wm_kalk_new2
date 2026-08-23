@@ -333,6 +333,7 @@ export const ModelsTab = ({
                         variant="outline"
                         onClick={() => onEditModel(model)}
                         title="Редактировать"
+                        data-testid={`model-edit-btn-${model.id}`}
                       >
                         <Edit2 className="h-4 w-4" />
                       </Button>
