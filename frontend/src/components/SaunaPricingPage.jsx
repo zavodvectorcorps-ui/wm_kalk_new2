@@ -57,6 +57,7 @@ export const SaunaPricingPage = () => {
     handleToggleOptionDefault,
     handleToggleOptionHidden,
     handleCloneOption,
+    handleRestrictCategoryToOption,
     handleReorderOptions,
     // Settings
     handleUpdateMaxManagerDiscount,
@@ -368,6 +369,7 @@ export const SaunaPricingPage = () => {
             handleToggleOptionDefault={handleToggleOptionDefault}
             handleToggleOptionHidden={handleToggleOptionHidden}
             handleCloneOption={handleCloneOption}
+            handleRestrictCategoryToOption={handleRestrictCategoryToOption}
             handleReorderOptions={handleReorderOptions}
           />
         </TabsContent>

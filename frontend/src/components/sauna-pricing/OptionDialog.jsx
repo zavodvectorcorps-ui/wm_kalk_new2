@@ -345,10 +345,29 @@ export const AddOptionDialog = ({ open, onOpenChange, newOption, setNewOption, c
   );
 };
 
-export const EditOptionDialog = ({ open, onOpenChange, editingOption, setEditingOption, techSpecCategories, categories, models, onSave, txt }) => {
+export const EditOptionDialog = ({ open, onOpenChange, editingOption, setEditingOption, techSpecCategories, categories, models, onSave, onRestrictToOption, txt }) => {
   const selectedTechSpecCategory = techSpecCategories?.find(tc => tc.id === editingOption?.techSpecCategoryId);
   const [uploadingHintImage, setUploadingHintImage] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [restrictSel, setRestrictSel] = useState([]);
+  const [applyingRestrict, setApplyingRestrict] = useState(false);
+
+  const toggleRestrict = (id) => {
+    setRestrictSel(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const applyRestrict = async () => {
+    if (!onRestrictToOption || restrictSel.length === 0 || !editingOption) return;
+    setApplyingRestrict(true);
+    try {
+      const res = await onRestrictToOption(editingOption.categoryId, editingOption.id, restrictSel);
+      setEditingOption(prev => ({ ...prev, incompatibleModels: res?.keepIncompatibleModels || (prev.incompatibleModels || []).filter(id => !restrictSel.includes(id)) }));
+      setRestrictSel([]);
+    } finally {
+      setApplyingRestrict(false);
+    }
+  };
+
   
   const handleImageUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -1186,6 +1205,60 @@ export const EditOptionDialog = ({ open, onOpenChange, editingOption, setEditing
               <p className="text-xs text-gray-500 mb-3">
                 Укажите, когда эта опция должна быть <strong>скрыта</strong>. Во всех остальных случаях она будет доступна.
               </p>
+
+              {/* Keep ONLY this option for selected models (hide all others in category) */}
+              {onRestrictToOption && models && models.length > 0 && (
+                <div className="mb-4 border border-emerald-300 rounded-lg p-3 bg-emerald-50" data-testid="restrict-to-option-block">
+                  <Label className="text-sm font-medium text-emerald-800 mb-1 block">
+                    ✅ Оставить только эту опцию для выбранных моделей
+                  </Label>
+                  <p className="text-xs text-emerald-700 mb-2">
+                    Отметьте модели/варианты — у всех <strong>остальных</strong> опций этой категории будет включено «скрыть при выборе этих моделей». В категории останется только текущая опция.
+                  </p>
+                  <div className="max-h-40 overflow-y-auto border rounded p-2 space-y-1 bg-white">
+                    {models.map(model => (
+                      <div key={`restrict-${model.id}`}>
+                        <label className="flex items-center gap-2 cursor-pointer hover:bg-emerald-50 p-1 rounded">
+                          <input
+                            type="checkbox"
+                            checked={restrictSel.includes(model.id)}
+                            onChange={() => toggleRestrict(model.id)}
+                            className="w-4 h-4 rounded border-gray-300 accent-emerald-600"
+                            data-testid={`restrict-model-${model.id}`}
+                          />
+                          <span className="text-sm font-medium">{model.name}</span>
+                        </label>
+                        {model.variants?.length > 0 && (
+                          <div className="ml-6 space-y-0.5">
+                            {model.variants.map(variant => (
+                              <label key={`restrict-${variant.id}`} className="flex items-center gap-2 cursor-pointer hover:bg-emerald-50 p-0.5 rounded">
+                                <input
+                                  type="checkbox"
+                                  checked={restrictSel.includes(variant.id)}
+                                  onChange={() => toggleRestrict(variant.id)}
+                                  className="w-3.5 h-3.5 rounded border-gray-300 accent-emerald-500"
+                                  data-testid={`restrict-variant-${variant.id}`}
+                                />
+                                <span className="text-xs text-gray-600">{variant.namePl || variant.name}</span>
+                              </label>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={applyRestrict}
+                    disabled={restrictSel.length === 0 || applyingRestrict}
+                    className="mt-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+                    data-testid="apply-restrict-btn"
+                  >
+                    {applyingRestrict ? 'Применяю…' : `Применить (${restrictSel.length})`}
+                  </Button>
+                </div>
+              )}
               
               {/* Incompatible Models */}
               {models && models.length > 0 && (

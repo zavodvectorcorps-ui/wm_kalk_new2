@@ -716,6 +716,44 @@ export const useSaunaPricing = () => {
     }));
   };
 
+  // Keep ONLY the given option available for the selected models/variants:
+  // adds those model IDs to `incompatibleModels` of every OTHER option in the
+  // category, and removes them from the kept option. Persists all changed options.
+  const handleRestrictCategoryToOption = async (categoryId, keepOptionId, targetIds) => {
+    if (!targetIds || targetIds.length === 0) return { keepIncompatibleModels: [] };
+    const category = prices.categories?.find(c => c.id === categoryId);
+    if (!category) return { keepIncompatibleModels: [] };
+
+    const updatedOptions = (category.options || []).map(o => {
+      const existing = o.incompatibleModels || [];
+      if (o.id === keepOptionId) {
+        return { ...o, incompatibleModels: existing.filter(id => !targetIds.includes(id)) };
+      }
+      return { ...o, incompatibleModels: Array.from(new Set([...existing, ...targetIds])) };
+    });
+
+    setPrices(prev => ({
+      ...prev,
+      categories: prev.categories.map(cat =>
+        cat.id === categoryId ? { ...cat, options: updatedOptions } : cat
+      ),
+    }));
+
+    try {
+      await Promise.all(updatedOptions.map(o => {
+        const { categoryId: _c, newCategoryId: _n, ...optionData } = o;
+        return axios.put(`${API_URL}/api/sauna/categories/${categoryId}/options/${o.id}`, optionData);
+      }));
+      const hiddenCount = updatedOptions.filter(o => o.id !== keepOptionId).length;
+      toast.success(`Готово: у ${hiddenCount} опций категории задано скрытие для выбранных моделей`);
+    } catch (error) {
+      console.error('Error restricting category to option:', error);
+      toast.error(t('error'));
+    }
+    const keep = updatedOptions.find(o => o.id === keepOptionId);
+    return { keepIncompatibleModels: keep?.incompatibleModels || [] };
+  };
+
   // ========== SETTINGS ==========
   const handleUpdateMaxManagerDiscount = (value) => {
     const numValue = Math.max(0, Math.min(100, parseInt(value) || 10));
@@ -810,6 +848,7 @@ export const useSaunaPricing = () => {
     handleToggleOptionDefault,
     handleToggleOptionHidden,
     handleCloneOption,
+    handleRestrictCategoryToOption,
     handleReorderOptions,
     // Settings
     handleUpdateMaxManagerDiscount,

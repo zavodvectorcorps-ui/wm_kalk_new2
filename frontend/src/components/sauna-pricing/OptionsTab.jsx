@@ -23,6 +23,7 @@ export const OptionsTab = ({
   handleToggleOptionDefault,
   handleToggleOptionHidden,
   handleCloneOption,
+  handleRestrictCategoryToOption,
   handleReorderOptions,
 }) => {
   const { canEdit } = useAuth();
@@ -185,6 +186,7 @@ export const OptionsTab = ({
                                 variant="ghost"
                                 className="h-8 w-8"
                                 onClick={() => onEditOption(category.id, option)}
+                                data-testid={`option-edit-btn-${option.id}`}
                               >
                                 <Edit2 className="h-4 w-4" />
                               </Button>
@@ -229,6 +231,7 @@ export const OptionsTab = ({
         categories={prices.categories}
         models={prices.models}
         onSave={onSaveEditOption}
+        onRestrictToOption={handleRestrictCategoryToOption}
         txt={txt}
       />
     </Card>
