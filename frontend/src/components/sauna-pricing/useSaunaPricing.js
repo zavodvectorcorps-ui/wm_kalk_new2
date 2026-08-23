@@ -352,6 +352,22 @@ export const useSaunaPricing = () => {
     setPrices(prev => ({ ...prev, models: newModels }));
   };
 
+  const handleToggleModelHidden = async (modelId, hidden) => {
+    const model = prices.models?.find(m => m.id === modelId);
+    if (!model) return;
+    const updated = { ...model, hidden };
+    setPrices(prev => ({
+      ...prev,
+      models: prev.models.map(m => m.id === modelId ? updated : m),
+    }));
+    try {
+      await axios.put(`${API_URL}/api/sauna/models/${modelId}`, updated);
+    } catch (error) {
+      console.error('Error toggling model visibility:', error);
+      toast.error(t('error'));
+    }
+  };
+
   const handleModelsDisplayTypeChange = (displayType) => {
     setPrices(prev => ({
       ...prev,
@@ -664,6 +680,42 @@ export const useSaunaPricing = () => {
     }));
   };
 
+  const handleToggleOptionHidden = (categoryId, optionId, hidden) => {
+    setPrices(prev => ({
+      ...prev,
+      categories: prev.categories.map(cat => {
+        if (cat.id === categoryId) {
+          return {
+            ...cat,
+            options: cat.options.map(o =>
+              o.id === optionId ? { ...o, hidden } : o
+            ),
+          };
+        }
+        return cat;
+      }),
+    }));
+  };
+
+  const handleCloneOption = (categoryId, option) => {
+    const clone = {
+      ...option,
+      id: `opt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      name: `${option.name} (копия)`,
+      isDefaultSelected: false,
+    };
+    setPrices(prev => ({
+      ...prev,
+      categories: prev.categories.map(cat => {
+        if (cat.id !== categoryId) return cat;
+        const opts = [...cat.options];
+        const idx = opts.findIndex(o => o.id === option.id);
+        opts.splice(idx === -1 ? opts.length : idx + 1, 0, clone);
+        return { ...cat, options: opts };
+      }),
+    }));
+  };
+
   // ========== SETTINGS ==========
   const handleUpdateMaxManagerDiscount = (value) => {
     const numValue = Math.max(0, Math.min(100, parseInt(value) || 10));
@@ -738,6 +790,7 @@ export const useSaunaPricing = () => {
     handleDeleteModel,
     moveModel,
     handleModelsDisplayTypeChange,
+    handleToggleModelHidden,
     handleUpdatePricingSetting,
     handleUpdateModelsHint,
     // Categories
@@ -755,6 +808,8 @@ export const useSaunaPricing = () => {
     handleUpdateOptionPrice,
     handleToggleOptionQuantity,
     handleToggleOptionDefault,
+    handleToggleOptionHidden,
+    handleCloneOption,
     handleReorderOptions,
     // Settings
     handleUpdateMaxManagerDiscount,

@@ -4,6 +4,7 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { Upload, X, Loader2, Plus, Trash2, Copy } from 'lucide-react';
+import { Checkbox } from '../ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -115,10 +116,26 @@ const ModelVariantsEditor = ({ variants = [], onChange }) => {
       ) : (
         <div className="space-y-4">
           {variants.map((variant, index) => (
-            <div key={variant.id || index} className="border rounded-lg p-3 bg-purple-50 space-y-3">
+            <div key={variant.id || index} className={`border rounded-lg p-3 bg-purple-50 space-y-3 ${variant.hidden ? 'opacity-60' : ''}`}>
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-purple-800">Вариант {index + 1}</span>
-                <div className="flex gap-1">
+                <span className="text-sm font-medium text-purple-800 flex items-center gap-2">
+                  Вариант {index + 1}
+                  {variant.hidden && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-200 text-purple-800">Скрыт</span>
+                  )}
+                </span>
+                <div className="flex gap-1 items-center">
+                  <div className="flex items-center gap-1 border rounded px-2 py-1 border-purple-300 bg-white mr-1">
+                    <Checkbox
+                      id={`variant-hidden-${variant.id || index}`}
+                      checked={variant.hidden || false}
+                      onCheckedChange={(checked) => handleVariantChange(index, 'hidden', checked)}
+                      data-testid={`variant-hidden-toggle-${index}`}
+                    />
+                    <Label htmlFor={`variant-hidden-${variant.id || index}`} className="text-xs cursor-pointer text-purple-700">
+                      Скрыть
+                    </Label>
+                  </div>
                   <Button
                     type="button"
                     variant="ghost"

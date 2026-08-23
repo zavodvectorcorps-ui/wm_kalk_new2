@@ -8,6 +8,7 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { Plus, ArrowUp, ArrowDown, Edit2, Trash2, LayoutGrid, List, Info, Upload, X, Image as ImageIcon, Video, Copy } from 'lucide-react';
+import { Checkbox } from '../ui/checkbox';
 import { AddModelDialog, EditModelDialog } from './ModelDialog';
 
 export const ModelsTab = ({
@@ -18,6 +19,7 @@ export const ModelsTab = ({
   handleDeleteModel,
   moveModel,
   handleModelsDisplayTypeChange,
+  handleToggleModelHidden,
   onUpdateModelsHint,
   onUpdatePricingSetting,
 }) => {
@@ -260,7 +262,8 @@ export const ModelsTab = ({
             {prices.models?.map((model, index) => (
               <div
                 key={model.id}
-                className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg"
+                className={`flex items-center gap-3 p-3 bg-muted/50 rounded-lg ${model.hidden ? 'opacity-50' : ''}`}
+                data-testid={`model-row-${model.id}`}
               >
                 <div className="flex flex-col gap-1">
                   <Button
@@ -292,7 +295,12 @@ export const ModelsTab = ({
                 )}
                 
                 <div className="flex-1">
-                  <div className="font-medium">{model.name}</div>
+                  <div className="font-medium flex items-center gap-2">
+                    {model.name}
+                    {model.hidden && (
+                      <Badge variant="secondary" className="text-[10px]" data-testid={`model-hidden-badge-${model.id}`}>Скрыта</Badge>
+                    )}
+                  </div>
                   <div className="text-sm text-muted-foreground">
                     {model.basePrice.toLocaleString('pl-PL')} PLN
                     {model.discount > 0 && (
@@ -306,9 +314,20 @@ export const ModelsTab = ({
                   </div>
                 </div>
                 
-                <div className="flex gap-2">
+                <div className="flex gap-2 items-center">
                   {canEdit() && (
                     <>
+                      <div className="flex items-center gap-1 border rounded px-2 py-1 border-amber-300 bg-amber-50">
+                        <Checkbox
+                          id={`model-hidden-${model.id}`}
+                          checked={model.hidden || false}
+                          onCheckedChange={(checked) => handleToggleModelHidden(model.id, checked)}
+                          data-testid={`model-hidden-toggle-${model.id}`}
+                        />
+                        <Label htmlFor={`model-hidden-${model.id}`} className="text-xs cursor-pointer text-amber-700">
+                          Скрыть
+                        </Label>
+                      </div>
                       <Button
                         size="sm"
                         variant="outline"

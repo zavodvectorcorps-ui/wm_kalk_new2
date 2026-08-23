@@ -40,6 +40,7 @@ export const SaunaPricingPage = () => {
     handleModelsDisplayTypeChange,
     handleUpdateModelsHint,
     handleUpdatePricingSetting,
+    handleToggleModelHidden,
     // Categories
     handleAddCategory,
     handleSaveEditCategory,
@@ -53,6 +54,8 @@ export const SaunaPricingPage = () => {
     handleUpdateOptionPrice,
     handleToggleOptionQuantity,
     handleToggleOptionDefault,
+    handleToggleOptionHidden,
+    handleCloneOption,
     handleReorderOptions,
     // Settings
     handleUpdateMaxManagerDiscount,
@@ -331,6 +334,7 @@ export const SaunaPricingPage = () => {
             handleDeleteModel={handleDeleteModel}
             moveModel={moveModel}
             handleModelsDisplayTypeChange={handleModelsDisplayTypeChange}
+            handleToggleModelHidden={handleToggleModelHidden}
             onUpdateModelsHint={handleUpdateModelsHint}
             onUpdatePricingSetting={handleUpdatePricingSetting}
           />
@@ -360,6 +364,8 @@ export const SaunaPricingPage = () => {
             handleUpdateOptionPrice={handleUpdateOptionPrice}
             handleToggleOptionQuantity={handleToggleOptionQuantity}
             handleToggleOptionDefault={handleToggleOptionDefault}
+            handleToggleOptionHidden={handleToggleOptionHidden}
+            handleCloneOption={handleCloneOption}
             handleReorderOptions={handleReorderOptions}
           />
         </TabsContent>

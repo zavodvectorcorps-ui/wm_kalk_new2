@@ -8,7 +8,7 @@ import { Checkbox } from '../ui/checkbox';
 import { Label } from '../ui/label';
 import { Dialog, DialogTrigger } from '../ui/dialog';
 import { SortableList } from '../ui/sortable-list';
-import { Plus, Edit2, Trash2, Package, Link2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, Package, Link2, Copy } from 'lucide-react';
 import { AddOptionDialog, EditOptionDialog } from './OptionDialog';
 
 export const OptionsTab = ({
@@ -21,6 +21,8 @@ export const OptionsTab = ({
   handleUpdateOptionPrice,
   handleToggleOptionQuantity,
   handleToggleOptionDefault,
+  handleToggleOptionHidden,
+  handleCloneOption,
   handleReorderOptions,
 }) => {
   const { canEdit } = useAuth();
@@ -111,7 +113,7 @@ export const OptionsTab = ({
                     onReorder={(newOptions) => handleReorderOptions(category.id, newOptions)}
                     disabled={!canEdit()}
                     renderItem={(option) => (
-                      <div className="flex items-center justify-between p-2 bg-muted/30 rounded flex-wrap gap-2">
+                      <div className={`flex items-center justify-between p-2 bg-muted/30 rounded flex-wrap gap-2 ${option.hidden ? 'opacity-50' : ''}`}>
                         <div className="flex items-center gap-3 flex-wrap">
                           {option.imageUrl && (
                             <img
@@ -121,6 +123,9 @@ export const OptionsTab = ({
                             />
                           )}
                           <span className="text-sm">{option.name}</span>
+                          {option.hidden && (
+                            <Badge variant="secondary" className="text-[10px]" data-testid={`option-hidden-badge-${option.id}`}>Скрыта</Badge>
+                          )}
                           {getTechSpecMappingBadge(option)}
                         </div>
                         <div className="flex items-center gap-2 flex-wrap">
@@ -154,6 +159,27 @@ export const OptionsTab = ({
                                   {txt.defaultLabel || 'Domyślnie'}
                                 </Label>
                               </div>
+                              <div className="flex items-center gap-1 border rounded px-2 py-1 border-amber-300 bg-amber-50">
+                                <Checkbox
+                                  id={`hidden-${option.id}`}
+                                  checked={option.hidden || false}
+                                  onCheckedChange={(checked) => handleToggleOptionHidden(category.id, option.id, checked)}
+                                  data-testid={`option-hidden-toggle-${option.id}`}
+                                />
+                                <Label htmlFor={`hidden-${option.id}`} className="text-xs cursor-pointer text-amber-700">
+                                  Скрыть
+                                </Label>
+                              </div>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-8 w-8"
+                                onClick={() => handleCloneOption(category.id, option)}
+                                title="Клонировать опцию"
+                                data-testid={`option-clone-btn-${option.id}`}
+                              >
+                                <Copy className="w-4 h-4" />
+                              </Button>
                               <Button
                                 size="icon"
                                 variant="ghost"

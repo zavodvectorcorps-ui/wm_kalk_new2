@@ -2815,3 +2815,14 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
   token->MCP initialize 200->tools/list 17. РАБОТАЕТ.
 - Коннектор claude.ai: URL https://spa-planner-...emergent.host/api/mcp, Client ID/Secret пусто,
   пароль MCP_OAUTH_PASSWORD=MQwRuzGxBYqF.
+
+## Session — Aug 23, 2026 (fork): visibility toggle для Моделей и Вариантов (готово)
+- Опции уже имели hidden-toggle + clone (прошлая сессия). Добавлено то же для моделей и вариантов.
+- ModelsTab.jsx: чекбокс «Скрыть» + бейдж «Скрыта» + opacity-50 на строке модели.
+  Prop handleToggleModelHidden прокинут из SaunaPricingPage.
+- useSaunaPricing.js: handleToggleModelHidden(modelId, hidden) — обновляет state + PUT /api/sauna/models/{id}.
+- ModelDialog.jsx (ModelVariantsEditor): чекбокс «Скрыть» на каждом варианте (variant.hidden), badge «Скрыт», opacity.
+- SaunaCalculator.jsx: models = prices.models.filter(!hidden); variants filter !hidden в ModelVariantSelector;
+  условие показа селектора вариантов проверяет наличие видимых вариантов. Пустые группы скрываются авто (map строится из видимых моделей).
+- ПРОВЕРЕНО скриншотом: toggle на модели виден, при клике появляется бейдж «Скрыта», авто-сохранение.
+- Только фронтенд-изменения → нужен РЕДЕПЛОЙ для появления на PROD.

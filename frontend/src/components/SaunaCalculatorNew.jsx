@@ -555,6 +555,8 @@ export const SaunaCalculatorNew = ({ editingOrder = null, onEditComplete, amocrm
     if (!category.options) return [];
     
     return category.options.filter(option => {
+      // Hidden options are switched off by admin — never show in the calculator.
+      if (option.hidden) return false;
       const incompatibleModels = option.incompatibleModels || [];
       const incompatibleWithOptions = option.incompatibleWithOptions || {};
       const hasModelRules = incompatibleModels.length > 0;

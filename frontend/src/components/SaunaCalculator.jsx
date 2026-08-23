@@ -306,6 +306,8 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPre
     if (!category.options) return [];
     
     return category.options.filter(option => {
+      // Hidden options are switched off by admin — never show in the calculator.
+      if (option.hidden) return false;
       const incompatibleModels = option.incompatibleModels || [];
       const incompatibleWithOptions = option.incompatibleWithOptions || {};
       const hasModelRules = incompatibleModels.length > 0;
@@ -489,8 +491,8 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPre
             txt={txt}
           />
 
-          {/* Model Variant Selection (if model has variants or linked variants) */}
-          {(model?.variants?.length > 0 || (model?.linkedVariantsModelId && prices?.models?.find(m => m.id === model.linkedVariantsModelId)?.variants?.length > 0)) && (
+          {/* Model Variant Selection (if model has visible variants or linked variants) */}
+          {(model?.variants?.some(v => !v.hidden) || (model?.linkedVariantsModelId && prices?.models?.find(m => m.id === model.linkedVariantsModelId)?.variants?.some(v => !v.hidden))) && (
             <ModelVariantSelector
               model={model}
               formData={formData}
@@ -779,8 +781,8 @@ const ModelSelectionCard = ({ prices, formData, handleModelChange, txt }) => {
   const [selectedGroup, setSelectedGroup] = React.useState(null);
   const [showingGroups, setShowingGroups] = React.useState(true);
   
-  // Build groups from models
-  const models = prices.models || [];
+  // Build groups from models (exclude hidden models from client view)
+  const models = (prices.models || []).filter(m => !m.hidden);
   const hasGroups = models.some(m => m.modelGroup);
   
   const groups = React.useMemo(() => {
@@ -995,14 +997,14 @@ const ModelSelectionCard = ({ prices, formData, handleModelChange, txt }) => {
 // Model Variant Selector Component (like heater selection in hot tubs)
 const ModelVariantSelector = ({ model, formData, handleModelVariantChange, prices, lang, txt }) => {
   // Get variants - either from current model or from linked model
-  let variants = model?.variants || [];
+  let variants = (model?.variants || []).filter(v => !v.hidden);
   let linkedModelName = null;
   
   // If current model has no variants but has linkedVariantsModelId, use variants from linked model
   if (variants.length === 0 && model?.linkedVariantsModelId) {
     const linkedModel = prices?.models?.find(m => m.id === model.linkedVariantsModelId);
     if (linkedModel?.variants?.length > 0) {
-      variants = linkedModel.variants;
+      variants = linkedModel.variants.filter(v => !v.hidden);
       linkedModelName = linkedModel.name;
     }
   }
