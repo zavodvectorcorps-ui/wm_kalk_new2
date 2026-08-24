@@ -7,6 +7,21 @@ import {
   Sparkles, Building2, User, PhoneCall
 } from 'lucide-react';
 
+const IMG = {
+  board: 'https://res.cloudinary.com/dhyj13jgs/image/upload/v1787610252/wm-calculator/wm-calculator/8eca1f454c824cf287c1060a87da6ad6.jpg',
+  lead: 'https://res.cloudinary.com/dhyj13jgs/image/upload/v1787610215/wm-calculator/wm-calculator/14624bdaa1e546db8fe46e2f7a76638f.jpg',
+  prodKp: 'https://res.cloudinary.com/dhyj13jgs/image/upload/v1787610168/wm-calculator/wm-calculator/935bcbee5f2142afa28c2598eae83299.jpg',
+};
+
+const Figure = ({ src, caption, tall = false }) => (
+  <figure className="my-3">
+    <div className="rounded-xl overflow-hidden border border-slate-200 shadow-sm bg-slate-50">
+      <img src={src} alt={caption} className={`w-full object-contain ${tall ? 'max-h-[520px]' : 'max-h-[360px]'}`} loading="lazy" />
+    </div>
+    {caption && <figcaption className="text-xs text-muted-foreground mt-1.5 text-center italic">{caption}</figcaption>}
+  </figure>
+);
+
 const StepCard = ({ n, icon: Icon, title, children, accent = 'rose' }) => {
   const accents = {
     rose: 'from-rose-500 to-rose-600 border-rose-200 bg-rose-50/60',
@@ -66,11 +81,14 @@ export const ManagerGuideDialog = ({ open, onOpenChange }) => {
             <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
               <span className="w-1.5 h-6 bg-rose-500 rounded-full" /> Этапы работы
             </h2>
+            <Figure src={IMG.board} caption="Доска заказов (канбан): карточки с бейджами КП / Договор / Тех.спец и кнопкой «Инструкция» справа сверху" />
             <div className="grid gap-4">
               <StepCard n={1} icon={Building2} title="Заказ приходит из amoCRM" accent="blue">
                 <p>Сделка из amoCRM автоматически появляется на доске (канбан) как карточка заказа с данными клиента, телефоном, моделью и ссылкой на сделку.</p>
                 <p>Откройте карточку кликом. Любое изменение уходит обратно в amoCRM примечанием.</p>
               </StepCard>
+
+              <Figure src={IMG.lead} caption="Карточка заказа: этапы, данные клиента, поля, блок «Заполняется производством» (даты) и кнопка «Калькулятор / Тех. задание» внизу" tall />
 
               <StepCard n={2} icon={ClipboardList} title="Калькулятор и комплектация" accent="rose">
                 <p>Нажмите <Btn color="rose">Калькулятор / Тех. задание</Btn>, выберите модель и опции (цвет, лавки, печь, окна, освещение), сохраните.</p>
@@ -155,6 +173,7 @@ export const ManagerGuideDialog = ({ open, onOpenChange }) => {
                   </ul>
                 </div>
               </div>
+              <Figure src={IMG.prodKp} caption="Так выглядит «Производственное КП» (стр. 1): на русском, без цен — только то, что нужно цеху" tall />
               <div className="mt-3 text-xs text-orange-800 bg-orange-100/60 rounded-lg p-2.5 space-y-1">
                 <p><b>Когда обновляется:</b> при каждом нажатии «Отправить в производство» документ пересоздаётся заново из текущего состава заказа — старая версия заменяется на свежую.</p>
                 <p><b>Где взять:</b> в карточке → раздел <Btn color="amber">Документы → Производственное КП</Btn> (оранжевый бейдж), можно скачать отдельно.</p>
