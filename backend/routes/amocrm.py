@@ -1309,11 +1309,10 @@ async def receive_webhook_section(
     section_prefix = {"greenhouse": "GH", "balia": "BAL", "sauna": "SAU"}
     section_names = {"greenhouse": "Теплицы", "balia": "Купели", "sauna": "Сауны"}
     
-    # Build notes from various fields
+    # Build notes from real content only. Source info ("Из amoCRM / Сделка")
+    # is stored separately (amocrm_link / amocrm_name / source) and should NOT
+    # clutter the user-facing comment field.
     notes_parts = []
-    notes_parts.append(f"Из amoCRM ({section_names.get(section, section)})")
-    if lead_data.get("amocrm_name"):
-        notes_parts.append(f"Сделка: {lead_data['amocrm_name']}")
     if lead_data.get("orderContents"):
         notes_parts.append(f"Состав: {lead_data['orderContents']}")
     if lead_data.get("orderComment"):
@@ -1747,10 +1746,8 @@ async def sync_missing_orders(
                 results["failed"].append({"id": lead_id, "reason": "Failed to extract lead data"})
                 continue
             
-            # Build notes from various fields (same as webhook)
-            notes_parts = [f"Из amoCRM ({section_names.get(section, section)})"]
-            if lead_data.get("amocrm_name"):
-                notes_parts.append(f"Сделка: {lead_data['amocrm_name']}")
+            # Build notes from real content only (no "Из amoCRM / Сделка" service lines)
+            notes_parts = []
             if lead_data.get("orderContents"):
                 notes_parts.append(f"Состав: {lead_data['orderContents']}")
             if lead_data.get("orderComment"):

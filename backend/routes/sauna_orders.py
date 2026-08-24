@@ -246,6 +246,22 @@ async def update_sauna_order(order_id: str, order: SaunaOrder):
     # Return updated order
     updated = await db.sauna_orders.find_one({"id": order_id}, {"_id": 0})
     
+    # Keep the linked CRM lead's model name in sync when the manager changes
+    # the model in the calculator (otherwise the CRM card / Telegram keep the
+    # stale amoCRM model name).
+    new_model_name = order_dict.get('modelName')
+    if new_model_name and new_model_name != existing.get('modelName'):
+        try:
+            or_conditions = [{"calculatorOrderId": order_id}]
+            if updated.get('amocrm_id'):
+                or_conditions.append({"amocrm_id": updated['amocrm_id']})
+            await db.sauna_crm_leads.update_one(
+                {"$or": or_conditions},
+                {"$set": {"modelName": new_model_name, "field_1": new_model_name}}
+            )
+        except Exception as e:
+            logger.warning(f"Failed to sync modelName to CRM lead for order {order_id}: {e}")
+    
     # Send note to amoCRM if order has amocrm_id and there were changes
     if changes and updated.get('amocrm_id'):
         try:

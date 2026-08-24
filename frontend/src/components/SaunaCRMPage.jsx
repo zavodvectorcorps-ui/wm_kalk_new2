@@ -637,11 +637,22 @@ const SaunaCRMPage = () => {
     setLinkingOrder(false);
   };
 
-  const handleTechSpecSaved = (techSpecData) => {
+  const handleTechSpecSaved = async (techSpecData) => {
     if (calcOrder) {
       setCalcOrder(prev => ({ ...prev, techSpec: techSpecData }));
     }
     toast.success('Тех. задание сохранено');
+    // Refresh the lead so the newly-linked tech spec document shows in the card
+    if (selectedLead?.id) {
+      try {
+        const res = await fetch(`${API_URL}/api/sauna-crm/leads/${selectedLead.id}`, { headers: authHeaders });
+        if (res.ok) {
+          const fresh = await res.json();
+          setSelectedLead(prev => ({ ...prev, documents: fresh.documents || [] }));
+          setEditData(prev => ({ ...prev, documents: fresh.documents || [] }));
+        }
+      } catch (e) { /* non-fatal */ }
+    }
   };
 
   const pushToProduction = async () => {

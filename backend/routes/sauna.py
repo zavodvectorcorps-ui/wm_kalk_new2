@@ -2815,6 +2815,32 @@ async def generate_tech_spec_pdf(request: dict):
                 )
                 logger.info(f"Tech spec PDF linked to CRM lead {lead_id}")
 
+                # If the order already has a Telegram production topic, push the
+                # tech spec into it right away so it appears in Telegram too.
+                try:
+                    full_lead = await db.sauna_crm_leads.find_one(
+                        {"id": lead_id}, {"_id": 0, "telegram_topic_id": 1}
+                    ) or {}
+                    topic_id = full_lead.get("telegram_topic_id")
+                    if topic_id:
+                        from services.telegram_service import send_telegram_file, get_production_telegram_config
+                        prod_cfg_doc = await db.telegram_production_settings.find_one({"_id": "config"}, {"_id": 0}) or {}
+                        env_cfg = get_production_telegram_config()
+                        bot_token = prod_cfg_doc.get("bot_token") or env_cfg.get("bot_token") or ""
+                        chat_id = prod_cfg_doc.get("chat_id") or env_cfg.get("chat_id") or ""
+                        if bot_token and chat_id:
+                            await send_telegram_file(
+                                file_data=pdf_data,
+                                filename=filename,
+                                caption=doc_entry["name"],
+                                chat_id=chat_id,
+                                bot_token=bot_token,
+                                message_thread_id=topic_id,
+                            )
+                            logger.info(f"Tech spec PDF sent to Telegram topic {topic_id}")
+                except Exception as e:
+                    logger.error(f"Failed to send tech spec to Telegram topic: {e}")
+
                 # Push tech spec link to amoCRM as a note
                 crm_lead = await db.sauna_crm_leads.find_one({"id": lead_id}, {"_id": 0, "amocrm_id": 1, "clientName": 1})
                 amocrm_id = crm_lead.get("amocrm_id") if crm_lead else None

@@ -12,6 +12,7 @@ import logging
 import httpx
 import os
 import json
+import re
 import asyncio
 import io
 
@@ -120,7 +121,8 @@ def _build_spec_lines(lead: dict, order: dict) -> list:
     for opt in selected:
         if not isinstance(opt, dict):
             continue
-        name = opt.get("optionName") or opt.get("name") or opt.get("namePl") or ""
+        name = (opt.get("optionNameRu") or opt.get("nameRu") or opt.get("optionName")
+                or opt.get("name") or opt.get("namePl") or "")
         if not name:
             continue
         qty = opt.get("quantity") or 1
@@ -138,7 +140,10 @@ def _build_message(lead: dict, order: dict, is_update: bool) -> str:
     header = "🔄 <b>ОБНОВЛЕНИЕ ЗАКАЗА</b>" if is_update else "🏭 <b>ЗАКАЗ В ПРОИЗВОДСТВО</b>"
     order_id = lead.get("id", "")
     client = lead.get("clientName") or "—"
-    model = lead.get("modelName") or lead.get("field_1") or (order or {}).get("modelName") or "—"
+    # Prefer the freshly-saved calculator order's model name — the lead's
+    # modelName/field_1 comes from amoCRM and can be stale after the manager
+    # changes the model in the calculator.
+    model = (order or {}).get("modelName") or lead.get("modelName") or lead.get("field_1") or "—"
 
     parts = [
         header,
@@ -157,6 +162,12 @@ def _build_message(lead: dict, order: dict, is_update: bool) -> str:
     wishes = (lead.get("notes") or "").strip() or (lead.get("amoComment") or "").strip()
     if not wishes and order:
         wishes = (order.get("notes") or "").strip()
+    # Strip legacy amoCRM service text ("Из amoCRM (...)", "Сделка: ...") that
+    # older orders may still carry — it's not a real customer wish.
+    if wishes:
+        wishes = re.sub(r'Из amoCRM\s*\([^)]*\)\.?\s*', '', wishes)
+        wishes = re.sub(r'Сделка:[^.\n]*\.?\s*', '', wishes)
+        wishes = wishes.strip(' .\n')
     if wishes:
         parts.append("")
         parts.append(f"📝 <b>Нестандартные пожелания:</b>\n{wishes}")

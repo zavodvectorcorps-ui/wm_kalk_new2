@@ -3047,3 +3047,23 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
   При 1-3 карточках — прежний одиночный ряд.
 - ПРОВЕРЕНО рендером PDF (fitz): 2x2 корректно, текст не рвётся, картинки в колонках.
 - Backend → нужен РЕДЕПЛОЙ PROD.
+
+## Session — Jun 2026 (fix): amoCRM-заказ, Telegram-производство, тех.задание
+Четыре проблемы при открытии amoCRM-заказа в калькуляторе:
+1) Смена модели не обновляла название:
+   - Backend sauna_orders.py PUT /orders/{id}: при изменении modelName синхронизируем связанный
+     sauna_crm_leads (по calculatorOrderId или amocrm_id) → modelName + field_1. ПРОВЕРЕНО curl+DB.
+   - telegram_production.py _build_message: приоритет модели теперь (order.modelName) → lead.modelName → field_1
+     (раньше stale lead.modelName перекрывал свежий заказ).
+2) Авто-комментарий «Из amoCRM (...). Сделка: ...» в notes:
+   - amocrm.py (2 места): notes собираются ТОЛЬКО из orderContents/orderComment, без служебных строк
+     (источник хранится в amocrm_link/amocrm_name/source). Для старых заказов Telegram чистит их regex-ом.
+3) Польские названия опций в Telegram «ЗАКАЗ В ПРОИЗВОДСТВО»:
+   - telegram_production.py _build_spec_lines: приоритет optionNameRu/nameRu → optionName/name/namePl. ПРОВЕРЕНО.
+4) Тех.задание не в документах карточки и не в Telegram:
+   - Frontend SaunaCRMPage handleTechSpecSaved: после создания перечитывает лид и обновляет documents.
+   - Backend sauna.py generate_tech_spec_pdf: после привязки документа, если у лида есть telegram_topic_id —
+     сразу шлёт PDF в топик (send_telegram_file). Линковка работала при переданном leadId (поток из карточки CRM).
+- Все правки backend+frontend → нужен РЕДЕПЛОЙ PROD.
+- Не удалось e2e проверить Telegram-отправку тех.задания (нужен реальный топик) — логика повторяет
+  существующий рабочий attach документов в send_to_production.
