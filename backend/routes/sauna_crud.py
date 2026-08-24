@@ -152,45 +152,54 @@ async def _check_url_reachable(url: str, client) -> tuple:
 
 @router.post("/translate-options")
 async def translate_option_names(payload: dict):
-    """Translate a list of Polish option names to Russian using the Emergent LLM key (gpt-5.4)."""
-    import os, json as _json, uuid
+    """Translate a list of Polish option names to Russian via the Emergent LLM proxy (direct HTTP, no litellm)."""
+    import os, json as _json
+    import httpx
     texts = payload.get("texts") or []
     texts = [t if isinstance(t, str) else "" for t in texts]
     non_empty = [t for t in texts if t.strip()]
     if not non_empty:
         return {"translations": ["" for _ in texts]}
 
-    try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
-    except ImportError as e:
-        logger.error(f"AI translation unavailable, missing dependency: {e}")
-        raise HTTPException(
-            status_code=503,
-            detail="AI-перевод временно недоступен: библиотека перевода не установлена на сервере.",
-        )
-
     key = os.environ.get("EMERGENT_LLM_KEY")
     if not key:
         raise HTTPException(status_code=503, detail="AI-перевод временно недоступен: ключ LLM не настроен.")
 
-    chat = LlmChat(
-        api_key=key,
-        session_id=f"translate-{uuid.uuid4()}",
-        system_message=(
-            "Ты профессиональный переводчик для производителя саун. Переводишь названия опций "
-            "с польского на русский естественно и кратко. Верни СТРОГО JSON-массив строк с переводами "
-            "в том же порядке и том же количестве, что и на входе. Без пояснений, без markdown."
-        ),
-    ).with_model("openai", "gpt-5.4")
-
+    # Direct HTTP to Emergent's OpenAI-compatible proxy. Avoids the
+    # emergentintegrations/litellm dependency chain that is flaky on
+    # production builds (same approach as lead_analytics/planner).
+    EMERGENT_PROXY = "https://integrations.emergentagent.com/llm"
+    system_message = (
+        "Ты профессиональный переводчик для производителя саун. Переводишь названия опций "
+        "с польского на русский естественно и кратко. Верни СТРОГО JSON-массив строк с переводами "
+        "в том же порядке и том же количестве, что и на входе. Без пояснений, без markdown."
+    )
     prompt = ("Переведи на русский следующие названия (JSON-массив строк). "
               "Сохрани порядок и количество элементов:\n" + _json.dumps(texts, ensure_ascii=False))
+
     try:
-        resp = await chat.send_message(UserMessage(text=prompt))
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            resp = await client.post(
+                f"{EMERGENT_PROXY}/chat/completions",
+                headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+                json={
+                    "model": "gpt-4o-mini",
+                    "messages": [
+                        {"role": "system", "content": system_message},
+                        {"role": "user", "content": prompt},
+                    ],
+                    "temperature": 0.2,
+                },
+            )
+        if resp.status_code != 200:
+            logger.error(f"AI translation proxy error {resp.status_code}: {resp.text[:300]}")
+            raise HTTPException(status_code=503, detail="AI-перевод временно недоступен: ошибка сервиса перевода.")
+        raw = resp.json().get("choices", [{}])[0].get("message", {}).get("content", "")
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"AI translation call failed: {e}")
         raise HTTPException(status_code=503, detail="AI-перевод временно недоступен: ошибка при обращении к сервису перевода.")
-    raw = resp if isinstance(resp, str) else getattr(resp, "content", str(resp))
     raw = (raw or "").strip()
 
     start, end = raw.find("["), raw.rfind("]")

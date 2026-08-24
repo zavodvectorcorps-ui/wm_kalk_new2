@@ -3026,3 +3026,14 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
 - ПРОВЕРЕНО curl на Preview: перевод по-прежнему работает корректно.
 - ДЕПЛОЙ PROD: корневая причина непоставки пакета — на стороне платформенного билд-пайплайна.
   support_agent рекомендует написать support@emergent.sh с job ID и скриншотом ошибки.
+
+## Session — Jun 2026 (fix v2): ИИ-перевод переведён на прямой HTTP-прокси (РЕШЕНИЕ PROD-бага)
+- КОРЕНЬ: translate-options использовал emergentintegrations/litellm, которую PROD-сборка не ставит →
+  `No module named 'litellm'` → 500. Анализ менеджеров/планировщик работали, т.к. вызывают LLM напрямую
+  по HTTP через прокси Emergent (integrations.emergentagent.com/llm), без litellm.
+- ФИКС: переписал POST /api/sauna/translate-options на прямой httpx-вызов
+  integrations.emergentagent.com/llm/chat/completions (model gpt-4o-mini, temperature 0.2),
+  как в lead_analytics.py / planner.py. Зависимости от litellm больше НЕТ.
+- Ошибки: нет ключа / не 200 / исключение → HTTP 503 с RU-сообщением (не 500-краш).
+- ПРОВЕРЕНО curl на Preview: Piec elektryczny→Электрическая печь, Bez zabudowy→Без обшивки.
+- Требуется РЕДЕПЛОЙ PROD — должно заработать без установки библиотеки.
