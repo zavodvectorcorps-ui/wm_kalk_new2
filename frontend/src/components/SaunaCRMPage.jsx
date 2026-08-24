@@ -39,6 +39,7 @@ const API_URL = getApiUrl();
 
 const DOC_TYPES = {
   kp: { label: 'КП', color: 'bg-blue-100 text-blue-700' },
+  production_kp: { label: 'Производственное КП', color: 'bg-orange-100 text-orange-700' },
   contract: { label: 'Договор', color: 'bg-purple-100 text-purple-700' },
   tech_spec: { label: 'Тех. спец.', color: 'bg-amber-100 text-amber-700' },
   invoice: { label: 'Счёт', color: 'bg-green-100 text-green-700' },
@@ -701,6 +702,15 @@ const SaunaCRMPage = () => {
           setSelectedLead(prev => ({ ...prev, telegram_topic_id: data.topicId }));
           setEditData(prev => ({ ...prev, telegram_topic_id: data.topicId }));
         }
+        // Refresh documents so the freshly-generated "Производственное КП" shows
+        try {
+          const lr = await fetch(`${API_URL}/api/sauna-crm/leads/${selectedLead.id}`, { headers: authHeaders });
+          if (lr.ok) {
+            const fresh = await lr.json();
+            setSelectedLead(prev => ({ ...prev, documents: fresh.documents || [] }));
+            setEditData(prev => ({ ...prev, documents: fresh.documents || [] }));
+          }
+        } catch { /* non-fatal */ }
       } else {
         toast.error(data.detail || 'Ошибка отправки в Telegram');
       }

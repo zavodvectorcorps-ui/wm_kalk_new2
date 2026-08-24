@@ -183,6 +183,45 @@ def _build_message(lead: dict, order: dict, is_update: bool) -> str:
     return "\n".join(parts)
 
 
+async def _generate_and_attach_production_kp(order_id: str, lead: dict, order: dict):
+    """Generate a stripped 'Производственное КП' (no prices/promo/delivery/page-2),
+    upload to Cloudinary and upsert it on the lead as a downloadable document.
+    Returns the doc entry or None."""
+    if not order:
+        return None
+    try:
+        import httpx as _httpx
+        from services.cloudinary_service import upload_pdf
+        payload = {**order, "orderId": order.get("id", order_id), "language": "pl", "productionMode": True}
+        async with _httpx.AsyncClient(timeout=120.0) as cl:
+            resp = await cl.post("http://localhost:8001/api/sauna/generate-pdf", json=payload)
+        if resp.status_code != 200:
+            logger.error(f"Production KP generation failed: {resp.status_code} {resp.text[:200]}")
+            return None
+        pdf_bytes = resp.content
+        client_name = lead.get("clientName") or order.get("fullName") or "Klient"
+        safe = ''.join(c for c in client_name if c.isascii() and (c.isalnum() or c in '-_ ')).strip().replace(' ', '_') or "Klient"
+        filename = f"ProdKP_{order_id}_{safe}.pdf"
+        cloud = await upload_pdf(pdf_bytes, filename, folder="wm-calculator/production-kp")
+        if not cloud or not cloud.get("url"):
+            return None
+        doc_entry = {
+            "id": os.urandom(4).hex(),
+            "type": "production_kp",
+            "name": "Производственное КП",
+            "url": cloud["url"],
+            "filename": filename,
+            "uploadedAt": datetime.now(timezone.utc).isoformat(),
+        }
+        # Replace any previous production KP, then add the fresh one
+        await db.sauna_crm_leads.update_one({"id": order_id}, {"$pull": {"documents": {"type": "production_kp"}}})
+        await db.sauna_crm_leads.update_one({"id": order_id}, {"$push": {"documents": doc_entry}})
+        return doc_entry
+    except Exception as e:
+        logger.error(f"Failed to build production KP for {order_id}: {e}")
+        return None
+
+
 @router.post("/send-to-production/{order_id}")
 async def send_to_production(order_id: str):
     """Create (or reuse) a forum topic and post the order spec + documents.
@@ -240,12 +279,17 @@ async def send_to_production(order_id: str):
             )
         raise HTTPException(status_code=502, detail="Тема создана, но сообщение отправить не удалось.")
 
-    # Attach all documents to the topic (except the contract — not for production)
-    docs = lead.get("documents") or []
+    # Generate/refresh the stripped "Производственное КП" and attach it to the lead
+    await _generate_and_attach_production_kp(order_id, lead, order)
+
+    # Attach documents to the topic. Skip the contract and the customer KP
+    # (with prices) — production gets the price-free "Производственное КП" instead.
+    fresh_lead = await db.sauna_crm_leads.find_one({"id": order_id}, {"_id": 0, "documents": 1}) or {}
+    docs = fresh_lead.get("documents") or lead.get("documents") or []
     sent_docs = 0
     failed_docs = []
     for doc in docs:
-        if doc.get("type") == "contract":
+        if doc.get("type") in ("contract", "kp"):
             continue
         url = doc.get("url")
         if not url:

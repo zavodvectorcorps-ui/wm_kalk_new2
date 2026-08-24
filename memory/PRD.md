@@ -3067,3 +3067,45 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
 - Все правки backend+frontend → нужен РЕДЕПЛОЙ PROD.
 - Не удалось e2e проверить Telegram-отправку тех.задания (нужен реальный топик) — логика повторяет
   существующий рабочий attach документов в send_to_production.
+
+## Session — Jun 2026 (feature): Производственное КП (урезанное) + анализ маппинга тех.задания
+ЗАДАЧА 1 — Производственное КП (готово, протестировано рендером+e2e helper):
+- routes/sauna.py generate_sauna_pdf: флаг productionMode (SaunaPDFRequest extra=allow).
+  При True скрываются: промо, ВСЕ цены (карточки MODEL/ŁAWKI/PIEC/KOLOR, WYBRANE OPCJE, ИТОГО,
+  доставка, Comfino-рассрочка), стр.2 (варианты+доп.опции), маркетинговые галереи (gallery_promo/gallery).
+  Остаётся: стр.1 (модель+лавки+печь+цвет без цен), список опций без цен, KOMENTARZ,
+  WYMIARY (схема-планировка), кастомная галерея менеджера (galleryImages).
+- telegram_production.py: _generate_and_attach_production_kp() — при «Отправить в производство»
+  генерит урезанное КП (POST localhost:8001/api/sauna/generate-pdf productionMode:true),
+  грузит в Cloudinary (folder wm-calculator/production-kp), кладёт в lead.documents type=production_kp
+  «Производственное КП» (перезапись старого). Attach-loop в топик теперь ПРОПУСКАЕТ type kp (клиентское
+  с ценами) и contract — в производство уходит только урезанное КП. Документ качается из карточки.
+- Frontend SaunaCRMPage: DOC_TYPES.production_kp (оранжевый бейдж); после send-to-production
+  перечитываются documents.
+- Нужен РЕДЕПЛОЙ PROD.
+
+ЗАДАЧА 2 — Маппинг опций ↔ тех.задание (АНАЛИЗ, ждёт решения пользователя):
+- НАЙДЕНА корневая проблема: ДВЕ несвязанные системы категорий тех.задания.
+  (1) Жёстко зашитый список techSpecData.js (id: model_size, execution, sauna_color, benches...) —
+      его использует TechSpecModal для рендера и авто-подстановки.
+  (2) БД-список /api/tech-spec/config (id: base_color, door_color, benches, roof_color... 25 шт) —
+      на него ссылается маппинг в редакторе опций калькулятора (OptionDialog: techSpecCategoryId/techSpecId).
+  => Маппинг, настроенный в админке, в основном НЕ срабатывает в модалке (id не совпадают).
+     Работают только calcCategoryMapping (kolor/lawki/podspinniki) и сопоставление по названиям.
+- ПРЕДЛОЖЕНИЕ: перевести TechSpecModal на БД-категории (/api/tech-spec) — тогда единая настраиваемая
+  система и маппинг из редактора опций заработает. Это средний рефактор рендера модалки (секции по
+  masterCategory вместо hardcoded sections). Ждём подтверждения пользователя.
+
+## Session — Jun 2026 (feature): Задача 2 — единая DB-driven система тех.задания
+- РЕШЕНО: TechSpecModal переписан на БД-категории (/api/tech-spec/config) вместо hardcoded techSpecData.js.
+  Теперь модалка и ручной маппинг опций (techSpecCategoryId/techSpecId в редакторе опций калькулятора,
+  вкладка «Спецификация» админки) используют ОДИН источник → маппинг реально срабатывает.
+- Модалка: грузит masterCategories+categories, рендерит секции по masterCategoryId, поля по inputType
+  (radio/checkbox/text/textarea/mixed); авто-подстановка: (1) явный маппинг option.techSpecCategoryId/
+  techSpecId, (2) фолбэк по совпадению названий. Комментарий, планировка, данные сауны, лавки — сохранены.
+- Payload в generate-tech-spec-pdf маппит section=masterCategoryId, textarea/mixed→text, для text без опций
+  добавляет синтетическую опцию 'value'. Бэкенд-рендер не менялся (уже группирует по section).
+- ПРОВЕРЕНО рендером: PDF сгруппирован по мастер-категориям, маппинг base_color→palisander дал
+  «Цвет базы: Палисандр». Frontend компилируется.
+- Нужен РЕДЕПЛОЙ PROD.
+- techSpecData.js больше не используется модалкой (index.js ре-экспорт оставлен, безвреден).

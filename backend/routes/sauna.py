@@ -652,6 +652,10 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     subtotal = getattr(request, 'subtotal', request.total / (1 - discount_percent/100) if discount_percent else request.total) or request.total
     total_after_discount = request.total
     
+    # Production KP mode: strip prices, promo, delivery, page-2 variants/options
+    # (keep page 1, selected options w/o prices, comment, layout scheme, gallery).
+    production_mode = bool(getattr(request, 'productionMode', False))
+
     # Load logo image
     logo_path = '/app/assets/logo7.png'
     logo_img = None
@@ -768,7 +772,7 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
         elements.append(Spacer(1, 8))
     
     # ========== DISCOUNT OR PROMO SECTION ==========
-    if is_block_enabled(pdf_template, 'promo'):
+    if not production_mode and is_block_enabled(pdf_template, 'promo'):
         # Get promo texts from template
         promo_title = template_texts.get('promoTitle', 'PROMOCJA')
         promo_text_content = template_texts.get('promoText', 'Darmowa balia do schłodzenia<br/>lub beczka z sauną!')
@@ -979,7 +983,9 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
 
     def _build_card(title: str, name: str, price_val: int, is_gift: bool, img):
         """Compose a (image_cell, info_cell) tuple for the combined strip."""
-        if is_gift:
+        if production_mode:
+            html = f'<b>{title}</b><br/><br/>{name}'
+        elif is_gift:
             html = (
                 f'<b>{title}</b><br/><br/>'
                 f'{name}<br/>'
@@ -999,8 +1005,10 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     cards.append((
         model_img if model_img is not None else Paragraph('', info_style),
         Paragraph(
-            f'<b>MODEL</b><br/><br/>{model_name}<br/>'
-            f'<font color="#97724E"><b>{model_price_val:,} PLN</b></font>'.replace(',', ' '),
+            f'<b>MODEL</b><br/><br/>{model_name}' if production_mode else (
+                f'<b>MODEL</b><br/><br/>{model_name}<br/>'
+                f'<font color="#97724E"><b>{model_price_val:,} PLN</b></font>'.replace(',', ' ')
+            ),
             info_style,
         ),
     ))
@@ -1633,9 +1641,9 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
             
             row = [
                 Paragraph(left['name'], left_name_style),
-                Paragraph(left['price'], left_price_style),
+                Paragraph('' if production_mode else left['price'], left_price_style),
                 Paragraph(right['name'] if right else '', right_name_style or ParagraphStyle('OptName', fontName='DejaVuSans', fontSize=fs)),
-                Paragraph(right['price'] if right else '', right_price_style or ParagraphStyle('OptPrice', fontName='DejaVuSans', fontSize=fs, alignment=TA_RIGHT)),
+                Paragraph('' if production_mode else (right['price'] if right else ''), right_price_style or ParagraphStyle('OptPrice', fontName='DejaVuSans', fontSize=fs, alignment=TA_RIGHT)),
             ]
             options_body.append(row)
             
@@ -1744,10 +1752,11 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
         ('LEFTPADDING', (0, 0), (-1, -1), 15),
         ('RIGHTPADDING', (0, 0), (-1, -1), 15),
     ]))
-    elements.append(total_table)
+    if not production_mode:
+        elements.append(total_table)
     
     # ========== DELIVERY SECTION (if delivery price > 0) ==========
-    if delivery_price > 0:
+    if delivery_price > 0 and not production_mode:
         delivery_price_str = f"{int(delivery_price):,}".replace(',', ' ')
         total_with_delivery = total_price_int + int(delivery_price)
         total_with_delivery_str = f"{total_with_delivery:,}".replace(',', ' ')
@@ -1776,7 +1785,7 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     # consistent with Comfino's "raty 0%" offer.
     import math as _math
     _comfino_base = total_price_int + (int(delivery_price) if delivery_price > 0 else 0)
-    if _comfino_base > 0:
+    if _comfino_base > 0 and not production_mode:
         _months = 30
         _per_month = int(_math.ceil(_comfino_base / _months))
         _pm_str = f"{_per_month:,}".replace(',', ' ')
@@ -1883,6 +1892,8 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     # own PageBreak only when it actually has content to render. Avoids blank pages
     # when, e.g., variants are absent but upsell is present (or vice-versa).
     has_page2_content = (model_variants and page2_show_variants) or all_available_options
+    if production_mode:
+        has_page2_content = False  # no variants/upsell/prices in production KP
     page2_break_emitted = False
 
     def _emit_page2_break_if_needed():
@@ -2225,7 +2236,7 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                 elements.append(Spacer(1, 8))
     
     # ========== GALLERY PROMO PAGE ==========
-    if is_block_enabled(pdf_template, 'gallery_promo'):
+    if not production_mode and is_block_enabled(pdf_template, 'gallery_promo'):
         gallery_promo_title = pdf_template.get('galleryPromoTitle')
         gallery_promo_text = pdf_template.get('galleryPromoText')
         gallery_promo_image_id = pdf_template.get('galleryPromoImageId')
@@ -2282,7 +2293,7 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                         logger.warning(f"Could not load gallery promo image: {e}")
     
     # ========== GALLERY COLLAGE ==========
-    if is_block_enabled(pdf_template, 'gallery'):
+    if not production_mode and is_block_enabled(pdf_template, 'gallery'):
         # Check if we need page break (only if gallery_promo was NOT shown)
         gallery_promo_shown = is_block_enabled(pdf_template, 'gallery_promo') and (
             pdf_template.get('galleryPromoTitle') or pdf_template.get('galleryPromoImageId')
