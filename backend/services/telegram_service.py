@@ -235,6 +235,9 @@ async def send_and_pin_message(text: str, chat_id: str = None, bot_token: str = 
     except Exception as e:
         logger.error(f"send_and_pin_message failed: {e}")
         return False
+
+
+def format_order_notification(order: Dict[str, Any], order_type: str = 'balia', is_web_order: bool = False) -> str:
     """Format order data into a Telegram notification message.
     
     Args:
@@ -274,7 +277,7 @@ async def send_and_pin_message(text: str, chat_id: str = None, bot_token: str = 
     if selected_options:
         option_names = []
         for opt in selected_options[:5]:  # Max 5 options
-            name = opt.get('optionName') or opt.get('name') or opt.get('namePl', '')
+            name = opt.get('optionNameRu') or opt.get('nameRu') or opt.get('optionName') or opt.get('name') or opt.get('namePl', '')
             if name:
                 option_names.append(name)
         if option_names:

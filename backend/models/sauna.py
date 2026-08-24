@@ -92,6 +92,7 @@ SubOption = OptionVariant
 class SaunaOption(BaseModel):
     id: str
     name: str
+    nameRu: Optional[str] = None  # Russian name — used in production Telegram message
     price: int = 0
     costPrice: int = 0  # Cost price (Себестоимость) — admin only
     inputType: str = "radio"

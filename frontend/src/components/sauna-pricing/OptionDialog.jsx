@@ -100,13 +100,24 @@ export const AddOptionDialog = ({ open, onOpenChange, newOption, setNewOption, c
               </SelectContent>
             </Select>
           </div>
-          <div>
-            <Label>{txt.optionName}</Label>
-            <Input
-              value={newOption.name}
-              onChange={(e) => setNewOption(prev => ({ ...prev, name: e.target.value }))}
-              placeholder="Piec Elektryczne 9 kW"
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>{txt.optionName} (PL)</Label>
+              <Input
+                value={newOption.name}
+                onChange={(e) => setNewOption(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="Piec Elektryczne 9 kW"
+              />
+            </div>
+            <div>
+              <Label>Название (RU) — для производства</Label>
+              <Input
+                value={newOption.nameRu || ''}
+                onChange={(e) => setNewOption(prev => ({ ...prev, nameRu: e.target.value }))}
+                placeholder="Печь электрическая 9 кВт"
+                data-testid="new-option-nameru"
+              />
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -492,12 +503,23 @@ export const EditOptionDialog = ({ open, onOpenChange, editingOption, setEditing
         </DialogHeader>
         {editingOption && (
           <div className="space-y-4">
-            <div>
-              <Label>{txt.optionName}</Label>
-              <Input
-                value={editingOption.name}
-                onChange={(e) => setEditingOption(prev => ({ ...prev, name: e.target.value }))}
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>{txt.optionName} (PL)</Label>
+                <Input
+                  value={editingOption.name}
+                  onChange={(e) => setEditingOption(prev => ({ ...prev, name: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label>Название (RU) — для производства</Label>
+                <Input
+                  value={editingOption.nameRu || ''}
+                  onChange={(e) => setEditingOption(prev => ({ ...prev, nameRu: e.target.value }))}
+                  placeholder="Печь электрическая 9 кВт"
+                  data-testid="edit-option-nameru"
+                />
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>

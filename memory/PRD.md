@@ -2921,3 +2921,18 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
 - ПРОВЕРЕНО: бейдж виден на выбранной опции (2 бейджа); копирование из beczka200 → «Задано категорий: 2»,
   select lawki = lawki_2_poziomy_zamkniete. Тестовые данные возвращены.
 - Frontend изменения → нужен РЕДЕПЛОЙ для PROD.
+
+## Session — Aug 24, 2026 (feature #4 + bugfix): RU-названия опций + Telegram производства на русском
+- BUGFIX (важно): services/telegram_service.py — функция format_order_notification ПОТЕРЯЛА строку def,
+  её тело было заперто внутри send_and_pin_message после return. notify_new_order падал на NameError
+  (ловился try/except → уведомления о заказах молча не отправлялись). Восстановлена строка def.
+- SaunaOption.nameRu добавлено (models/sauna.py). Админка: OptionDialog Add/Edit — поле «Название (RU)»
+  (data-testid new-option-nameru / edit-option-nameru).
+- getSelectedOptions (useSaunaCalculator.js): добавлено optionNameRu (option.nameRu + variant.nameRu),
+  попадает в сохранённый заказ.
+- format_order_notification: список опций теперь берёт optionNameRu||nameRu||optionName. Клиентский PDF
+  остаётся на польском (не трогали).
+- ПРОВЕРЕНО: format_order_notification рендерит RU-названия; nameRu персистит через POST /prices.
+- ОСТАЛОСЬ (следующий шаг): #1 фото выбранного цвета в шапке PDF; #2 кастомная загрузка фото модели в КП;
+  #3 галерея в КП (до 6 фото + комментарии, раздел в конце PDF).
+- Backend+Frontend → нужен РЕДЕПЛОЙ для PROD.
