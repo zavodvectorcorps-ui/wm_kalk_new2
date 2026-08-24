@@ -2967,3 +2967,13 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
 - ПРОВЕРЕНО: свотчи рендерятся для 'lawki' (5 плиток, выбор работает) — скриншот; restore — проверен путь
   данных (model_dump включает extras, GET отдаёт raw). Тестовые данные возвращены.
 - Frontend изменения (+ данные категории) → нужен РЕДЕПЛОЙ для PROD.
+
+## Session — Aug 24, 2026 (polish): цвет в сводке + tooltip свотчей
+- Сводка (OrderSummary в SaunaCalculator): colorCat = категория с displayAsSwatches||id 'kolor' (radio) с
+  выбором; selectedColorOpt показывается отдельной строкой (миниатюра+название категории+название опции),
+  data-testid summary-color-line. Вставлено перед SelectedOptionsList.
+- Свотчи: добавлен стилизованный tooltip (group-hover, чёрная плашка сверху) с полным названием;
+  у кнопки убран overflow-hidden (клипал tooltip), клиппинг перенесён на контейнер фото (rounded-t-md).
+  data-testid swatch-tooltip-{optId}.
+- ПРОВЕРЕНО скриншотом: строка цвета в Podsumowanie видна с миниатюрой; tooltip присутствует. Данные возвращены.
+- Frontend → нужен РЕДЕПЛОЙ для PROD.

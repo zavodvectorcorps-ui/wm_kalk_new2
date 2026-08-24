@@ -1341,11 +1341,14 @@ const SwatchOptions = ({ category, options, formData, handleRadioChange, getOpti
             key={option.id}
             type="button"
             onClick={() => handleRadioChange(category.id, option.id)}
-            className={`group relative rounded-lg overflow-hidden border-2 transition-all ${isSel ? 'border-amber-500 ring-2 ring-amber-300 shadow-md' : 'border-gray-200 hover:border-amber-300'}`}
+            className={`group relative rounded-lg border-2 transition-all ${isSel ? 'border-amber-500 ring-2 ring-amber-300 shadow-md' : 'border-gray-200 hover:border-amber-300'}`}
             data-testid={`swatch-${category.id}-${option.id}`}
             title={option.name}
           >
-            <div className="aspect-square bg-gray-100">
+            <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-1 w-max max-w-[160px] px-2 py-1 rounded bg-gray-900 text-white text-[11px] leading-tight opacity-0 group-hover:opacity-100 transition-opacity z-20 shadow-lg" data-testid={`swatch-tooltip-${option.id}`}>
+              {option.name}
+            </span>
+            <div className="aspect-square bg-gray-100 rounded-t-md overflow-hidden">
               {option.imageUrl ? (
                 <img src={option.imageUrl} alt={option.name} className="w-full h-full object-cover" loading="lazy" />
               ) : (
@@ -1786,6 +1789,10 @@ const SummaryCard = ({
   const isDeliveryGift = deliverySelection && adminGifts.includes(deliverySelection);
   const deliveryCat = prices.categories?.find(c => c.id === 'dostawa');
   const deliveryOption = deliveryCat?.options?.find(o => o.id === deliverySelection);
+
+  // Selected color (from a swatch-palette radio category, e.g. "Kolor")
+  const colorCat = prices.categories?.find(c => (c.displayAsSwatches || c.id === 'kolor') && c.inputType !== 'checkbox' && formData.selections[c.id]);
+  const selectedColorOpt = colorCat ? colorCat.options?.find(o => o.id === formData.selections[colorCat.id]) : null;
   
   return (
   <Card className="shadow-lg border-amber-200">
@@ -1834,6 +1841,19 @@ const SummaryCard = ({
                 </div>
               )}
             </div>
+
+            {/* Selected color — prominent line */}
+            {selectedColorOpt && (
+              <div className="flex items-center gap-3 p-2.5 bg-sky-50 dark:bg-sky-950/30 rounded-lg border border-sky-200 dark:border-sky-900/50" data-testid="summary-color-line">
+                {selectedColorOpt.imageUrl && (
+                  <img src={selectedColorOpt.imageUrl} alt={selectedColorOpt.name} className="h-10 w-10 rounded object-cover border" />
+                )}
+                <div className="min-w-0">
+                  <div className="text-xs text-sky-700 font-medium">{getCategoryName(colorCat)}</div>
+                  <div className="font-medium text-sm truncate">{selectedColorOpt.name}</div>
+                </div>
+              </div>
+            )}
 
             {/* Selected Options */}
             <SelectedOptionsList 
