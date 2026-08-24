@@ -3126,3 +3126,8 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
 - Карточка (ProductionTelegramPanel) уже рендерит productionMessages; live-обновление через _publish_update SSE.
 - ВАЖНО: работает только если webhook бота включён (/enable-webhook) — он уже используется для кнопок/фото.
 - ПРОВЕРЕНО unit-тестом (сохраняется только валидный текст). Нужен РЕДЕПЛОЙ PROD.
+
+## Session — Jun 2026 (feature): Реакция 👍 на сообщения из топика
+- В _handle_topic_message после сохранения бот ставит 👍 через Telegram setMessageReaction
+  (chat_id+message_id из апдейта, bot из cfg). Ошибка реакции не мешает сохранению (try/except).
+- Нужен РЕДЕПЛОЙ PROD.

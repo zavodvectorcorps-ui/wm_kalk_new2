@@ -850,6 +850,20 @@ async def _handle_topic_message(message: dict, cfg: dict):
     })
     _publish_update({"type": "production_update", "kind": "comment", "order_id": order_id, "at": now})
 
+    # React with 👍 so production sees the message was captured (no chat clutter).
+    try:
+        msg_id = message.get("message_id")
+        chat_id = str((message.get("chat") or {}).get("id", ""))
+        bot = cfg.get("bot_token")
+        if msg_id and chat_id and bot:
+            await _tg_call("setMessageReaction", {
+                "chat_id": chat_id,
+                "message_id": msg_id,
+                "reaction": [{"type": "emoji", "emoji": "👍"}],
+            }, bot)
+    except Exception as e:
+        logger.error(f"setMessageReaction failed for {order_id}: {e}")
+
 
 async def _handle_photo(message: dict, cfg: dict):
     """A photo posted in an order topic -> attach to the order card (documents)."""
