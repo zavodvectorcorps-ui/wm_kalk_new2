@@ -3147,3 +3147,12 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
   доска заказов (канбан), карточка заказа (диалог), Производственное КП стр.1 (рендер PDF).
 - Компонент Figure (рамка+подпись). Скриншоты снимались через screenshot_tool + page.request.post upload.
 - ПРОВЕРЕНО скриншотом: изображения отображаются в справке. Нужен РЕДЕПЛОЙ PROD.
+
+## Session — Jun 2026 (feature): Встроенная справка конфигуратора планировок
+- Новый компонент frontend/src/components/LayoutGuideDialog.jsx — красивое окно-справка
+  (градиент, скриншот интерфейса Cloudinary, карточки понятий, разделы, порядок работы,
+  Опции+Варианты/calculatorMapping, чек-лист).
+- Кнопка «Инструкция» (BookOpen) добавлена в шапку «Настройки» LayoutConfiguratorPage
+  (data-testid=open-layout-guide-btn), состояние guideOpen.
+- Текстовая версия: /app/memory/layout_configurator_instruction.md.
+- ПРОВЕРЕНО скриншотом. Нужен РЕДЕПЛОЙ PROD.

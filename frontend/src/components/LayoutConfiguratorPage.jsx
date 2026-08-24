@@ -16,8 +16,10 @@ import {
   ZoomIn, ZoomOut, Grid3X3, Eye, EyeOff, Layers, Settings2,
   FolderOpen, Copy, Move, Loader2, RefreshCw, GripVertical,
   Square, Minus, MousePointer, Pencil, Ruler, Undo2, Type,
-  Magnet, CopyPlus, FileInput, LayoutGrid, SplitSquareVertical, X, Calculator
+  Magnet, CopyPlus, FileInput, LayoutGrid, SplitSquareVertical, X, Calculator, BookOpen
 } from 'lucide-react';
+
+import { LayoutGuideDialog } from './LayoutGuideDialog';
 
 import { getApiUrl } from '../utils/api';
 const API_URL = getApiUrl();
@@ -115,6 +117,7 @@ const LayoutConfiguratorPage = ({
   const [showGrid, setShowGrid] = useState(true);
   const [showDimensions, setShowDimensions] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('elements');
   const [layoutLoadedForCalculator, setLayoutLoadedForCalculator] = useState(false); // Track if layout loaded for calculator integration
   
@@ -5024,6 +5027,15 @@ const LayoutConfiguratorPage = ({
             <CardTitle className="text-sm flex items-center gap-2">
               <Settings2 className="h-4 w-4" />
               Настройки
+              <Button
+                size="sm"
+                variant="outline"
+                className="ml-auto h-7 px-2 text-xs text-indigo-700 border-indigo-300 hover:bg-indigo-50"
+                onClick={() => setGuideOpen(true)}
+                data-testid="open-layout-guide-btn"
+              >
+                <BookOpen className="h-3.5 w-3.5 mr-1" />Инструкция
+              </Button>
             </CardTitle>
           </CardHeader>
           <CardContent className="p-3 space-y-3">
@@ -8081,6 +8093,9 @@ const LayoutConfiguratorPage = ({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Layout configurator guide */}
+      <LayoutGuideDialog open={guideOpen} onOpenChange={setGuideOpen} />
     </div>
   );
 };
