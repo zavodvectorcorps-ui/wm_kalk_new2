@@ -3016,3 +3016,13 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
   вариантам name+nameRu; сохраняет через POST /prices.
 - ПРОВЕРЕНО скриншотом: клик по кнопке варианта перевёл «Bez zabudowy» → «Без облицовки». Диалог не сохранял.
 - Frontend → нужен РЕДЕПЛОЙ для PROD.
+
+## Session — Jun 2026 (fix): Graceful fallback для ИИ-перевода на PROD
+- Проблема: POST /api/sauna/translate-options падал 500 (`No module named 'litellm'`) на PROD, т.к.
+  продакшн-сборка не устанавливает emergentintegrations/litellm из requirements.txt (Preview работает).
+- Сделано: в routes/sauna_crud.py импорт emergentintegrations обёрнут в try/except ImportError → HTTP 503
+  с понятным RU-сообщением. Отсутствие EMERGENT_LLM_KEY и ошибка вызова LLM тоже → 503 (вместо 500 краша).
+  Теперь фронтенд получает управляемую ошибку, а не жёсткий краш.
+- ПРОВЕРЕНО curl на Preview: перевод по-прежнему работает корректно.
+- ДЕПЛОЙ PROD: корневая причина непоставки пакета — на стороне платформенного билд-пайплайна.
+  support_agent рекомендует написать support@emergent.sh с job ID и скриншотом ошибки.

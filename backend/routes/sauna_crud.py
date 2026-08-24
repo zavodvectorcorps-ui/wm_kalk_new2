@@ -160,10 +160,18 @@ async def translate_option_names(payload: dict):
     if not non_empty:
         return {"translations": ["" for _ in texts]}
 
-    from emergentintegrations.llm.chat import LlmChat, UserMessage
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
+    except ImportError as e:
+        logger.error(f"AI translation unavailable, missing dependency: {e}")
+        raise HTTPException(
+            status_code=503,
+            detail="AI-перевод временно недоступен: библиотека перевода не установлена на сервере.",
+        )
+
     key = os.environ.get("EMERGENT_LLM_KEY")
     if not key:
-        raise HTTPException(status_code=500, detail="LLM key not configured")
+        raise HTTPException(status_code=503, detail="AI-перевод временно недоступен: ключ LLM не настроен.")
 
     chat = LlmChat(
         api_key=key,
@@ -177,7 +185,11 @@ async def translate_option_names(payload: dict):
 
     prompt = ("Переведи на русский следующие названия (JSON-массив строк). "
               "Сохрани порядок и количество элементов:\n" + _json.dumps(texts, ensure_ascii=False))
-    resp = await chat.send_message(UserMessage(text=prompt))
+    try:
+        resp = await chat.send_message(UserMessage(text=prompt))
+    except Exception as e:
+        logger.error(f"AI translation call failed: {e}")
+        raise HTTPException(status_code=503, detail="AI-перевод временно недоступен: ошибка при обращении к сервису перевода.")
     raw = resp if isinstance(resp, str) else getattr(resp, "content", str(resp))
     raw = (raw or "").strip()
 
