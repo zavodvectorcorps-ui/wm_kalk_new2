@@ -2992,3 +2992,18 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
 - ПРОВЕРЕНО: PUT категории с displayAsSwatches=true → GET возвращает True (раньше None). options не теряются.
 - Backend → нужен РЕДЕПЛОЙ. После деплоя на PROD нужно ЗАНОВО включить галочку у категории «Kolor» и сохранить
   (прежнее сохранение потеряло флаг).
+
+## Session — Aug 24, 2026 (features): цвет в итогах PDF + ИИ-перевод опций на русский
+- PDF: в блок «WARTOŚĆ CAŁKOWITA OFERTY» (routes/sauna.py, left_html) добавлена строка «Wybrany kolor: <name>»
+  когда выбран цвет (color_name). Проверено: в PDF есть «Wybrany kolor: Kolor Orzech».
+- ИИ-ПЕРЕВОД (Emergent LLM key, openai gpt-5.4 — gpt-5.6 недоступна в плейбуке):
+  - Backend: POST /api/sauna/translate-options {texts:[...]} → {translations:[...]} через emergentintegrations
+    LlmChat.send_message, system prompt переводчика, парсит JSON-массив, fallback на оригинал.
+  - Per-option: OptionDialog Add/Edit — кнопка «🌐 Перевести ИИ» рядом с полем RU (translateName,
+    data-testid new/edit-option-translate-btn). Заполняет nameRu.
+  - Bulk: useSaunaPricing.handleTranslateAllOptions — собирает все имена опций, 1 вызов LLM, перезаписывает
+    ВСЕ nameRu, POST /prices. Кнопка TranslateAllButton.jsx в шапке SaunaPricingPage (translate-all-btn,
+    с confirm+loading).
+- ПРОВЕРЕНО: endpoint переводит (3 примера корректно); per-option кнопка заполнила RU в диалоге; bulk-кнопка
+  и per-option кнопки отрисованы. Backend не менял модели заказа.
+- Backend+Frontend → нужен РЕДЕПЛОЙ для PROD.

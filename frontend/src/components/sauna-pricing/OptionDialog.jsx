@@ -28,6 +28,22 @@ const API_URL = getApiUrl();
 
 export const AddOptionDialog = ({ open, onOpenChange, newOption, setNewOption, categories, techSpecCategories, onAdd, txt }) => {
   const selectedTechSpecCategory = techSpecCategories?.find(tc => tc.id === newOption.techSpecCategoryId);
+  const [translating, setTranslating] = useState(false);
+
+  const translateName = async () => {
+    if (!newOption?.name) return;
+    setTranslating(true);
+    try {
+      const res = await fetch(`${API_URL}/api/sauna/translate-options`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ texts: [newOption.name] }),
+      });
+      const data = await res.json();
+      if (data.translations?.[0]) setNewOption(prev => ({ ...prev, nameRu: data.translations[0] }));
+    } finally {
+      setTranslating(false);
+    }
+  };
   const [uploadingHintImage, setUploadingHintImage] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   
@@ -110,7 +126,18 @@ export const AddOptionDialog = ({ open, onOpenChange, newOption, setNewOption, c
               />
             </div>
             <div>
-              <Label>Название (RU) — для производства</Label>
+              <div className="flex items-center justify-between">
+                <Label>Название (RU) — для производства</Label>
+                <button
+                  type="button"
+                  onClick={translateName}
+                  disabled={translating || !newOption.name}
+                  className="text-xs text-sky-600 hover:text-sky-800 disabled:opacity-40"
+                  data-testid="new-option-translate-btn"
+                >
+                  {translating ? '⏳ Перевожу…' : '🌐 Перевести ИИ'}
+                </button>
+              </div>
               <Input
                 value={newOption.nameRu || ''}
                 onChange={(e) => setNewOption(prev => ({ ...prev, nameRu: e.target.value }))}
@@ -362,6 +389,22 @@ export const EditOptionDialog = ({ open, onOpenChange, editingOption, setEditing
   const [uploadingImage, setUploadingImage] = useState(false);
   const [restrictSel, setRestrictSel] = useState([]);
   const [applyingRestrict, setApplyingRestrict] = useState(false);
+  const [translating, setTranslating] = useState(false);
+
+  const translateName = async () => {
+    if (!editingOption?.name) return;
+    setTranslating(true);
+    try {
+      const res = await fetch(`${API_URL}/api/sauna/translate-options`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ texts: [editingOption.name] }),
+      });
+      const data = await res.json();
+      if (data.translations?.[0]) setEditingOption(prev => ({ ...prev, nameRu: data.translations[0] }));
+    } finally {
+      setTranslating(false);
+    }
+  };
 
   const toggleRestrict = (id) => {
     setRestrictSel(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
@@ -512,7 +555,18 @@ export const EditOptionDialog = ({ open, onOpenChange, editingOption, setEditing
                 />
               </div>
               <div>
-                <Label>Название (RU) — для производства</Label>
+                <div className="flex items-center justify-between">
+                  <Label>Название (RU) — для производства</Label>
+                  <button
+                    type="button"
+                    onClick={translateName}
+                    disabled={translating || !editingOption.name}
+                    className="text-xs text-sky-600 hover:text-sky-800 disabled:opacity-40"
+                    data-testid="edit-option-translate-btn"
+                  >
+                    {translating ? '⏳ Перевожу…' : '🌐 Перевести ИИ'}
+                  </button>
+                </div>
                 <Input
                   value={editingOption.nameRu || ''}
                   onChange={(e) => setEditingOption(prev => ({ ...prev, nameRu: e.target.value }))}

@@ -12,6 +12,7 @@ import { TechSpecAdminPage } from './TechSpecAdminPage';
 import { WizardStepsAdmin } from './sauna-pricing/WizardStepsAdmin';
 import PriceImportExport from './sauna-pricing/PriceImportExport';
 import { ImageIntegrityChecker } from './sauna-pricing/ImageIntegrityChecker';
+import { TranslateAllButton } from './sauna-pricing/TranslateAllButton';
 
 import { 
   useSaunaPricing, 
@@ -58,6 +59,7 @@ export const SaunaPricingPage = () => {
     handleToggleOptionHidden,
     handleCloneOption,
     handleRestrictCategoryToOption,
+    handleTranslateAllOptions,
     handleReorderOptions,
     // Settings
     handleUpdateMaxManagerDiscount,
@@ -106,6 +108,7 @@ export const SaunaPricingPage = () => {
         {canEdit() && (
           <div className="flex items-center gap-2 flex-wrap">
             <AutoSavePill status={autoSaveStatus} />
+            <TranslateAllButton onTranslate={handleTranslateAllOptions} />
             <ImageIntegrityChecker />
             <PriceImportExport onImported={() => window.location.reload()} />
             <Button

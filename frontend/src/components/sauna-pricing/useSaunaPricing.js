@@ -720,6 +720,30 @@ export const useSaunaPricing = () => {
   // Keep ONLY the given option available for the selected models/variants:
   // adds those model IDs to `incompatibleModels` of every OTHER option in the
   // category, and removes them from the kept option. Persists all changed options.
+  const handleTranslateAllOptions = async () => {
+    const cats = prices.categories || [];
+    const items = [];
+    cats.forEach(c => (c.options || []).forEach(o => items.push({ catId: c.id, optId: o.id, name: o.name || '' })));
+    const names = items.map(i => i.name);
+    if (names.length === 0) {
+      toast.error('Нет опций для перевода');
+      return { count: 0 };
+    }
+    const res = await axios.post(`${API_URL}/api/sauna/translate-options`, { texts: names }, { timeout: 120000 });
+    const translations = res.data.translations || [];
+    const map = {};
+    items.forEach((it, idx) => { map[`${it.catId}:${it.optId}`] = translations[idx]; });
+    const updatedCats = cats.map(c => ({
+      ...c,
+      options: (c.options || []).map(o => ({ ...o, nameRu: map[`${c.id}:${o.id}`] || o.nameRu || '' })),
+    }));
+    const newPrices = { ...prices, categories: updatedCats };
+    setPrices(newPrices);
+    await axios.post(`${API_URL}/api/sauna/prices`, newPrices);
+    toast.success(`Переведено опций: ${names.length}`);
+    return { count: names.length };
+  };
+
   const handleRestrictCategoryToOption = async (categoryId, keepOptionId, targetIds) => {
     if (!targetIds || targetIds.length === 0) return { keepIncompatibleModels: [] };
     const category = prices.categories?.find(c => c.id === categoryId);
@@ -850,6 +874,7 @@ export const useSaunaPricing = () => {
     handleToggleOptionHidden,
     handleCloneOption,
     handleRestrictCategoryToOption,
+    handleTranslateAllOptions,
     handleReorderOptions,
     // Settings
     handleUpdateMaxManagerDiscount,

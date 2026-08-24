@@ -150,6 +150,53 @@ async def _check_url_reachable(url: str, client) -> tuple:
     return "uncertain", last_reason
 
 
+@router.post("/translate-options")
+async def translate_option_names(payload: dict):
+    """Translate a list of Polish option names to Russian using the Emergent LLM key (gpt-5.4)."""
+    import os, json as _json, uuid
+    texts = payload.get("texts") or []
+    texts = [t if isinstance(t, str) else "" for t in texts]
+    non_empty = [t for t in texts if t.strip()]
+    if not non_empty:
+        return {"translations": ["" for _ in texts]}
+
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+    key = os.environ.get("EMERGENT_LLM_KEY")
+    if not key:
+        raise HTTPException(status_code=500, detail="LLM key not configured")
+
+    chat = LlmChat(
+        api_key=key,
+        session_id=f"translate-{uuid.uuid4()}",
+        system_message=(
+            "Ты профессиональный переводчик для производителя саун. Переводишь названия опций "
+            "с польского на русский естественно и кратко. Верни СТРОГО JSON-массив строк с переводами "
+            "в том же порядке и том же количестве, что и на входе. Без пояснений, без markdown."
+        ),
+    ).with_model("openai", "gpt-5.4")
+
+    prompt = ("Переведи на русский следующие названия (JSON-массив строк). "
+              "Сохрани порядок и количество элементов:\n" + _json.dumps(texts, ensure_ascii=False))
+    resp = await chat.send_message(UserMessage(text=prompt))
+    raw = resp if isinstance(resp, str) else getattr(resp, "content", str(resp))
+    raw = (raw or "").strip()
+
+    start, end = raw.find("["), raw.rfind("]")
+    translations = []
+    if start != -1 and end != -1:
+        try:
+            translations = _json.loads(raw[start:end + 1])
+        except Exception:
+            translations = []
+    if not isinstance(translations, list) or len(translations) != len(texts):
+        # Fall back to original text where translation is missing
+        fixed = []
+        for i, t in enumerate(texts):
+            fixed.append(translations[i] if i < len(translations) and isinstance(translations[i], str) else t)
+        translations = fixed
+    return {"translations": translations}
+
+
 @router.get("/check-images")
 async def check_broken_images(scope: str = "all"):
     """Scan sauna (and optionally balia) prices for broken/unreachable image URLs.
