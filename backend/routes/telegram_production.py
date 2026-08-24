@@ -784,15 +784,16 @@ async def _handle_callback(cbq: dict, cfg: dict):
     await answer("")
 
 
-async def _handle_reply(message: dict, cfg: dict):
+async def _handle_reply(message: dict, cfg: dict) -> bool:
+    """Handle a reply to a bot force-reply prompt. Returns True if it consumed a pending input."""
     reply_to = message.get("reply_to_message") or {}
     pmid = reply_to.get("message_id")
     chat_id = str((message.get("chat") or {}).get("id", ""))
     if not pmid:
-        return
+        return False
     pending = await db.telegram_pending_inputs.find_one({"_id": f"{chat_id}:{pmid}"})
     if not pending:
-        return
+        return False
     thread_id = message.get("message_thread_id")
     bot = cfg["bot_token"]
     order_id = pending["order_id"]
@@ -821,6 +822,33 @@ async def _handle_reply(message: dict, cfg: dict):
         await send_telegram_message(text=f"✅ Комментарий сохранён (от {actor})", chat_id=chat_id, bot_token=bot, message_thread_id=thread_id)
 
     await db.telegram_pending_inputs.delete_one({"_id": f"{chat_id}:{pmid}"})
+    return True
+
+
+async def _handle_topic_message(message: dict, cfg: dict):
+    """Any plain text posted in an order topic -> saved as a production comment on the card,
+    so production can just write in the chat without pressing buttons."""
+    thread_id = message.get("message_thread_id")
+    if not thread_id:
+        return  # messages outside an order topic (e.g. General) are ignored
+    from_user = message.get("from") or {}
+    if from_user.get("is_bot"):
+        return  # never echo the bot's own confirmations
+    text = (message.get("text") or "").strip()
+    if not text or text.startswith("/"):
+        return  # ignore empty and command messages
+    lead = await db.sauna_crm_leads.find_one({"telegram_topic_id": thread_id}, {"_id": 0, "id": 1})
+    if not lead:
+        return
+    order_id = lead["id"]
+    actor = _actor_name(from_user)
+    now = datetime.now(timezone.utc).isoformat()
+    entry = {"text": text, "author": actor, "at": now, "direction": "in", "channel": "telegram"}
+    await db.sauna_crm_leads.update_one({"id": order_id}, {
+        "$set": {"updatedAt": now, "lastProductionUpdateAt": now},
+        "$push": {"productionMessages": entry},
+    })
+    _publish_update({"type": "production_update", "kind": "comment", "order_id": order_id, "at": now})
 
 
 async def _handle_photo(message: dict, cfg: dict):
@@ -888,10 +916,14 @@ async def telegram_webhook(secret: str, update: dict):
             await _handle_callback(update["callback_query"], cfg)
         elif "message" in update:
             msg = update["message"]
-            if msg.get("reply_to_message"):
-                await _handle_reply(msg, cfg)
-            elif msg.get("photo"):
+            if msg.get("photo"):
                 await _handle_photo(msg, cfg)
+            elif msg.get("text"):
+                handled = False
+                if msg.get("reply_to_message"):
+                    handled = await _handle_reply(msg, cfg)
+                if not handled:
+                    await _handle_topic_message(msg, cfg)
     except Exception as e:
         logger.error(f"webhook handler error: {e}")
     return {"ok": True}

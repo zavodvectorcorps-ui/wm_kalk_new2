@@ -3117,3 +3117,12 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
   disclaimer, WYMIARY POMIESZCZEŃ, KOMENTARZ, WYBRANE OPCJE, OPCJA-заголовок, GALERIA, футер, 'Koszt fundamentu'.
 - Названия опций/карточек берут optionNameRu/nameRu (фолбэк на польские, если перевода нет).
 - Клиентское КП без изменений (польский). ПРОВЕРЕНО рендером (обе страницы на русском). Нужен РЕДЕПЛОЙ PROD.
+
+## Session — Jun 2026 (feature): Свободные сообщения из Telegram-топика → CRM карточка
+- Раньше в карточку попадал только комментарий через кнопку/reply на подсказку бота; обычный текст в топике игнорировался.
+- telegram_production.py: _handle_reply теперь возвращает bool; добавлен _handle_topic_message — любое
+  текстовое сообщение в топике заказа сохраняется в lead.productionMessages (direction=in, channel=telegram),
+  игнорируются: сообщения бота (is_bot), команды (/...), сообщения вне топика. webhook: photo → text(reply→topic).
+- Карточка (ProductionTelegramPanel) уже рендерит productionMessages; live-обновление через _publish_update SSE.
+- ВАЖНО: работает только если webhook бота включён (/enable-webhook) — он уже используется для кнопок/фото.
+- ПРОВЕРЕНО unit-тестом (сохраняется только валидный текст). Нужен РЕДЕПЛОЙ PROD.
