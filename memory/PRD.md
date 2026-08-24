@@ -3109,3 +3109,11 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
   «Цвет базы: Палисандр». Frontend компилируется.
 - Нужен РЕДЕПЛОЙ PROD.
 - techSpecData.js больше не используется модалкой (index.js ре-экспорт оставлен, безвреден).
+
+## Session — Jun 2026 (feature): Производственное КП на русском
+- В generate_sauna_pdf добавлены хелперы _plru(pl,ru) и _opt_ru_name(opt) — активны только при productionMode.
+- Переведены на русский (только в производственном режиме): header ('ЗАКАЗ В ПРОИЗВОДСТВО'),
+  DANE KLIENTA/Imię/Telefon, INFORMACJE O OFERCIE/Data/Ważność/Nr, MODEL I ŁAWKI, карточки MODEL/ŁAWKI/PIEC/KOLOR,
+  disclaimer, WYMIARY POMIESZCZEŃ, KOMENTARZ, WYBRANE OPCJE, OPCJA-заголовок, GALERIA, футер, 'Koszt fundamentu'.
+- Названия опций/карточек берут optionNameRu/nameRu (фолбэк на польские, если перевода нет).
+- Клиентское КП без изменений (польский). ПРОВЕРЕНО рендером (обе страницы на русском). Нужен РЕДЕПЛОЙ PROD.

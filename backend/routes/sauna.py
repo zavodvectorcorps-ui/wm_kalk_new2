@@ -656,6 +656,16 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     # (keep page 1, selected options w/o prices, comment, layout scheme, gallery).
     production_mode = bool(getattr(request, 'productionMode', False))
 
+    def _plru(pl, ru):
+        """Russian labels for the internal production KP, Polish for the client KP."""
+        return ru if production_mode else pl
+
+    def _opt_ru_name(o):
+        """Prefer Russian option name in production mode."""
+        if production_mode:
+            return (o.get('optionNameRu') or o.get('nameRu') or o.get('optionName') or o.get('name') or '')
+        return (o.get('optionName') or o.get('name') or '')
+
     # Load logo image
     logo_path = '/app/assets/logo7.png'
     logo_img = None
@@ -705,6 +715,8 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     # ========== HEADER ==========
     # Get header title from template
     header_title = template_texts.get('headerTitle', 'OFERTA HANDLOWA')
+    if production_mode:
+        header_title = 'ЗАКАЗ В ПРОИЗВОДСТВО'
     
     # ALICOR company identity (all configurable via PDF template editor)
     company_name = template_texts.get('companyName', 'ALICOR SPA')
@@ -748,15 +760,15 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     # ========== CLIENT + OFFER INFO ==========
     if is_block_enabled(pdf_template, 'client_info'):
         email_line = f"Email: {request.email}<br/>" if hasattr(request, 'email') and request.email else ""
-        client_info = Paragraph(f'''<b>DANE KLIENTA:</b><br/>
-        Imię i nazwisko: {request.fullName}<br/>
-        {email_line}Telefon: {request.phoneNumber}''', 
+        client_info = Paragraph(f'''<b>{_plru('DANE KLIENTA', 'ДАННЫЕ КЛИЕНТА')}:</b><br/>
+        {_plru('Imię i nazwisko', 'Имя')}: {request.fullName}<br/>
+        {email_line}{_plru('Telefon', 'Телефон')}: {request.phoneNumber}''', 
         ParagraphStyle('ClientInfo', fontName='DejaVuSans', fontSize=9, textColor=TEXT_COLOR))
         
-        offer_info = Paragraph(f'''<b>INFORMACJE O OFERCIE:</b><br/>
-        Data wystawienia: {current_date}<br/>
-        Ważność oferty: {valid_until}<br/>
-        <b>Nr oferty: {offer_number}</b>''',
+        offer_info = Paragraph(f'''<b>{_plru('INFORMACJE O OFERCIE', 'ИНФОРМАЦИЯ О ЗАКАЗЕ')}:</b><br/>
+        {_plru('Data wystawienia', 'Дата')}: {current_date}<br/>
+        {_plru('Ważność oferty', 'Действует до')}: {valid_until}<br/>
+        <b>{_plru('Nr oferty', 'Номер заказа')}: {offer_number}</b>''',
         ParagraphStyle('OfferInfo', fontName='DejaVuSans', fontSize=9, textColor=TEXT_COLOR, alignment=TA_RIGHT))
         
         info_table = Table([[client_info, offer_info]], colWidths=[265, 265])
@@ -847,7 +859,7 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
         textColor=BROWN_DARK,
         spaceAfter=6
     )
-    elements.append(Paragraph('MODEL I ŁAWKI', model_section_title))
+    elements.append(Paragraph(_plru('MODEL I ŁAWKI', 'МОДЕЛЬ И ЛАВКИ'), model_section_title))
     elements.append(Spacer(1, 4))
     elements.append(Table([['']], colWidths=[530], rowHeights=[2], style=[('BACKGROUND', (0,0), (0,0), BROWN)]))
     elements.append(Spacer(1, 6))
@@ -885,17 +897,17 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
         cat_id = opt.get('categoryId', '')
         if cat_id == 'lawki' and opt.get('imageUrl') and not bench_image_url:
             bench_image_url = opt.get('imageUrl')
-            bench_name = opt.get('optionName') or opt.get('name')
+            bench_name = _opt_ru_name(opt)
             bench_price = opt.get('price', 0)
             bench_opt_id = opt.get('optionId') or opt.get('id')
         elif cat_id == 'piece' and not heater_opt_id:
             heater_image_url = opt.get('imageUrl') or ''
-            heater_name = opt.get('optionName') or opt.get('name')
+            heater_name = _opt_ru_name(opt)
             heater_price = opt.get('price', 0)
             heater_opt_id = opt.get('optionId') or opt.get('id')
         elif cat_id == 'kolor' and not color_opt_id:
             color_image_url = opt.get('imageUrl') or ''
-            color_name = opt.get('optionName') or opt.get('name')
+            color_name = _opt_ru_name(opt)
             color_price = opt.get('price', 0)
             color_opt_id = opt.get('optionId') or opt.get('id')
         if bench_opt_id and heater_opt_id and color_opt_id:
@@ -1002,23 +1014,24 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
 
     cards: list[tuple] = []
     # MODEL card always present
+    _model_title = _plru('MODEL', 'МОДЕЛЬ')
     cards.append((
         model_img if model_img is not None else Paragraph('', info_style),
         Paragraph(
-            f'<b>MODEL</b><br/><br/>{model_name}' if production_mode else (
-                f'<b>MODEL</b><br/><br/>{model_name}<br/>'
+            f'<b>{_model_title}</b><br/><br/>{model_name}' if production_mode else (
+                f'<b>{_model_title}</b><br/><br/>{model_name}<br/>'
                 f'<font color="#97724E"><b>{model_price_val:,} PLN</b></font>'.replace(',', ' ')
             ),
             info_style,
         ),
     ))
     if bench_name:
-        cards.append(_build_card('ŁAWKI', bench_name, bench_price, bench_is_gift, bench_img))
+        cards.append(_build_card(_plru('ŁAWKI', 'ЛАВКИ'), bench_name, bench_price, bench_is_gift, bench_img))
     if heater_name:
-        cards.append(_build_card('PIEC', heater_name, heater_price, heater_is_gift, heater_img))
+        cards.append(_build_card(_plru('PIEC', 'ПЕЧЬ'), heater_name, heater_price, heater_is_gift, heater_img))
     if color_name:
         color_is_gift = color_opt_id and color_opt_id in admin_gifts
-        cards.append(_build_card('KOLOR', color_name, color_price, color_is_gift, color_img))
+        cards.append(_build_card(_plru('KOLOR', 'ЦВЕТ'), color_name, color_price, color_is_gift, color_img))
 
     # Each card occupies two columns (image, info). Total content width 530pt.
     n_cards = len(cards)
@@ -1098,7 +1111,10 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     # Disclaimer text under model and bench block
     elements.append(Spacer(1, 4))
     elements.append(Paragraph(
-        'Zdjęcia mają charakter poglądowy. Twoja sauna zostanie wykonana zgodnie z wybranymi opcjami i wyposażeniem.',
+        _plru(
+            'Zdjęcia mają charakter poglądowy. Twoja sauna zostanie wykonana zgodnie z wybranymi opcjami i wyposażeniem.',
+            'Изображения носят ознакомительный характер. Сауна изготавливается согласно выбранным опциям и комплектации.'
+        ),
         ParagraphStyle('ModelDisclaimer', fontName='DejaVuSans', fontSize=8, textColor=MUTED, alignment=TA_CENTER)
     ))
     elements.append(Spacer(1, 8))
@@ -1133,7 +1149,7 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
             textColor=BROWN_DARK,
             spaceAfter=6
         )
-        elements.append(Paragraph('WYMIARY POMIESZCZEŃ', room_sizes_title))
+        elements.append(Paragraph(_plru('WYMIARY POMIESZCZEŃ', 'РАЗМЕРЫ ПОМЕЩЕНИЙ'), room_sizes_title))
         elements.append(Spacer(1, 4))
         elements.append(Table([['']], colWidths=[530], rowHeights=[2], style=[('BACKGROUND', (0,0), (0,0), BROWN)]))
         elements.append(Spacer(1, 6))
@@ -1295,7 +1311,7 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     
     # ========== COMMENT SECTION ==========
     if request.notes:
-        elements.append(Paragraph('KOMENTARZ DO ZAMÓWIENIA', section_title_style))
+        elements.append(Paragraph(_plru('KOMENTARZ DO ZAMÓWIENIA', 'КОММЕНТАРИЙ К ЗАКАЗУ'), section_title_style))
         elements.append(Spacer(1, 4))
         comment_table = Table([[Paragraph(request.notes, normal_style)]], colWidths=[530])
         comment_table.setStyle(TableStyle([
@@ -1440,7 +1456,7 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
             # customer explicitly opted OUT, so listing them under "WYBRANE OPCJE"
             # confuses the reader. The frontend appends the variant name to the
             # option name like "Szyba połpanoramiczna - Nie".
-            _opt_name_raw = (opt.get('optionName', '') or opt.get('name', '') or '').strip()
+            _opt_name_raw = (_opt_ru_name(opt) or '').strip()
             if re.search(r'[\-–—:]\s*(nie|brak|bez)\s*$', _opt_name_raw, flags=re.IGNORECASE):
                 continue
 
@@ -1451,7 +1467,7 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
 
             # Rename fundament option for PDF display
             if category_id == 'fundament':
-                name = 'Koszt fundamentu'
+                name = _plru('Koszt fundamentu', 'Стоимость фундамента')
 
             # Resolve per-model price: if the catalog record has priceByModel
             # for the selected sauna model, that wins over the base `price`
@@ -1596,7 +1612,7 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     if options_items:
         # Start WYBRANE OPCJE on a new page
         elements.append(PageBreak())
-        elements.append(Paragraph('WYBRANE OPCJE', section_title_style))
+        elements.append(Paragraph(_plru('WYBRANE OPCJE', 'ВЫБРАННЫЕ ОПЦИИ'), section_title_style))
         elements.append(Spacer(1, 4))
         elements.append(Table([['']], colWidths=[530], rowHeights=[1], style=[('BACKGROUND', (0,0), (0,0), BROWN_BORDER)]))
         elements.append(Spacer(1, 4))
@@ -1616,9 +1632,9 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
         GIFT_BG = colors.HexColor('#ECFDF5')
         
         options_body = [[
-            Paragraph('<b>OPCJA</b>', ParagraphStyle('OptHeader', fontName='DejaVuSans-Bold', fontSize=fs, textColor=colors.white)),
+            Paragraph(f"<b>{_plru('OPCJA', 'ОПЦИЯ')}</b>", ParagraphStyle('OptHeader', fontName='DejaVuSans-Bold', fontSize=fs, textColor=colors.white)),
             '',
-            Paragraph('<b>OPCJA</b>', ParagraphStyle('OptHeader', fontName='DejaVuSans-Bold', fontSize=fs, textColor=colors.white)),
+            Paragraph(f"<b>{_plru('OPCJA', 'ОПЦИЯ')}</b>", ParagraphStyle('OptHeader', fontName='DejaVuSans-Bold', fontSize=fs, textColor=colors.white)),
             ''
         ]]
         
@@ -1856,7 +1872,8 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     elements.append(Spacer(1, 10))
     elements.append(Table([['']], colWidths=[530], rowHeights=[1], style=[('BACKGROUND', (0,0), (0,0), BROWN)]))
     elements.append(Spacer(1, 4))
-    elements.append(Paragraph(template_texts.get('footerText', 'Oferta ważna 30 dni od daty wystawienia.'), 
+    _footer_text = 'Внутренний документ для производства. Цены не указаны.' if production_mode else template_texts.get('footerText', 'Oferta ważna 30 dni od daty wystawienia.')
+    elements.append(Paragraph(_footer_text, 
                              ParagraphStyle('Footer', fontName='DejaVuSans', fontSize=8, textColor=MUTED, alignment=TA_CENTER)))
     
     # ========== PAGE 2: VARIANTS AND OPTIONS ==========
@@ -2430,7 +2447,7 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
             elements.append(PageBreak())
             gallery_title_style = ParagraphStyle('CustomGalleryTitle', fontName='DejaVuSans-Bold',
                                                  fontSize=14, textColor=BROWN_DARK, spaceAfter=6)
-            elements.append(Paragraph('GALERIA / REFERENCJE', gallery_title_style))
+            elements.append(Paragraph(_plru('GALERIA / REFERENCJE', 'ГАЛЕРЕЯ'), gallery_title_style))
             elements.append(Table([['']], colWidths=[530], rowHeights=[2], style=[('BACKGROUND', (0,0), (0,0), BROWN)]))
             elements.append(Spacer(1, 10))
 
