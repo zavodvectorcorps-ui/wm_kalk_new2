@@ -723,24 +723,43 @@ export const useSaunaPricing = () => {
   const handleTranslateAllOptions = async () => {
     const cats = prices.categories || [];
     const items = [];
-    cats.forEach(c => (c.options || []).forEach(o => items.push({ catId: c.id, optId: o.id, name: o.name || '' })));
-    const names = items.map(i => i.name);
+    cats.forEach(c => (c.options || []).forEach((o, oi) => {
+      items.push({ kind: 'option', catId: c.id, optIdx: oi, name: o.name || '' });
+      const variants = o.variants || o.subOptions || [];
+      variants.forEach((v, vi) => {
+        items.push({ kind: 'variant', catId: c.id, optIdx: oi, varIdx: vi, name: v.namePl || v.name || '' });
+      });
+    }));
+    const payloadItems = items.filter(i => i.name.trim());
+    const names = payloadItems.map(i => i.name);
     if (names.length === 0) {
       toast.error('Нет опций для перевода');
       return { count: 0 };
     }
-    const res = await axios.post(`${API_URL}/api/sauna/translate-options`, { texts: names }, { timeout: 120000 });
+    const res = await axios.post(`${API_URL}/api/sauna/translate-options`, { texts: names }, { timeout: 180000 });
     const translations = res.data.translations || [];
-    const map = {};
-    items.forEach((it, idx) => { map[`${it.catId}:${it.optId}`] = translations[idx]; });
+    payloadItems.forEach((it, idx) => { it.tr = translations[idx]; });
+
     const updatedCats = cats.map(c => ({
       ...c,
-      options: (c.options || []).map(o => ({ ...o, nameRu: map[`${c.id}:${o.id}`] || o.nameRu || '' })),
+      options: (c.options || []).map((o, oi) => {
+        const optItem = payloadItems.find(i => i.kind === 'option' && i.catId === c.id && i.optIdx === oi);
+        const variants = (o.variants || o.subOptions || []).map((v, vi) => {
+          const vItem = payloadItems.find(i => i.kind === 'variant' && i.catId === c.id && i.optIdx === oi && i.varIdx === vi);
+          return vItem?.tr ? { ...v, name: vItem.tr, nameRu: vItem.tr } : v;
+        });
+        const patched = { ...o, nameRu: optItem?.tr || o.nameRu || '' };
+        if ((o.variants || o.subOptions || []).length) {
+          patched.variants = variants;
+          patched.subOptions = [];
+        }
+        return patched;
+      }),
     }));
     const newPrices = { ...prices, categories: updatedCats };
     setPrices(newPrices);
     await axios.post(`${API_URL}/api/sauna/prices`, newPrices);
-    toast.success(`Переведено опций: ${names.length}`);
+    toast.success(`Переведено названий: ${names.length}`);
     return { count: names.length };
   };
 

@@ -390,6 +390,31 @@ export const EditOptionDialog = ({ open, onOpenChange, editingOption, setEditing
   const [restrictSel, setRestrictSel] = useState([]);
   const [applyingRestrict, setApplyingRestrict] = useState(false);
   const [translating, setTranslating] = useState(false);
+  const [translatingVariant, setTranslatingVariant] = useState(null);
+
+  const translateVariant = async (idx) => {
+    const list = editingOption.variants || editingOption.subOptions || [];
+    const src = list[idx]?.namePl || list[idx]?.name;
+    if (!src) return;
+    setTranslatingVariant(idx);
+    try {
+      const res = await fetch(`${API_URL}/api/sauna/translate-options`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ texts: [src] }),
+      });
+      const data = await res.json();
+      const tr = data.translations?.[0];
+      if (tr) {
+        setEditingOption(prev => ({
+          ...prev,
+          variants: (prev.variants || prev.subOptions || []).map((v, i) => i === idx ? { ...v, name: tr, nameRu: tr } : v),
+          subOptions: [],
+        }));
+      }
+    } finally {
+      setTranslatingVariant(null);
+    }
+  };
 
   const translateName = async () => {
     if (!editingOption?.name) return;
@@ -1031,6 +1056,15 @@ export const EditOptionDialog = ({ open, onOpenChange, editingOption, setEditing
                                 className="h-6 text-xs text-gray-500 border-transparent hover:border-gray-300 focus:border-amber-500 px-1 mt-0.5"
                                 placeholder="Nazwa (PL)"
                               />
+                              <button
+                                type="button"
+                                onClick={() => translateVariant(idx)}
+                                disabled={translatingVariant === idx}
+                                className="text-[11px] text-sky-600 hover:text-sky-800 disabled:opacity-40 mt-1 px-1"
+                                data-testid={`variant-translate-btn-${idx}`}
+                              >
+                                {translatingVariant === idx ? '⏳ Перевожу…' : '🌐 Перевести PL→RU'}
+                              </button>
                             </div>
                             <Button
                               type="button"

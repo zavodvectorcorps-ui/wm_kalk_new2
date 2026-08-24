@@ -3007,3 +3007,12 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
 - ПРОВЕРЕНО: endpoint переводит (3 примера корректно); per-option кнопка заполнила RU в диалоге; bulk-кнопка
   и per-option кнопки отрисованы. Backend не менял модели заказа.
 - Backend+Frontend → нужен РЕДЕПЛОЙ для PROD.
+
+## Session — Aug 24, 2026 (feature): ИИ-перевод под-вариантов опций (namePl → RU)
+- OptionDialog (Edit): кнопка «🌐 Перевести PL→RU» под каждым вариантом (data-testid variant-translate-btn-{idx});
+  translateVariant(idx) переводит variant.namePl → устанавливает variant.name и variant.nameRu.
+- Bulk handleTranslateAllOptions (useSaunaPricing): теперь собирает И названия опций (name), И названия
+  вариантов (namePl) в один LLM-вызов; маппит обратно (kind option/variant, optIdx/varIdx), опциям пишет nameRu,
+  вариантам name+nameRu; сохраняет через POST /prices.
+- ПРОВЕРЕНО скриншотом: клик по кнопке варианта перевёл «Bez zabudowy» → «Без облицовки». Диалог не сохранял.
+- Frontend → нужен РЕДЕПЛОЙ для PROD.
