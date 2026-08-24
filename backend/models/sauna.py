@@ -137,6 +137,7 @@ class SaunaCategory(BaseModel):
     name: str
     inputType: str = "radio"
     displayType: str = "grid"
+    displayAsSwatches: bool = False  # Render options as clickable photo swatches (color palette)
     options: List[SaunaOption] = []
     techSpecCategoryId: Optional[str] = None  # Link to tech spec category ID
     hint: Optional[str] = None  # General hint for category (shown under category name)

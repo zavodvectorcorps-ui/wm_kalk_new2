@@ -2982,3 +2982,13 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
 - OptionDialog.jsx: DialogContent max-w-lg → max-w-3xl w-[95vw] overflow-x-hidden (Add+Edit).
 - Убран горизонтальный скролл; PL/RU и цена/себестоимость теперь в 2 колонки.
 - ПРОВЕРЕНО скриншотом. Frontend → нужен РЕДЕПЛОЙ для PROD.
+
+## Session — Aug 24, 2026 (BUGFIX): displayAsSwatches не сохранялся при сохранении категории
+- СИМПТОМ: включил свотчи в админке, но в калькуляторе категория осталась обычным списком.
+- КОРЕНЬ: models/sauna.py SaunaCategory НЕ имел поля displayAsSwatches и без extra="allow" →
+  PUT /categories/{id} делает category.model_dump() → флаг отбрасывался (не сохранялся в БД).
+  (Прямая запись в БД в тестах работала, поэтому баг не заметили ранее.)
+- ФИКС: добавлено displayAsSwatches: bool = False в SaunaCategory.
+- ПРОВЕРЕНО: PUT категории с displayAsSwatches=true → GET возвращает True (раньше None). options не теряются.
+- Backend → нужен РЕДЕПЛОЙ. После деплоя на PROD нужно ЗАНОВО включить галочку у категории «Kolor» и сохранить
+  (прежнее сохранение потеряло флаг).
