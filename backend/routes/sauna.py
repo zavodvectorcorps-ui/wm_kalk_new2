@@ -1012,36 +1012,11 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
         color_is_gift = color_opt_id and color_opt_id in admin_gifts
         cards.append(_build_card('KOLOR', color_name, color_price, color_is_gift, color_img))
 
-    # Lay out as a single row of N cards. Each card occupies two columns
-    # (image, info). When there is no image we still emit an empty cell so
-    # the row stays aligned. The total content width is 530pt — pick
-    # per-card image and info widths so N * (img + info) ≤ 530, otherwise
-    # ReportLab squashes the info column and text wraps to 1 word per line.
-    row = []
-    for img_cell, info_cell in cards:
-        row.append(img_cell)
-        row.append(info_cell)
+    # Each card occupies two columns (image, info). Total content width 530pt.
     n_cards = len(cards)
     total_w = 530
-    per_card_w = total_w / n_cards
-    image_col_w = 95 if n_cards <= 2 else (72 if n_cards == 3 else 50)
-    info_col_w = max(60, per_card_w - image_col_w)
-    col_widths = [image_col_w, info_col_w] * n_cards
-    # If we have 3+ cards the images on screen also need to be smaller so the
-    # row doesn't dwarf the info text.
-    if n_cards >= 3:
-        _img_dim = (65, 55) if n_cards == 3 else (52, 44)
-        for cell_img in (model_img, bench_img, heater_img, color_img):
-            if cell_img is not None:
-                try:
-                    cell_img.drawWidth = _img_dim[0]
-                    cell_img.drawHeight = _img_dim[1]
-                except Exception:
-                    pass
-    combined_table = Table([row], colWidths=col_widths)
 
-    # Style: brown background, dividers between cards.
-    style_cmds = [
+    base_style = [
         ('BACKGROUND', (0, 0), (-1, -1), BROWN_LIGHT),
         ('TOPPADDING', (0, 0), (-1, -1), 10),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
@@ -1049,10 +1024,68 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
         ('RIGHTPADDING', (0, 0), (-1, -1), 6),
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
     ]
-    for i in range(1, n_cards):
-        col = i * 2
-        style_cmds.append(('LINEBEFORE', (col, 0), (col, 0), 1, BROWN_BORDER))
-    combined_table.setStyle(TableStyle(style_cmds))
+
+    if n_cards >= 4:
+        # 2 cards per row (2x2 grid). One row of 4 makes the info columns too
+        # narrow (long heater names wrap to 1 word/line). Two rows give each
+        # card ~265pt, plenty of room.
+        cards_per_row = 2
+        per_card_w = total_w / cards_per_row  # 265
+        image_col_w = 95
+        info_col_w = per_card_w - image_col_w  # 170
+        col_widths = [image_col_w, info_col_w] * cards_per_row
+        # Clamp every image to fit the 95pt image column (model_img can be up
+        # to 130 wide and would otherwise overlap the info text).
+        for cell_img in (model_img, bench_img, heater_img, color_img):
+            if cell_img is not None:
+                try:
+                    w, h = cell_img.drawWidth, cell_img.drawHeight
+                    if w > 85:
+                        scale = 85 / w
+                        cell_img.drawWidth = 85
+                        cell_img.drawHeight = h * scale
+                except Exception:
+                    pass
+        table_rows = []
+        for i in range(0, n_cards, cards_per_row):
+            chunk = cards[i:i + cards_per_row]
+            r = []
+            for img_cell, info_cell in chunk:
+                r.append(img_cell)
+                r.append(info_cell)
+            while len(r) < cards_per_row * 2:  # pad odd last row
+                r.append(Paragraph('', info_style))
+            table_rows.append(r)
+        combined_table = Table(table_rows, colWidths=col_widths)
+        style_cmds = list(base_style)
+        style_cmds.append(('LINEBEFORE', (2, 0), (2, -1), 1, BROWN_BORDER))  # divider between the 2 columns
+        for ri in range(1, len(table_rows)):  # divider between rows
+            style_cmds.append(('LINEABOVE', (0, ri), (-1, ri), 1, BROWN_BORDER))
+        combined_table.setStyle(TableStyle(style_cmds))
+    else:
+        # Single row of N cards (1-3).
+        row = []
+        for img_cell, info_cell in cards:
+            row.append(img_cell)
+            row.append(info_cell)
+        per_card_w = total_w / n_cards
+        image_col_w = 95 if n_cards <= 2 else 72
+        info_col_w = max(60, per_card_w - image_col_w)
+        col_widths = [image_col_w, info_col_w] * n_cards
+        if n_cards == 3:
+            for cell_img in (model_img, bench_img, heater_img, color_img):
+                if cell_img is not None:
+                    try:
+                        cell_img.drawWidth = 65
+                        cell_img.drawHeight = 55
+                    except Exception:
+                        pass
+        combined_table = Table([row], colWidths=col_widths)
+        style_cmds = list(base_style)
+        for i in range(1, n_cards):
+            col = i * 2
+            style_cmds.append(('LINEBEFORE', (col, 0), (col, 0), 1, BROWN_BORDER))
+        combined_table.setStyle(TableStyle(style_cmds))
     elements.append(combined_table)
     # Disclaimer text under model and bench block
     elements.append(Spacer(1, 4))
