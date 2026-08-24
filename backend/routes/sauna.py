@@ -868,6 +868,12 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     heater_price = 0
     heater_opt_id = None
 
+    # ========== KOLOR (selected sauna color) — shown as a card in the header ==========
+    color_image_url = None
+    color_name = None
+    color_price = 0
+    color_opt_id = None
+
     selected_options = getattr(request, 'selectedOptions', None) or []
     admin_gifts = getattr(request, 'adminGifts', []) or []
 
@@ -883,7 +889,12 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
             heater_name = opt.get('optionName') or opt.get('name')
             heater_price = opt.get('price', 0)
             heater_opt_id = opt.get('optionId') or opt.get('id')
-        if bench_opt_id and heater_opt_id:
+        elif cat_id == 'kolor' and not color_opt_id:
+            color_image_url = opt.get('imageUrl') or ''
+            color_name = opt.get('optionName') or opt.get('name')
+            color_price = opt.get('price', 0)
+            color_opt_id = opt.get('optionId') or opt.get('id')
+        if bench_opt_id and heater_opt_id and color_opt_id:
             break
 
     # Fallback: pull from categories+selections if request.selectedOptions
@@ -944,6 +955,20 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                     heater_img = RLImage(tmp.name, width=90, height=70)
             except Exception as e:
                 logger.warning(f"Could not create heater image for PDF: {e}")
+
+    # Load color image (same pipeline)
+    color_img = None
+    if color_image_url and color_name:
+        color_data = await load_image(color_image_url, timeout=3)
+        if color_data:
+            try:
+                import tempfile
+                color_data = optimize_image_for_pdf(color_data, max_size=250, quality=55)
+                with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp:
+                    tmp.write(color_data)
+                    color_img = RLImage(tmp.name, width=90, height=70)
+            except Exception as e:
+                logger.warning(f"Could not create color image for PDF: {e}")
     
     # ========== MODEL + BENCH + HEATER STRIP (page 1) ==========
     # Build each card as a single Paragraph (image embedded via <img>) so
@@ -983,6 +1008,9 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
         cards.append(_build_card('ŁAWKI', bench_name, bench_price, bench_is_gift, bench_img))
     if heater_name:
         cards.append(_build_card('PIEC', heater_name, heater_price, heater_is_gift, heater_img))
+    if color_name:
+        color_is_gift = color_opt_id and color_opt_id in admin_gifts
+        cards.append(_build_card('KOLOR', color_name, color_price, color_is_gift, color_img))
 
     # Lay out as a single row of N cards. Each card occupies two columns
     # (image, info). When there is no image we still emit an empty cell so
@@ -996,17 +1024,18 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
     n_cards = len(cards)
     total_w = 530
     per_card_w = total_w / n_cards
-    image_col_w = 95 if n_cards <= 2 else 72
-    info_col_w = max(95, per_card_w - image_col_w)
+    image_col_w = 95 if n_cards <= 2 else (72 if n_cards == 3 else 50)
+    info_col_w = max(60, per_card_w - image_col_w)
     col_widths = [image_col_w, info_col_w] * n_cards
-    # If we have 3 cards the images on screen also need to be smaller so the
+    # If we have 3+ cards the images on screen also need to be smaller so the
     # row doesn't dwarf the info text.
     if n_cards >= 3:
-        for cell_img in (model_img, bench_img, heater_img):
+        _img_dim = (65, 55) if n_cards == 3 else (52, 44)
+        for cell_img in (model_img, bench_img, heater_img, color_img):
             if cell_img is not None:
                 try:
-                    cell_img.drawWidth = 65
-                    cell_img.drawHeight = 55
+                    cell_img.drawWidth = _img_dim[0]
+                    cell_img.drawHeight = _img_dim[1]
                 except Exception:
                     pass
     combined_table = Table([row], colWidths=col_widths)
@@ -2346,6 +2375,62 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
                                  ParagraphStyle('GalleryFooter', fontName='DejaVuSans', fontSize=10, 
                                                textColor=MUTED, alignment=TA_CENTER)))
     
+    # ========== CUSTOM CLIENT GALLERY (manager-uploaded photos + comments) ==========
+    custom_gallery = getattr(request, 'galleryImages', None) or []
+    custom_gallery = [g for g in custom_gallery if isinstance(g, dict) and g.get('url')]
+    if custom_gallery:
+        try:
+            elements.append(PageBreak())
+            gallery_title_style = ParagraphStyle('CustomGalleryTitle', fontName='DejaVuSans-Bold',
+                                                 fontSize=14, textColor=BROWN_DARK, spaceAfter=6)
+            elements.append(Paragraph('GALERIA / REFERENCJE', gallery_title_style))
+            elements.append(Table([['']], colWidths=[530], rowHeights=[2], style=[('BACKGROUND', (0,0), (0,0), BROWN)]))
+            elements.append(Spacer(1, 10))
+
+            cell_comment_style = ParagraphStyle('GalleryComment', fontName='DejaVuSans', fontSize=9,
+                                                textColor=TEXT_COLOR, leading=12, alignment=TA_CENTER, spaceBefore=4)
+            import tempfile as _tf
+            cells = []
+            for g in custom_gallery[:6]:
+                inner = []
+                img_data = await load_image(g.get('url'), timeout=4)
+                if img_data:
+                    try:
+                        img_data = optimize_image_for_pdf(img_data, max_size=600, quality=65)
+                        with _tf.NamedTemporaryFile(suffix='.jpg', delete=False) as _t:
+                            _t.write(img_data)
+                            _gi = RLImage(_t.name, width=245, height=175)
+                            _gi.hAlign = 'CENTER'
+                            inner.append(_gi)
+                    except Exception as _e:
+                        logger.warning(f"Gallery image failed: {_e}")
+                comment = (g.get('comment') or '').strip()
+                if comment:
+                    inner.append(Paragraph(comment, cell_comment_style))
+                if inner:
+                    cells.append(inner)
+
+            # Lay out 2 per row
+            gallery_rows = []
+            for i in range(0, len(cells), 2):
+                pair = cells[i:i+2]
+                while len(pair) < 2:
+                    pair.append([Paragraph('', cell_comment_style)])
+                gallery_rows.append(pair)
+            if gallery_rows:
+                gtbl = Table(gallery_rows, colWidths=[265, 265])
+                gtbl.setStyle(TableStyle([
+                    ('VALIGN', (0,0), (-1,-1), 'TOP'),
+                    ('TOPPADDING', (0,0), (-1,-1), 8),
+                    ('BOTTOMPADDING', (0,0), (-1,-1), 8),
+                    ('LEFTPADDING', (0,0), (-1,-1), 6),
+                    ('RIGHTPADDING', (0,0), (-1,-1), 6),
+                ]))
+                elements.append(gtbl)
+        except Exception as _e:
+            logger.warning(f"Could not render custom gallery: {_e}")
+
+
     doc.build(elements)
     
     pdf_data = buffer.getvalue()

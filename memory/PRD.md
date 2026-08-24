@@ -2936,3 +2936,20 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
 - ОСТАЛОСЬ (следующий шаг): #1 фото выбранного цвета в шапке PDF; #2 кастомная загрузка фото модели в КП;
   #3 галерея в КП (до 6 фото + комментарии, раздел в конце PDF).
 - Backend+Frontend → нужен РЕДЕПЛОЙ для PROD.
+
+## Session — Aug 24, 2026 (features #1,#2,#3): цвет в PDF, кастом-фото модели, галерея КП
+- #1 Цвет в шапке PDF (routes/sauna.py, generate_sauna_pdf): извлекается опция categoryId=='kolor'
+  (имя+фото+цена), добавляется карточка KOLOR в strip MODEL/ŁAWKI/PIEC/KOLOR. col_widths и размеры
+  картинок адаптированы под 4 карточки.
+- #2 Кастомное фото модели: KpMediaPanel.jsx (calculator) — загрузка через POST /api/upload/image;
+  formData.customModelImageUrl; в orderData modelImageUrl = customModelImageUrl||modelImage → шапка PDF.
+- #3 Галерея КП: KpMediaPanel — до 6 фото + комментарий к каждому; formData.galleryImages=[{url,comment}];
+  orderData.galleryImages; в PDF раздел «GALERIA / REFERENCJE» (PageBreak + сетка 2 кол.) перед doc.build.
+  SaunaPDFRequest extra=allow → galleryImages проходит.
+- Хук useSaunaCalculator: setCustomModelImage/addGalleryImage/updateGalleryComment/removeGalleryImage.
+  Панель отрисована в SaunaCalculator между CustomerInfoCard и ModelSelectionCard.
+- ПРОВЕРЕНО: generate-pdf 200, в PDF есть KOLOR+имя цвета, GALERIA+RU-комментарий, custom modelImage, 4 стр;
+  KpMediaPanel виден в калькуляторе; POST /api/upload/image → 200 (Cloudinary URL).
+- ПРИМЕЧАНИЕ: при РЕДАКТИРОВАНИИ существующего заказа галерея/кастом-фото в панель не подгружаются обратно
+  (не критично для создания КП). Можно добавить позже.
+- Backend+Frontend → нужен РЕДЕПЛОЙ для PROD.

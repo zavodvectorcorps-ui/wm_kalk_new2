@@ -17,6 +17,7 @@ import {
 import { AddressAutocomplete } from './AddressAutocomplete';
 import { useSaunaCalculator, categoryIcons, formatPrice } from './sauna';
 import { LayoutCatalog } from './sauna/LayoutCatalog';
+import { KpMediaPanel } from './sauna/KpMediaPanel';
 import { useAuth } from '../context/AuthContext';
 
 // Lazy load Layout Configurator for performance
@@ -287,6 +288,7 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPre
     handleApplyStandardDiscount, handleToggleCertificateDiscount, handleRadioChange, handleCheckboxChange,
     handleQuantityChange, handleVariantChange, handleSubOptionChange, toggleGift, removeOption,
     handleSaveAndGeneratePDF, handleClearForm,
+    setCustomModelImage, addGalleryImage, updateGalleryComment, removeGalleryImage,
     handleCancelEdit, getCategoryName, isOptionVisible, getOptionBasePrice,
     handleOpenPriceChange, addCustomOption, updateCustomOption, removeCustomOption
   } = useSaunaCalculator(editingOrder, onEditComplete, amocrmPrefill, onAmocrmPrefillUsed);
@@ -468,6 +470,15 @@ export const SaunaCalculator = ({ editingOrder = null, onEditComplete, amocrmPre
             setFormData={setFormData}
             handleInputChange={handleInputChange} 
             txt={txt} 
+          />
+
+          <KpMediaPanel
+            customModelImageUrl={formData.customModelImageUrl}
+            galleryImages={formData.galleryImages || []}
+            setCustomModelImage={setCustomModelImage}
+            addGalleryImage={addGalleryImage}
+            updateGalleryComment={updateGalleryComment}
+            removeGalleryImage={removeGalleryImage}
           />
 
           {/* Model Selection */}

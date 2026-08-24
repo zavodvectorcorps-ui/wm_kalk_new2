@@ -594,6 +594,13 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
     return null;
   };
 
+  // ===== KP media: custom model photo + client gallery =====
+  const setCustomModelImage = (url) => setFormData(prev => ({ ...prev, customModelImageUrl: url || '' }));
+  const addGalleryImage = (url) => setFormData(prev => ({ ...prev, galleryImages: [...(prev.galleryImages || []), { url, comment: '' }] }));
+  const updateGalleryComment = (idx, comment) => setFormData(prev => ({ ...prev, galleryImages: (prev.galleryImages || []).map((g, i) => i === idx ? { ...g, comment } : g) }));
+  const removeGalleryImage = (idx) => setFormData(prev => ({ ...prev, galleryImages: (prev.galleryImages || []).filter((_, i) => i !== idx) }));
+
+
   const handleModelChange = (modelId) => {
     // Reset model variant selection when changing model
     // Auto-select first variant if model has variants
@@ -979,7 +986,8 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
         selectedModelVariant: formData.selectedModelVariant || null,
         modelVariantName: modelVariant?.namePl || modelVariant?.name || null,
         modelName: effectiveModelName,
-        modelImageUrl: getImageUrl(modelImage) || '',
+        modelImageUrl: getImageUrl(formData.customModelImageUrl || modelImage) || '',
+        galleryImages: (formData.galleryImages || []).filter(g => g && g.url),
         basePrice: effectivePrice,
         foundationPrice: calculateFoundationPrice(),
         discountPercent: appliedDiscount,
@@ -1563,6 +1571,10 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
     handleDiscountChange,
     handleModelChange,
     handleModelVariantChange,
+    setCustomModelImage,
+    addGalleryImage,
+    updateGalleryComment,
+    removeGalleryImage,
     handleApplyStandardDiscount,
     handleToggleCertificateDiscount,
     handleRadioChange,
