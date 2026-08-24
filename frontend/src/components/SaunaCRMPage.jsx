@@ -17,7 +17,7 @@ import {
   ExternalLink, Send, Loader2, Plus, X, Search,
   ChevronDown, ChevronUp, Package, Star, StarOff,
   Wrench, Calculator, Link2, Unlink, Hammer, AlertTriangle, ArrowUpDown,
-  MessageSquare, Eye, Users, Volume2, VolumeX, History
+  MessageSquare, Eye, Users, Volume2, VolumeX, History, BookOpen
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getApiUrl } from '../utils/api';
@@ -32,6 +32,7 @@ const CAL_DATE_FIELDS = [
   { id: 'deliveryDate', label: 'Доставка' },
 ];
 import { TechSpecModal } from './tech-spec';
+import { ManagerGuideDialog } from './ManagerGuideDialog';
 import { ContractTemplateSettings } from './ContractTemplateSettings';
 import { ContractGenerationModal } from './ContractGenerationModal';
 
@@ -63,6 +64,7 @@ const SaunaCRMPage = () => {
   
   // Lead detail
   const [selectedLead, setSelectedLead] = useState(null);
+  const [guideOpen, setGuideOpen] = useState(false);
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [editData, setEditData] = useState({});
@@ -1121,6 +1123,15 @@ const SaunaCRMPage = () => {
               data-testid="filter-awaiting-ack-btn"
             >
               ⏳ Ждут приёмки{showOnlyUnacked ? ' ✓' : ''}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-rose-700 border-rose-300 hover:bg-rose-50 ml-auto"
+              onClick={() => setGuideOpen(true)}
+              data-testid="open-guide-btn"
+            >
+              <BookOpen className="w-4 h-4 mr-1" />Инструкция
             </Button>
           </div>
           <div className="flex gap-4 overflow-x-auto pb-2">
@@ -2402,6 +2413,9 @@ const SaunaCRMPage = () => {
         onSaved={handleTechSpecSaved}
         leadId={selectedLead?.id}
       />
+
+      {/* Manager guide */}
+      <ManagerGuideDialog open={guideOpen} onOpenChange={setGuideOpen} />
     </div>
   );
 };
