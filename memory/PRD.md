@@ -2977,3 +2977,8 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
   data-testid swatch-tooltip-{optId}.
 - ПРОВЕРЕНО скриншотом: строка цвета в Podsumowanie видна с миниатюрой; tooltip присутствует. Данные возвращены.
 - Frontend → нужен РЕДЕПЛОЙ для PROD.
+
+## Session — Aug 24, 2026 (UI): расширено модальное окно редактирования опции
+- OptionDialog.jsx: DialogContent max-w-lg → max-w-3xl w-[95vw] overflow-x-hidden (Add+Edit).
+- Убран горизонтальный скролл; PL/RU и цена/себестоимость теперь в 2 колонки.
+- ПРОВЕРЕНО скриншотом. Frontend → нужен РЕДЕПЛОЙ для PROD.
