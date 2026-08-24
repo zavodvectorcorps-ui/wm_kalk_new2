@@ -1,0 +1,44 @@
+{
+  "summary": "Tested AI PL->RU translation feature (POST /api/sauna/translate-options) on PREVIEW: 6/6 pytest backend tests pass (incl. 57-name bulk payload, blank/empty edge cases, nameRu persistence via POST /api/sauna/prices). All 4 frontend entry points verified end-to-end in the real UI (admin login -> Panel administracyjny -> Ceny -> Sauny -> Opcje): edit-option-translate-btn filled RU field ('Ławki 2-poziomowe nie są zamknięte 55 cm' -> 'Двухуровневые полки, не закрытые, 55 см'), variant-translate-btn-0 ('Bez zabudowy' -> 'Без обшивки'), new-option-translate-btn ('Drzwi szklane 700x1900' -> 'Стеклянная дверь 700x1900'), and translate-all-btn (confirm accepted -> POST translate-options 200 -> POST /api/sauna/prices 200 -> toast 'Переведено названий: 57'). GET /api/sauna/prices after bulk confirms 55/55 options and both lawki variants have Russian nameRu. NO errors/console exceptions on preview. ROOT CAUSE of user's 'перевод не работает': PRODUCTION (https://wm-kalkulator.pl) returns HTTP 500 {\"detail\":\"No module named 'litellm'\"} — the emergentintegrations/litellm dependency is not installed in the deployed image, so translation is broken only in production.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "POST /api/sauna/translate-options (PRODUCTION wm-kalkulator.pl)", "issue": "HTTP 500 {'detail': \"No module named 'litellm'\"} — litellm==1.80.0 / emergentintegrations==0.1.1 present in requirements.txt and installed on preview but missing in the deployed prod environment. All LLM features on prod are affected. Requires redeploy with the special emergentintegrations extra-index install verified.", "priority": "CRITICAL"}
+    ],
+    "minor": [
+      {"endpoint": "POST /api/sauna/translate-options", "issue": "No Pydantic model; accepts raw dict. Also any LLM/network failure propagates as an unhandled 500 with raw exception text leaked to the client (as seen on prod). Wrap send_message in try/except -> 502/503 with a friendly message."},
+      {"endpoint": "backend/.env", "issue": "EMERGENT_LLM_KEY is defined twice (lines 25 and 27) — duplicate key, last one wins; clean up to avoid confusion."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "TranslateAllButton / SaunaPricing header", "issue": "After a successful bulk translate the save-status badge flips to 'НЕ СОХРАНЕНО' even though POST /api/sauna/prices returned 200 (dirty flag set by setPrices is never cleared by the bulk flow). Misleading — user may think nothing was saved.", "selector": "[data-testid=\"translate-all-btn\"]", "priority": "MEDIUM"},
+      {"component": "OptionDialog.translateName / translateVariant", "issue": "No try/catch or error toast: on a non-200 (exactly what happens on production) the button just stops spinning and the RU field stays empty — silent failure, which is why the user reported 'translation does not work' with no visible error. Add .catch + toast.error and check res.ok.", "selector": "[data-testid=\"edit-option-translate-btn\"], [data-testid=\"variant-translate-btn-0\"]", "priority": "HIGH"},
+      {"component": "useSaunaPricing.handleTranslateAllOptions", "issue": "No try/catch around axios calls; a failure leaves no toast (only the button spinner resets via TranslateAllButton finally).", "selector": "[data-testid=\"translate-all-btn\"]", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Edit option dialog", "issues": ["React a11y warning: 'Missing `Description` or `aria-describedby={undefined}` for {DialogContent}' on both Add/Edit option dialogs"]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_translate_options_iteration128.py", "/app/test_reports/pytest/translate_iteration128.xml"],
+  "action_items": [
+    "PRODUCTION: redeploy so litellm/emergentintegrations get installed (prod POST /api/sauna/translate-options currently 500 'No module named litellm'). Verify after deploy with curl on wm-kalkulator.pl.",
+    "Add error handling + toast.error to translateName/translateVariant (OptionDialog.jsx) and handleTranslateAllOptions (useSaunaPricing.js); check res.ok before parsing JSON so failures are visible instead of silent.",
+    "Wrap the LLM call in the backend endpoint in try/except and return 502/503 with a friendly message instead of leaking the exception.",
+    "Clear the unsaved-changes badge after the bulk translate save succeeds.",
+    "Remove the duplicate EMERGENT_LLM_KEY line in backend/.env."
+  ],
+  "critical_code_review_comments": [
+    "translate-options takes `payload: dict` — no Pydantic validation and no size guard; a huge texts array would produce one giant LLM prompt (57 names took ~25s; hundreds could hit gateway timeouts). Consider chunking (e.g. 40 per request).",
+    "Frontend duplicates the translate fetch logic in 3 places (AddOptionDialog, EditOptionDialog.translateName, translateVariant) — extract a shared translateTexts() helper with error handling.",
+    "OptionDialog.jsx is ~1500 lines; split into subcomponents (variants block, PDF/model blocks, incompatibility block)."
+  ],
+  "updated_files": ["/app/backend/tests/test_translate_options_iteration128.py"],
+  "success_rate": {"backend": "100% on preview (6/6); 0% on production endpoint", "frontend": "100% on preview (4/4 translate entry points)"},
+  "seed_data_creation": "None. Bulk translate overwrote nameRu of all 55 preview options + 2 lawki variants (pre-approved by the request). One test temporarily set/restored nameRu via TEST_RU_MARKER.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "admin/admin123 (preview)",
+  "context_for_next_testing_agent": "Preview navigation for sauna pricing: login (2 plain inputs + 'Zaloguj') -> 4th 'Wybierz' (Panel administracyjny) -> top tab 'Ceny' (NOT 'Cennik') -> project toggle 'Sauny' -> role=tab 'Opcje'. window.confirm must be accepted with an async handler (asyncio.ensure_future(d.accept())) and clicked with no_wait_after=True, otherwise the click hangs. Translation feature verified working on preview; the only outstanding defect is the production deployment missing litellm plus missing frontend error surfacing.",
+  "rca_of_the_issue": "User complaint 'перевод не работает' reproduces only on production: https://wm-kalkulator.pl/api/sauna/translate-options -> 500 {'detail': \"No module named 'litellm'\"}. emergentintegrations imports litellm at call time; the deployed image lacks it, so every translate request fails. Because the frontend handlers have no catch/error toast and never check res.ok, the UI fails silently (spinner stops, RU field stays empty) — hence 'nothing happens'. Preview (where litellm 1.80.0 is installed) works for all three/four entry points end-to-end and persists nameRu."
+}
