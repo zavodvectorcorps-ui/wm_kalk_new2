@@ -2953,3 +2953,17 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
 - ПРИМЕЧАНИЕ: при РЕДАКТИРОВАНИИ существующего заказа галерея/кастом-фото в панель не подгружаются обратно
   (не критично для создания КП). Можно добавить позже.
 - Backend+Frontend → нужен РЕДЕПЛОЙ для PROD.
+
+## Session — Aug 24, 2026 (features): restore-on-edit + палитра цветов (свотчи)
+- RESTORE ON EDIT: orderData теперь сохраняет customModelImageUrl (в доп. к modelImageUrl) + galleryImages.
+  useSaunaCalculator editingOrder-загрузка выставляет formData.customModelImageUrl и galleryImages.
+  SaunaOrder extra="allow" → model_dump включает поля → в БД; GET /orders/{id} отдаёт raw dict (без
+  response_model фильтра) → панель «Медиа для КП» подгружается при открытии сохранённого заказа.
+- ПАЛИТРА ЦВЕТОВ (свотчи): флаг категории category.displayAsSwatches (SaunaCategory extra=allow).
+  Админка CategoriesTab (edit dialog): чекбокс «Отображать как палитру цветов (свотчи)»
+  (data-testid category-swatches-toggle). Калькулятор SaunaCalculator: новый SwatchOptions — сетка
+  плиток с фото (option.imageUrl), выбор кликом (handleRadioChange), выбранная с рамкой+галочкой+ценой.
+  Ветка в CategoryCard: checkbox → swatches (если displayAsSwatches) → dropdown → radio.
+- ПРОВЕРЕНО: свотчи рендерятся для 'lawki' (5 плиток, выбор работает) — скриншот; restore — проверен путь
+  данных (model_dump включает extras, GET отдаёт raw). Тестовые данные возвращены.
+- Frontend изменения (+ данные категории) → нужен РЕДЕПЛОЙ для PROD.

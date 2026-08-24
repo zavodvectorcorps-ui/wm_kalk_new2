@@ -1317,6 +1317,8 @@ const CategoryCard = ({ category, filteredOptions, formData, foundationPrice, ha
         
         {category.inputType === 'checkbox' ? (
           <CheckboxOptions category={category} options={options} formData={formData} foundationPrice={foundationPrice} handleCheckboxChange={handleCheckboxChange} handleQuantityChange={handleQuantityChange} handleVariantChange={handleVariantChange} handleSubOptionChange={handleSubOptionChange} getOptionBasePrice={getOptionBasePrice} txt={txt} />
+        ) : category.displayAsSwatches ? (
+          <SwatchOptions category={category} options={options} formData={formData} handleRadioChange={handleRadioChange} getOptionBasePrice={getOptionBasePrice} txt={txt} />
         ) : isDropdownView ? (
           <DropdownOptions category={category} options={options} formData={formData} handleRadioChange={handleRadioChange} getCategoryName={getCategoryName} getOptionBasePrice={getOptionBasePrice} txt={txt} />
         ) : (
@@ -1324,6 +1326,45 @@ const CategoryCard = ({ category, filteredOptions, formData, foundationPrice, ha
         )}
       </CardContent>
     </Card>
+  );
+};
+
+const SwatchOptions = ({ category, options, formData, handleRadioChange, getOptionBasePrice, txt }) => {
+  const selected = formData.selections[category.id];
+  return (
+    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3" data-testid={`swatches-${category.id}`}>
+      {options.map((option) => {
+        const isSel = selected === option.id;
+        const price = getOptionBasePrice ? getOptionBasePrice(option) : (option.price || 0);
+        return (
+          <button
+            key={option.id}
+            type="button"
+            onClick={() => handleRadioChange(category.id, option.id)}
+            className={`group relative rounded-lg overflow-hidden border-2 transition-all ${isSel ? 'border-amber-500 ring-2 ring-amber-300 shadow-md' : 'border-gray-200 hover:border-amber-300'}`}
+            data-testid={`swatch-${category.id}-${option.id}`}
+            title={option.name}
+          >
+            <div className="aspect-square bg-gray-100">
+              {option.imageUrl ? (
+                <img src={option.imageUrl} alt={option.name} className="w-full h-full object-cover" loading="lazy" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-gray-300"><Package className="h-6 w-6" /></div>
+              )}
+            </div>
+            {isSel && (
+              <span className="absolute top-1 right-1 bg-amber-500 text-white rounded-full p-0.5">
+                <Check className="h-3.5 w-3.5" />
+              </span>
+            )}
+            <div className="p-1.5 text-center">
+              <div className="text-[11px] font-medium leading-tight line-clamp-2">{option.name}</div>
+              {price > 0 && <div className="text-[10px] text-amber-700 font-semibold">+{price.toLocaleString('pl')} zł</div>}
+            </div>
+          </button>
+        );
+      })}
+    </div>
   );
 };
 

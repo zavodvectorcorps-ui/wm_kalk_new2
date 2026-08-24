@@ -228,6 +228,17 @@ export const CategoriesTab = ({
                 </Select>
               </div>
 
+              <label className="flex items-center gap-2 cursor-pointer p-2 rounded border border-amber-200 bg-amber-50">
+                <input
+                  type="checkbox"
+                  className="w-4 h-4 accent-amber-600"
+                  checked={editingCategory.displayAsSwatches || false}
+                  onChange={(e) => setEditingCategory(prev => ({ ...prev, displayAsSwatches: e.target.checked }))}
+                  data-testid="category-swatches-toggle"
+                />
+                <span className="text-sm">🎨 Отображать как палитру цветов (свотчи) — опции показываются плитками с фото</span>
+              </label>
+
               {/* Category Hint Section */}
               <div className="border-t pt-4 mt-4">
                 <div className="flex items-center gap-2 mb-3">

@@ -158,6 +158,8 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
         quantities: editingOrder.quantities || {},
         variantSelections: editingOrder.variantSelections || {},
         subSelections: editingOrder.subSelections || {}, // Legacy compatibility
+        customModelImageUrl: editingOrder.customModelImageUrl || '',
+        galleryImages: editingOrder.galleryImages || [],
       }));
       
       setRequestedDiscount(editingOrder.requestedDiscount || 0);
@@ -987,6 +989,7 @@ export const useSaunaCalculator = (editingOrder = null, onEditComplete, amocrmPr
         modelVariantName: modelVariant?.namePl || modelVariant?.name || null,
         modelName: effectiveModelName,
         modelImageUrl: getImageUrl(formData.customModelImageUrl || modelImage) || '',
+        customModelImageUrl: formData.customModelImageUrl || '',
         galleryImages: (formData.galleryImages || []).filter(g => g && g.url),
         basePrice: effectivePrice,
         foundationPrice: calculateFoundationPrice(),
