@@ -3156,3 +3156,20 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
   (data-testid=open-layout-guide-btn), состояние guideOpen.
 - Текстовая версия: /app/memory/layout_configurator_instruction.md.
 - ПРОВЕРЕНО скриншотом. Нужен РЕДЕПЛОЙ PROD.
+
+## Session — Jun 2026 (fixes): планировка в проде-КП, RU для старых заказов, Binotel-ключи
+1) generate_sauna_pdf: в productionMode добавлен раздел «ПЛАНИРОВКА» из request.layoutImageUrl.
+   telegram_production _generate_and_attach_production_kp резолвит layoutImageUrl из order или
+   configurator_layouts (selectedLayoutId → exportedImageUrl/backgroundUrl). ПРОВЕРЕНО рендером.
+2) telegram_production: _build_pl_ru_map() из sauna_prices (namePl/name→nameRu, +варианты);
+   _build_spec_lines для опций без nameRu берёт перевод из прайса. Старые заказы теперь на русском.
+   ПРОВЕРЕНО (59 позиций, пример перевода ок).
+3) backend/.env BINOTEL_API_KEY=b1dbd2-8dd72e9 / BINOTEL_API_SECRET=5933a9-... (новый аккаунт).
+   ПРОВЕРЕНО: 242 входящих + 1004 исходящих. WS-ключи/CompanyID(95086) в коде не используются.
+ВСЁ → нужен РЕДЕПЛОЙ PROD. Для Binotel на PROD переменные окружения задаются отдельно —
+возможно, потребуется прописать ключи в настройках окружения продакшена.
+
+## Session — Jun 2026 (enhancement): Подпись под планировкой в производственном КП
+- generate_sauna_pdf (productionMode): под изображением «ПЛАНИРОВКА» добавлена подпись —
+  modelName + размеры + вариант (selectedModelVariantName) + сторона двери (опция drzwi/lokalizacja, RU).
+  ПРОВЕРЕНО рендером: «Sauna Żagel Mini 2*2m · Drzwi po prawej stronie · Дверь прямо». Нужен РЕДЕПЛОЙ PROD.

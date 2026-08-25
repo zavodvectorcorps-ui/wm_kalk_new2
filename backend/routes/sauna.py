@@ -1322,8 +1322,48 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
         ]))
         elements.append(comment_table)
         elements.append(Spacer(1, 8))
-    
-    # ========== LAYOUT VARIANTS ON PAGE 1 (moved from Page 2) ==========
+
+    # ========== LAYOUT SCHEME (production KP only) ==========
+    prod_layout_url = getattr(request, 'layoutImageUrl', None)
+    if production_mode and prod_layout_url:
+        try:
+            _limg = await load_image(prod_layout_url, timeout=4)
+            if _limg:
+                _limg = optimize_image_for_pdf(_limg, max_size=900, quality=70)
+                _pil = PILImage.open(io.BytesIO(_limg))
+                ow, oh = _pil.size
+                _ratio = min(520 / ow, 320 / oh)
+                elements.append(Spacer(1, 6))
+                elements.append(Paragraph('ПЛАНИРОВКА', section_title_style))
+                elements.append(Spacer(1, 4))
+                elements.append(RLImage(io.BytesIO(_limg), width=int(ow * _ratio), height=int(oh * _ratio)))
+                # Caption: model/size + variant + door/heater side (Russian)
+                _cap_parts = []
+                _variant = getattr(request, 'selectedModelVariantName', None) or getattr(request, 'selectedModelVariant', None)
+                _dims = getattr(request, 'modelDimensions', None) or getattr(request, 'dimensions', None)
+                if request.modelName:
+                    _cap_parts.append(str(request.modelName))
+                if _dims:
+                    _cap_parts.append(str(_dims))
+                if _variant and (not request.modelName or str(_variant) not in str(request.modelName)):
+                    _cap_parts.append(str(_variant))
+                for _o in (request.selectedOptions or []):
+                    _cid = (_o.get('categoryId') or '').lower()
+                    if any(k in _cid for k in ('drzwi', 'door', 'lokalizacja', 'wejsc')):
+                        _dn = _opt_ru_name(_o)
+                        if _dn:
+                            _cap_parts.append(_dn)
+                        break
+                if _cap_parts:
+                    elements.append(Spacer(1, 3))
+                    elements.append(Paragraph(
+                        ' · '.join(_cap_parts),
+                        ParagraphStyle('LayoutCap', fontName='DejaVuSans', fontSize=9, textColor=BROWN_DARK, alignment=TA_CENTER)
+                    ))
+                elements.append(Spacer(1, 8))
+        except Exception as e:
+            logger.warning(f"Could not render production layout image: {e}")
+
     other_layouts_for_size_p1 = getattr(request, 'otherLayoutsForSize', []) or []
     selected_layout_size_p1 = getattr(request, 'selectedLayoutSize', None)
     

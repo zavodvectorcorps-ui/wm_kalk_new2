@@ -109,8 +109,34 @@ def _format_deadline(lead: dict) -> str:
         return str(raw)[:10]
 
 
-def _build_spec_lines(lead: dict, order: dict) -> list:
+async def _build_pl_ru_map() -> dict:
+    """Map Polish/base option names -> Russian, from the current price list.
+    Lets OLD orders (whose stored options have no nameRu) still show Russian."""
+    m = {}
+    try:
+        prices = await db.sauna_prices.find_one({}, {"_id": 0, "categories": 1}) or {}
+        for cat in prices.get("categories", []):
+            for opt in cat.get("options", []):
+                ru = opt.get("nameRu")
+                if not ru:
+                    continue
+                for key in (opt.get("namePl"), opt.get("name"), opt.get("optionName")):
+                    if key:
+                        m[key.strip().lower()] = ru
+                for v in opt.get("variants", []) or []:
+                    vru = v.get("nameRu")
+                    if vru:
+                        for vk in (v.get("namePl"), v.get("name")):
+                            if vk:
+                                m[vk.strip().lower()] = vru
+    except Exception as e:
+        logger.error(f"build pl->ru map failed: {e}")
+    return m
+
+
+def _build_spec_lines(lead: dict, order: dict, name_map: dict = None) -> list:
     """Full, non-truncated options list (specification)."""
+    name_map = name_map or {}
     selected = []
     if order and isinstance(order.get("selectedOptions"), list):
         selected = order["selectedOptions"]
@@ -121,8 +147,11 @@ def _build_spec_lines(lead: dict, order: dict) -> list:
     for opt in selected:
         if not isinstance(opt, dict):
             continue
-        name = (opt.get("optionNameRu") or opt.get("nameRu") or opt.get("optionName")
-                or opt.get("name") or opt.get("namePl") or "")
+        name = opt.get("optionNameRu") or opt.get("nameRu") or ""
+        if not name:
+            # Old orders: translate from current price list by Polish/base name
+            pl = (opt.get("optionName") or opt.get("name") or opt.get("namePl") or "")
+            name = name_map.get(pl.strip().lower(), pl)
         if not name:
             continue
         qty = opt.get("quantity") or 1
@@ -136,7 +165,7 @@ def _build_spec_lines(lead: dict, order: dict) -> list:
     return lines
 
 
-def _build_message(lead: dict, order: dict, is_update: bool) -> str:
+def _build_message(lead: dict, order: dict, is_update: bool, name_map: dict = None) -> str:
     header = "🔄 <b>ОБНОВЛЕНИЕ ЗАКАЗА</b>" if is_update else "🏭 <b>ЗАКАЗ В ПРОИЗВОДСТВО</b>"
     order_id = lead.get("id", "")
     client = lead.get("clientName") or "—"
@@ -153,7 +182,7 @@ def _build_message(lead: dict, order: dict, is_update: bool) -> str:
         f"🛁 <b>Модель:</b> {model}",
     ]
 
-    spec_lines = _build_spec_lines(lead, order)
+    spec_lines = _build_spec_lines(lead, order, name_map)
     if spec_lines:
         parts.append("")
         parts.append("📋 <b>Спецификация (опции):</b>")
@@ -192,7 +221,18 @@ async def _generate_and_attach_production_kp(order_id: str, lead: dict, order: d
     try:
         import httpx as _httpx
         from services.cloudinary_service import upload_pdf
+        # Resolve the layout scheme image for this order (order field or published layout)
+        layout_url = order.get("layoutImageUrl") or lead.get("layoutImageUrl")
+        if not layout_url:
+            layout_id = order.get("selectedLayoutId") or lead.get("selectedLayoutId")
+            if layout_id:
+                lay = await db.configurator_layouts.find_one(
+                    {"id": layout_id}, {"_id": 0, "exportedImageUrl": 1, "backgroundUrl": 1}
+                ) or {}
+                layout_url = lay.get("exportedImageUrl") or lay.get("backgroundUrl")
         payload = {**order, "orderId": order.get("id", order_id), "language": "pl", "productionMode": True}
+        if layout_url:
+            payload["layoutImageUrl"] = layout_url
         async with _httpx.AsyncClient(timeout=120.0) as cl:
             resp = await cl.post("http://localhost:8001/api/sauna/generate-pdf", json=payload)
         if resp.status_code != 200:
@@ -261,7 +301,8 @@ async def send_to_production(order_id: str):
         )
 
     # Post the message (start message carries the control buttons)
-    message = _build_message(lead, order, is_update)
+    pl_ru_map = await _build_pl_ru_map()
+    message = _build_message(lead, order, is_update, pl_ru_map)
     reply_markup = None if is_update else _order_keyboard(order_id)
     sent = await send_telegram_message(
         text=message,
