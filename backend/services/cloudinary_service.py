@@ -179,11 +179,14 @@ async def upload_pdf(pdf_bytes: bytes, filename: str, folder: str = "wm-calculat
         return None
     
     try:
-        # Generate unique public_id from filename
+        # Generate unique public_id from filename — KEEP the .pdf extension so
+        # the delivered raw URL ends with .pdf and browsers save it correctly.
         import uuid
         unique_id = uuid.uuid4().hex[:8]
-        safe_filename = filename.replace(' ', '_').replace('.pdf', '')
-        public_id = f"{folder}/{safe_filename}_{unique_id}"
+        base = filename.replace(' ', '_')
+        if base.lower().endswith('.pdf'):
+            base = base[:-4]
+        public_id = f"{folder}/{base}_{unique_id}.pdf"
         
         result = cloudinary.uploader.upload(
             pdf_bytes,

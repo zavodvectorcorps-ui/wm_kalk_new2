@@ -3173,3 +3173,10 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
 - generate_sauna_pdf (productionMode): под изображением «ПЛАНИРОВКА» добавлена подпись —
   modelName + размеры + вариант (selectedModelVariantName) + сторона двери (опция drzwi/lokalizacja, RU).
   ПРОВЕРЕНО рендером: «Sauna Żagel Mini 2*2m · Drzwi po prawej stronie · Дверь прямо». Нужен РЕДЕПЛОЙ PROD.
+
+## Session — Jun 2026 (fix): PDF скачивался без расширения .pdf
+- Причина: в cloudinary_service.upload_pdf public_id формировался БЕЗ .pdf (resource_type=raw),
+  поэтому secure_url оканчивался без расширения → браузер сохранял файл без .pdf.
+- Фикс: public_id теперь оканчивается на .pdf (f"{folder}/{base}_{uid}.pdf").
+  ПРОВЕРЕНО: url = .../raw/upload/.../TechSpec_TEST_xxxx.pdf. Касается тех.задания, производственного КП,
+  и всех PDF через upload_pdf. Старые документы не меняются, новые — с .pdf. Нужен РЕДЕПЛОЙ PROD.
