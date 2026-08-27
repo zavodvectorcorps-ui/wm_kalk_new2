@@ -3198,3 +3198,11 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
 - Применён в автозаполнении: (1) вставка в text/textarea/mixed поля — теперь русское имя;
   (2) сопоставление по названию для radio/checkbox — сравнение РУССКОГО имени опции с RU-опциями тех.задания.
 - Сами категории/опции тех.задания настраиваются в админке (обычно уже на русском). Нужен РЕДЕПЛОЙ PROD.
+
+## Session — Jun 2026 (fix): Скачивание документов из карточки с .pdf (старые+новые)
+- upload_pdf уже даёт .pdf в URL (для новых). Для СТАРЫХ документов и прямых ссылок добавлен
+  downloadDoc(doc) в SaunaCRMPage: fetch(doc.url)→blob→<a download=filename(.pdf)>. Cloudinary отдаёт
+  CORS * и content-type application/pdf → работает. Ссылка документа теперь вызывает downloadDoc.
+- Проверены все места: КП (amocrm upload-calculator-pdf→upload_pdf), тех.задание/производственное КП
+  (upload_pdf), калькулятор (blob .pdf), export-chat (серверный Content-Disposition). Все ок.
+- Нужен РЕДЕПЛОЙ PROD.

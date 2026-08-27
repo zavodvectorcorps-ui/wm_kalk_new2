@@ -421,6 +421,23 @@ const SaunaCRMPage = () => {
     setUploading(false);
   };
 
+  const downloadDoc = async (doc, e) => {
+    if (e) e.preventDefault();
+    let name = doc.filename || doc.name || 'document';
+    if (!/\.[a-z0-9]{2,4}$/i.test(name)) name += '.pdf';
+    try {
+      const res = await fetch(doc.url);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = name;
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      window.open(doc.url, '_blank');
+    }
+  };
+
   const deleteDocument = async (docId) => {
     if (!selectedLead) return;
     try {
@@ -1846,7 +1863,7 @@ const SaunaCRMPage = () => {
                   {(editData.documents || []).length > 0 ? (editData.documents || []).map(doc => (
                     <div key={doc.id} className="flex items-center gap-3 p-2 rounded-lg border bg-muted/30">
                       <Badge className={`${DOC_TYPES[doc.type]?.color || DOC_TYPES.other.color} text-xs`}>{DOC_TYPES[doc.type]?.label || doc.type}</Badge>
-                      <a href={doc.url} target="_blank" rel="noopener noreferrer" className="flex-1 text-sm text-blue-600 hover:underline truncate">{doc.name || doc.filename}</a>
+                      <a href={doc.url} onClick={(e) => downloadDoc(doc, e)} className="flex-1 text-sm text-blue-600 hover:underline truncate cursor-pointer" data-testid={`doc-download-${doc.id}`}>{doc.name || doc.filename}</a>
                       <span className="text-xs text-muted-foreground">{doc.uploadedAt ? new Date(doc.uploadedAt).toLocaleDateString('ru-RU') : ''}</span>
                       <Button size="icon" variant="ghost" className="h-7 w-7 text-red-500" onClick={() => deleteDocument(doc.id)} data-testid={`doc-delete-${doc.id}`}><Trash2 className="w-3 h-3" /></Button>
                     </div>
