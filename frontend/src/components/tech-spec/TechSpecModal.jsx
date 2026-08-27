@@ -27,6 +27,7 @@ export const TechSpecModal = ({ open, onOpenChange, order, onSaved, leadId }) =>
   const [dbCategories, setDbCategories] = useState([]);
   const [configLoading, setConfigLoading] = useState(false);
   const [calcCatMap, setCalcCatMap] = useState({}); // calculator categoryId -> techSpecCategoryId
+  const [nameRuMap, setNameRuMap] = useState({}); // polish/base name -> Russian
 
   // Load calculator price list to know category-level tech spec mapping
   useEffect(() => {
@@ -34,12 +35,22 @@ export const TechSpecModal = ({ open, onOpenChange, order, onSaved, leadId }) =>
     axios.get(`${API_URL}/api/sauna/prices`)
       .then(r => {
         const m = {};
+        const ru = {};
         (r.data?.categories || []).forEach(c => {
           if (c.techSpecCategoryId) m[c.id] = c.techSpecCategoryId;
+          (c.options || []).forEach(o => {
+            if (o.nameRu) {
+              [o.namePl, o.name, o.optionName].forEach(k => { if (k) ru[String(k).trim().toLowerCase()] = o.nameRu; });
+            }
+            (o.variants || []).forEach(v => {
+              if (v.nameRu) { [v.namePl, v.name].forEach(k => { if (k) ru[String(k).trim().toLowerCase()] = v.nameRu; }); }
+            });
+          });
         });
         setCalcCatMap(m);
+        setNameRuMap(ru);
       })
-      .catch(() => setCalcCatMap({}));
+      .catch(() => { setCalcCatMap({}); setNameRuMap({}); });
   }, [open]);
 
   // Load configurable tech spec structure
@@ -106,6 +117,15 @@ export const TechSpecModal = ({ open, onOpenChange, order, onSaved, leadId }) =>
     const catsById = {};
     dbCategories.forEach(c => { catsById[c.id] = c; });
 
+    // Russian name for a calculator option/variant (falls back to price-list dictionary, then Polish)
+    const ruName = (co) => {
+      const v = co.selectedVariant || {};
+      const direct = v.nameRu || co.optionNameRu || co.nameRu;
+      if (direct) return direct;
+      const pl = v.name || co.optionName || co.name || '';
+      return nameRuMap[String(pl).trim().toLowerCase()] || pl;
+    };
+
     const opts = order.selectedOptions || [];
     if (opts.length > 0) {
       // 1) Explicit mapping stored on the calculator option / variant,
@@ -125,17 +145,18 @@ export const TechSpecModal = ({ open, onOpenChange, order, onSaved, leadId }) =>
         } else if ((tc.inputType === 'text' || tc.inputType === 'textarea' || tc.inputType === 'mixed')) {
           const firstOpt = (tc.options && tc.options[0]) || { id: 'value' };
           const key = `${tc.id}_${firstOpt.id}`;
-          const n = co.selectedVariant?.name || co.optionName || co.name || '';
+          const n = ruName(co);
           if (n) txt[key] = txt[key] ? `${txt[key]}, ${n}` : n;
         }
       });
 
       // 2) Name-matching fallback for radio/checkbox categories without explicit mapping
+      //    (match the RUSSIAN calculator name against the RU tech spec options)
       dbCategories.forEach(tc => {
         if (tc.inputType !== 'radio' && tc.inputType !== 'checkbox') return;
         if (sel[tc.id]) return;
         for (const co of opts) {
-          const name = (co.optionName || co.name || '').toLowerCase();
+          const name = ruName(co).toLowerCase();
           if (!name) continue;
           const match = (tc.options || []).find(to => {
             const a = (to.name || '').toLowerCase();
@@ -154,7 +175,7 @@ export const TechSpecModal = ({ open, onOpenChange, order, onSaved, leadId }) =>
     }
 
     setFormData({ selections: sel, textInputs: txt, conditionalData: {}, comment: ts.comment || '' });
-  }, [order, open, dbCategories, calcCatMap]);
+  }, [order, open, dbCategories, calcCatMap, nameRuMap]);
 
   const getModelInfo = () => {
     if (!order) return {};

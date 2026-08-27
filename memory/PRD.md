@@ -3191,3 +3191,10 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
    Главные категории→Подкатегории→Опции, типы полей, шаги, 2 уровня маппинга). Кнопка «Инструкция»
    в шапке TechSpecAdminPage (data-testid=open-spec-guide-btn). ПРОВЕРЕНО скриншотом.
 Нужен РЕДЕПЛОЙ PROD.
+
+## Session — Jun 2026 (fix): Русские названия в тех.задании (автозаполнение)
+- TechSpecModal: добавлен nameRuMap (из /api/sauna/prices: namePl/name→nameRu, +варианты) и хелпер
+  ruName(co) = selectedVariant.nameRu / optionNameRu / nameRu → словарь по польскому → польское (фолбэк).
+- Применён в автозаполнении: (1) вставка в text/textarea/mixed поля — теперь русское имя;
+  (2) сопоставление по названию для radio/checkbox — сравнение РУССКОГО имени опции с RU-опциями тех.задания.
+- Сами категории/опции тех.задания настраиваются в админке (обычно уже на русском). Нужен РЕДЕПЛОЙ PROD.
