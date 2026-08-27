@@ -3180,3 +3180,14 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
 - Фикс: public_id теперь оканчивается на .pdf (f"{folder}/{base}_{uid}.pdf").
   ПРОВЕРЕНО: url = .../raw/upload/.../TechSpec_TEST_xxxx.pdf. Касается тех.задания, производственного КП,
   и всех PDF через upload_pdf. Старые документы не меняются, новые — с .pdf. Нужен РЕДЕПЛОЙ PROD.
+
+## Session — Jun 2026 (feature): Маппинг категории на тех.задание + справка «Спецификация»
+1) Маппинг на уровне КАТЕГОРИИ калькулятора:
+   - SaunaCategory.techSpecCategoryId уже был в модели. Добавлен select в CategoriesTab (edit dialog):
+     «Маппинг категории на Тех.Задание».
+   - TechSpecModal: грузит /api/sauna/prices → calcCatMap (categoryId→techSpecCategoryId); авто-подстановка
+     теперь: маппинг опции → маппинг категории → совпадение по названию.
+2) Справка «Спецификация»: новый SpecGuideDialog.jsx (градиент, скриншот вкладки, иерархия
+   Главные категории→Подкатегории→Опции, типы полей, шаги, 2 уровня маппинга). Кнопка «Инструкция»
+   в шапке TechSpecAdminPage (data-testid=open-spec-guide-btn). ПРОВЕРЕНО скриншотом.
+Нужен РЕДЕПЛОЙ PROD.

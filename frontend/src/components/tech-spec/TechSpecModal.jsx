@@ -26,6 +26,21 @@ export const TechSpecModal = ({ open, onOpenChange, order, onSaved, leadId }) =>
   const [masterCategories, setMasterCategories] = useState([]);
   const [dbCategories, setDbCategories] = useState([]);
   const [configLoading, setConfigLoading] = useState(false);
+  const [calcCatMap, setCalcCatMap] = useState({}); // calculator categoryId -> techSpecCategoryId
+
+  // Load calculator price list to know category-level tech spec mapping
+  useEffect(() => {
+    if (!open) return;
+    axios.get(`${API_URL}/api/sauna/prices`)
+      .then(r => {
+        const m = {};
+        (r.data?.categories || []).forEach(c => {
+          if (c.techSpecCategoryId) m[c.id] = c.techSpecCategoryId;
+        });
+        setCalcCatMap(m);
+      })
+      .catch(() => setCalcCatMap({}));
+  }, [open]);
 
   // Load configurable tech spec structure
   useEffect(() => {
@@ -93,9 +108,10 @@ export const TechSpecModal = ({ open, onOpenChange, order, onSaved, leadId }) =>
 
     const opts = order.selectedOptions || [];
     if (opts.length > 0) {
-      // 1) Explicit mapping stored on the calculator option / variant
+      // 1) Explicit mapping stored on the calculator option / variant,
+      //    falling back to the option's CATEGORY-level mapping.
       opts.forEach(co => {
-        const tcId = co.techSpecCategoryId;
+        const tcId = co.techSpecCategoryId || calcCatMap[co.categoryId];
         const tsId = co.techSpecId;
         if (!tcId || !catsById[tcId]) return;
         const tc = catsById[tcId];
@@ -138,7 +154,7 @@ export const TechSpecModal = ({ open, onOpenChange, order, onSaved, leadId }) =>
     }
 
     setFormData({ selections: sel, textInputs: txt, conditionalData: {}, comment: ts.comment || '' });
-  }, [order, open, dbCategories]);
+  }, [order, open, dbCategories, calcCatMap]);
 
   const getModelInfo = () => {
     if (!order) return {};

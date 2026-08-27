@@ -34,7 +34,9 @@ import {
   Columns,
   Square,
   Upload,
+  BookOpen,
 } from 'lucide-react';
+import { SpecGuideDialog } from './SpecGuideDialog';
 
 // Smart API URL - auto-detect on production
 const getApiUrl = () => { 
@@ -51,6 +53,7 @@ export const TechSpecAdminPage = ({ projectType = 'sauna' }) => {
   const { canEdit } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
   const [masterCategories, setMasterCategories] = useState([]);
   const [categories, setCategories] = useState([]);
   const [selectedMasterCategory, setSelectedMasterCategory] = useState(null);
@@ -472,7 +475,12 @@ export const TechSpecAdminPage = ({ projectType = 'sauna' }) => {
             {txt.saveAll}
           </Button>
         )}
+        <Button variant="outline" onClick={() => setGuideOpen(true)} className="border-amber-300 text-amber-700 hover:bg-amber-50" data-testid="open-spec-guide-btn">
+          <BookOpen className="h-4 w-4 mr-2" />Инструкция
+        </Button>
       </div>
+
+      <SpecGuideDialog open={guideOpen} onOpenChange={setGuideOpen} />
 
       <Tabs defaultValue="masters" className="space-y-6">
         <TabsList className="grid w-full grid-cols-3 max-w-lg">

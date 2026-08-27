@@ -239,6 +239,31 @@ export const CategoriesTab = ({
                 <span className="text-sm">🎨 Отображать как палитру цветов (свотчи) — опции показываются плитками с фото</span>
               </label>
 
+              {/* Category-level tech spec mapping */}
+              <div className="border-t pt-4 mt-4 space-y-2">
+                <div className="flex items-center gap-2">
+                  <Wrench className="h-4 w-4 text-indigo-500" />
+                  <Label className="font-semibold text-sm">Маппинг категории на Тех.Задание</Label>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Все опции этой категории будут попадать в выбранное поле тех.задания (если у опции нет своего маппинга).
+                </p>
+                <Select
+                  value={editingCategory.techSpecCategoryId || '_none'}
+                  onValueChange={(v) => setEditingCategory(prev => ({ ...prev, techSpecCategoryId: v === '_none' ? null : v }))}
+                >
+                  <SelectTrigger data-testid="category-techspec-select">
+                    <SelectValue placeholder="Не связано" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_none">Не связано</SelectItem>
+                    {(techSpecCategories || []).map((tc) => (
+                      <SelectItem key={tc.id} value={tc.id}>{tc.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               {/* Category Hint Section */}
               <div className="border-t pt-4 mt-4">
                 <div className="flex items-center gap-2 mb-3">
