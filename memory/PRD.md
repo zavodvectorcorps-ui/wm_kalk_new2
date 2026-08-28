@@ -3206,3 +3206,9 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
 - Проверены все места: КП (amocrm upload-calculator-pdf→upload_pdf), тех.задание/производственное КП
   (upload_pdf), калькулятор (blob .pdf), export-chat (серверный Content-Disposition). Все ок.
 - Нужен РЕДЕПЛОЙ PROD.
+
+## Session — Jun 2026 (fix): Сумма заказа в amoCRM-виджете с доставкой
+- Причина: useSaunaCalculator отправлял total_amount = total (calculateTotal БЕЗ доставки; deliveryPrice отдельно).
+- Фикс: total_amount = (total + calculateDeliveryPrice()) при выгрузке КП в amoCRM
+  (upload-calculator-pdf). Это влияет на примечание «Сумма: X zł» и на total_amount в версиях КП
+  (их показывает виджет). Нужен РЕДЕПЛОЙ PROD.
