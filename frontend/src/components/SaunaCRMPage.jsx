@@ -16,7 +16,7 @@ import {
   Phone, Mail, MapPin, DollarSign, Clock, User, 
   ExternalLink, Send, Loader2, Plus, X, Search,
   ChevronDown, ChevronUp, Package, Star, StarOff,
-  Wrench, Calculator, Link2, Unlink, Hammer, AlertTriangle, ArrowUpDown,
+  Wrench, Calculator, Link2, Unlink, Hammer, AlertTriangle, ArrowUpDown, ArrowRight,
   MessageSquare, Eye, Users, Volume2, VolumeX, History, BookOpen
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -67,6 +67,7 @@ const SaunaCRMPage = () => {
   const [guideOpen, setGuideOpen] = useState(false);
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState(new Set());
+  const [bulkMoveStage, setBulkMoveStage] = useState('');
   const [editData, setEditData] = useState({});
   const [saving, setSaving] = useState(false);
   
@@ -520,7 +521,17 @@ const SaunaCRMPage = () => {
     return n;
   });
 
-  const exitSelectMode = () => { setSelectMode(false); setSelectedIds(new Set()); };
+  const exitSelectMode = () => { setSelectMode(false); setSelectedIds(new Set()); setBulkMoveStage(''); };
+
+  // Select / deselect every lead in a given column at once.
+  const toggleSelectColumn = (columnLeads) => setSelectedIds(prev => {
+    const n = new Set(prev);
+    const ids = columnLeads.map(l => l.id);
+    const allSelected = ids.length > 0 && ids.every(id => n.has(id));
+    if (allSelected) ids.forEach(id => n.delete(id));
+    else ids.forEach(id => n.add(id));
+    return n;
+  });
 
   const bulkDeleteLeads = async () => {
     const ids = Array.from(selectedIds);
@@ -540,6 +551,30 @@ const SaunaCRMPage = () => {
         fetchCalendar();
       } else {
         toast.error(d.detail || 'Ошибка удаления');
+      }
+    } catch (e) { toast.error('Ошибка сети'); }
+  };
+
+  const bulkMoveLeads = async (targetStageId) => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) { toast.info('Ничего не выбрано'); return; }
+    if (!targetStageId) { toast.info('Выберите этап'); return; }
+    const stageName = (settings?.stages || []).find(s => s.id === targetStageId)?.name || targetStageId;
+    if (!window.confirm(`Перенести выбранные заказы (${ids.length}) на этап «${stageName}»?`)) return;
+    try {
+      const res = await fetch(`${API_URL}/api/sauna-crm/leads/bulk-stage`, {
+        method: 'POST',
+        headers: { ...authHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids, stage_id: targetStageId }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok) {
+        toast.success(`Перенесено: ${d.moved} → «${stageName}»`);
+        exitSelectMode();
+        fetchLeads();
+        fetchCalendar();
+      } else {
+        toast.error(d.detail || 'Ошибка переноса');
       }
     } catch (e) { toast.error('Ошибка сети'); }
   };
@@ -941,6 +976,21 @@ const SaunaCRMPage = () => {
           </Button>
           {selectMode ? (
             <>
+              <select
+                value={bulkMoveStage}
+                onChange={(e) => setBulkMoveStage(e.target.value)}
+                disabled={selectedIds.size === 0}
+                className="h-9 rounded-md border border-input bg-background px-2 text-sm disabled:opacity-50"
+                data-testid="crm-bulk-move-stage-select"
+              >
+                <option value="">Перенести на этап…</option>
+                {(settings?.stages || []).map(s => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+              <Button variant="default" size="sm" onClick={() => bulkMoveLeads(bulkMoveStage)} disabled={selectedIds.size === 0 || !bulkMoveStage} data-testid="crm-bulk-move-btn">
+                <ArrowRight className="w-4 h-4 mr-2" />Перенести ({selectedIds.size})
+              </Button>
               <Button variant="destructive" size="sm" onClick={bulkDeleteLeads} disabled={selectedIds.size === 0} data-testid="crm-bulk-delete-btn">
                 <Trash2 className="w-4 h-4 mr-2" />Удалить выбранные ({selectedIds.size})
               </Button>
@@ -948,7 +998,7 @@ const SaunaCRMPage = () => {
             </>
           ) : (
             <Button variant="outline" size="sm" onClick={() => setSelectMode(true)} data-testid="crm-select-mode-btn">
-              <Trash2 className="w-4 h-4 mr-2" />Выбрать / удалить
+              <Trash2 className="w-4 h-4 mr-2" />Выбрать / перенести / удалить
             </Button>
           )}
           <Button variant="outline" size="sm" onClick={() => setSettingsOpen(true)} data-testid="crm-settings-btn">
@@ -1219,6 +1269,22 @@ const SaunaCRMPage = () => {
                     <ChevronLeft className="w-3.5 h-3.5" />
                   </button>
                 </h3>
+                {selectMode && stageLeads.length > 0 && (
+                  <label
+                    className="flex items-center gap-2 mb-2 text-[11px] font-medium cursor-pointer select-none px-1 py-1 rounded hover:bg-black/5"
+                    onClick={(e) => e.stopPropagation()}
+                    data-testid={`col-select-all-${stage.id}`}
+                  >
+                    <input
+                      type="checkbox"
+                      className="w-4 h-4 accent-red-600 cursor-pointer"
+                      checked={stageLeads.every(l => selectedIds.has(l.id))}
+                      ref={el => { if (el) el.indeterminate = stageLeads.some(l => selectedIds.has(l.id)) && !stageLeads.every(l => selectedIds.has(l.id)); }}
+                      onChange={() => toggleSelectColumn(stageLeads)}
+                    />
+                    <span style={{ color: stage.color }}>Выбрать все в колонке ({stageLeads.length})</span>
+                  </label>
+                )}
                 <div className="space-y-2 max-h-[600px] overflow-y-auto min-h-[80px]">
                   {sortLeadsByDate(stageLeads, columnSort[stage.id]).map(lead => {
                     const isDragging = draggedLead?.id === lead.id;

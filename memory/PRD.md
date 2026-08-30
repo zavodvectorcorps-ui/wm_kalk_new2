@@ -3235,3 +3235,20 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
 - ⚠️ Проверено: round-trip настроек через curl (поле сохраняется). Полный e2e с реальными
   этапами невозможен на Preview (amoCRM не настроен → no_settings). Требуется РЕДЕПЛОЙ PROD +
   выбор этапов в админке.
+
+## Session — Jun 2026 (cont.): Массовый выбор на Kanban CRM + тренд «Не дозвонились»
+- **Kanban CRM (SaunaCRMPage) — массовые операции**:
+  - Чекбокс «Выбрать все в колонке (N)» в шапке каждой колонки (в режиме выбора),
+    с indeterminate-состоянием (`toggleSelectColumn`). data-testid `col-select-all-{stageId}`.
+  - Массовый перенос: селект «Перенести на этап…» + кнопка «Перенести (N)»
+    (`bulkMoveLeads`). Backend `POST /api/sauna-crm/leads/bulk-stage`
+    ({ids, stage_id}) — переносит каждый лид + amoCRM-синхронизация per lead,
+    возвращает {moved}. Проверено curl (new↔invoice_sent) + UI (3/3 выбор, кнопки активны).
+  - Кнопка входа переименована: «Выбрать / перенести / удалить».
+- **Тренд застрявших недозвонов**:
+  - Backend `GET /api/lead-analytics/no-answer-trend?weeks=8` — недельные бакеты
+    (по дате создания лида) лидов с `noAnswerStage=true` + топ-менеджеры по кол-ву.
+  - Frontend (LeadAnalyticsPage, вкладка «Сводка»): KPI «Не дозвонились» +
+    карточка `NoAnswerTrendCard` (столбики по неделям + чипы топ-менеджеров).
+    Рендерится только когда есть данные (total>0). data-testid `no-answer-trend-card`.
+- ⚠️ На Preview тренд пуст (нет завершённой синхронизации amoCRM). Требуется РЕДЕПЛОЙ PROD.

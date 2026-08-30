@@ -881,6 +881,69 @@ async def get_manager_stats(date_from: str = None, date_to: str = None, date_fie
     return {"managers": managers, "sync_id": sync_id}
 
 
+@router.get("/no-answer-trend")
+async def get_no_answer_trend(weeks: int = 8):
+    """Weekly trend of leads currently sitting in «Не дозвонились» stages.
+
+    Buckets no-answer leads by the ISO week of their creation date so the team
+    can see who keeps accumulating недозвоны and who is clearing them.
+    """
+    weeks = max(1, min(weeks, 26))
+    # Pull the freshest analysed leads (latest completed sync).
+    last_sync = await db.lead_analytics_sync.find_one(
+        {"status": "completed"}, {"_id": 0}, sort=[("completedAt", -1)]
+    )
+    if not last_sync:
+        return {"weeks": [], "byManager": [], "total": 0}
+    sync_id = last_sync.get("sync_id")
+    leads = await db.lead_analytics_leads.find(
+        {"sync_id": sync_id, "noAnswerStage": True, "processingStatus": {"$ne": "closed_lost"}},
+        {"_id": 0, "createdAtTs": 1, "createdAt": 1, "responsibleUserId": 1, "responsibleUserName": 1},
+    ).to_list(length=20000)
+
+    now = datetime.now(timezone.utc)
+    # Monday 00:00 UTC of the current week.
+    this_monday = (now - timedelta(days=now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
+    buckets = []
+    for i in range(weeks - 1, -1, -1):
+        start = this_monday - timedelta(weeks=i)
+        end = start + timedelta(weeks=1)
+        buckets.append({
+            "weekStart": start.strftime("%Y-%m-%d"),
+            "startTs": int(start.timestamp()),
+            "endTs": int(end.timestamp()),
+            "count": 0,
+        })
+    earliest_ts = buckets[0]["startTs"] if buckets else 0
+
+    mgr_counts = {}
+    total = 0
+    for ld in leads:
+        ts = ld.get("createdAtTs")
+        if ts is None and ld.get("createdAt"):
+            try:
+                ts = int(datetime.fromisoformat(ld["createdAt"].replace("Z", "+00:00")).timestamp())
+            except Exception:
+                ts = None
+        if ts is None:
+            continue
+        total += 1
+        uid = ld.get("responsibleUserId", "unknown")
+        if uid not in mgr_counts:
+            mgr_counts[uid] = {"userId": uid, "userName": ld.get("responsibleUserName", ""), "count": 0}
+        mgr_counts[uid]["count"] += 1
+        if ts < earliest_ts:
+            continue
+        for b in buckets:
+            if b["startTs"] <= ts < b["endTs"]:
+                b["count"] += 1
+                break
+
+    by_manager = sorted(mgr_counts.values(), key=lambda m: m["count"], reverse=True)
+    week_out = [{"weekStart": b["weekStart"], "count": b["count"]} for b in buckets]
+    return {"weeks": week_out, "byManager": by_manager, "total": total}
+
+
 @router.get("/problem-leads")
 async def get_problem_leads(date_from: str = None, date_to: str = None, date_field: str = "created", limit: int = 100):
     """Get leads with problems (not processed, stalled, no progress). Excludes closed/lost."""

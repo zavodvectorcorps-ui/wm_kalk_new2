@@ -180,6 +180,7 @@ const SummaryTab = ({ summary, loading }) => {
     { label: 'Не обработано', value: summary.notProcessed || 0, icon: XCircle, color: 'text-red-600', bg: 'bg-red-50 border-red-200' },
     { label: 'Слабая обработка', value: summary.weakProcessing || 0, icon: AlertCircle, color: 'text-orange-600', bg: 'bg-orange-50 border-orange-200' },
     { label: 'Зависших', value: summary.stalledCount || 0, icon: AlertTriangle, color: 'text-rose-600', bg: 'bg-rose-50 border-rose-200' },
+    { label: 'Не дозвонились', value: summary.noAnswerLeads || 0, icon: Clock, color: 'text-amber-700', bg: 'bg-amber-50 border-amber-200' },
     { label: 'Закрыто/не реал.', value: summary.closedLost || 0, icon: Ban, color: 'text-gray-600', bg: 'bg-gray-50 border-gray-200' },
   ];
 
@@ -190,7 +191,7 @@ const SummaryTab = ({ summary, loading }) => {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3" data-testid="summary-kpis">
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3" data-testid="summary-kpis">
         {kpis.map((kpi, i) => (
           <Card key={i} className={`${kpi.bg} border`}>
             <CardContent className="p-4">
@@ -254,7 +255,82 @@ const SummaryTab = ({ summary, loading }) => {
           </CardContent>
         </Card>
       )}
+
+      <NoAnswerTrendCard />
     </div>
+  );
+};
+
+// ==================== NO-ANSWER TREND ====================
+const NoAnswerTrendCard = () => {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const res = await axios.get(`${API_URL}/api/lead-analytics/no-answer-trend?weeks=8`);
+        if (alive) setData(res.data);
+      } catch (e) {
+        if (alive) setData({ weeks: [], byManager: [], total: 0 });
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+    return () => { alive = false; };
+  }, []);
+
+  if (loading) return null;
+  if (!data || (data.total || 0) === 0) return null;
+
+  const weeks = data.weeks || [];
+  const maxCount = Math.max(1, ...weeks.map(w => w.count));
+  const topManagers = (data.byManager || []).slice(0, 5);
+  const fmtWeek = (ds) => {
+    const d = new Date(ds + 'T00:00:00');
+    return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}`;
+  };
+
+  return (
+    <Card className="border border-amber-200" data-testid="no-answer-trend-card">
+      <CardContent className="p-5">
+        <div className="flex items-center gap-2 mb-1">
+          <Clock className="h-5 w-5 text-amber-700" />
+          <span className="font-medium">Тренд «Не дозвонились» по неделям</span>
+          <Badge variant="secondary" className="ml-auto text-xs">всего: {data.total}</Badge>
+        </div>
+        <p className="text-xs text-muted-foreground mb-4">Лиды, застрявшие в этапах без ответа, по неделе создания. Видно, кто копит недозвоны, а кто разгребает.</p>
+        <div className="flex items-end justify-between gap-2 h-28" data-testid="no-answer-trend-bars">
+          {weeks.map((w, i) => (
+            <div key={i} className="flex-1 flex flex-col items-center gap-1">
+              <span className="text-[11px] font-semibold text-amber-700">{w.count}</span>
+              <div className="w-full bg-amber-100 rounded-t-md relative flex items-end" style={{ height: '80px' }}>
+                <div
+                  className="w-full bg-amber-500 rounded-t-md transition-all"
+                  style={{ height: `${Math.round(w.count / maxCount * 100)}%` }}
+                  title={`Неделя ${fmtWeek(w.weekStart)}: ${w.count}`}
+                />
+              </div>
+              <span className="text-[10px] text-muted-foreground">{fmtWeek(w.weekStart)}</span>
+            </div>
+          ))}
+        </div>
+        {topManagers.length > 0 && (
+          <div className="mt-4 pt-3 border-t">
+            <div className="text-xs font-medium text-muted-foreground mb-2">Больше всего недозвонов:</div>
+            <div className="flex flex-wrap gap-2">
+              {topManagers.map(m => (
+                <div key={m.userId} className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 rounded-full px-3 py-1 text-xs" data-testid={`no-answer-mgr-${m.userId}`}>
+                  <span className="font-medium">{m.userName || 'Без имени'}</span>
+                  <span className="text-amber-700 font-bold">{m.count}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 

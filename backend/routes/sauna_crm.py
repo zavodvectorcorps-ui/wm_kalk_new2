@@ -606,6 +606,39 @@ async def bulk_delete_leads(payload: BulkDeletePayload):
     return {"status": "ok", "deleted": result.deleted_count}
 
 
+class BulkStagePayload(BaseModel):
+    ids: List[str]
+    stage_id: str
+
+
+@router.post("/leads/bulk-stage")
+async def bulk_change_stage(payload: BulkStagePayload):
+    """Move multiple leads to a target stage at once (+ amoCRM sync per lead)."""
+    ids = [i for i in (payload.ids or []) if i]
+    if not ids:
+        raise HTTPException(status_code=400, detail="Не переданы идентификаторы лидов")
+    if not payload.stage_id:
+        raise HTTPException(status_code=400, detail="Не указан целевой этап")
+    moved = 0
+    now = datetime.now(timezone.utc).isoformat()
+    leads = await db.sauna_crm_leads.find({"id": {"$in": ids}}, {"_id": 0}).to_list(length=10000)
+    for existing in leads:
+        if existing.get("stageId") == payload.stage_id:
+            continue
+        history = existing.get("stageHistory", [])
+        history.append({"fromStage": existing.get("stageId"), "toStage": payload.stage_id, "timestamp": now, "action": "stage_changed"})
+        await db.sauna_crm_leads.update_one(
+            {"id": existing["id"]},
+            {"$set": {"stageId": payload.stage_id, "updatedAt": now, "stageHistory": history}}
+        )
+        try:
+            await sync_stage_to_amocrm(existing["id"], payload.stage_id)
+        except Exception as e:
+            logger.error(f"bulk-stage amoCRM sync failed for {existing['id']}: {e}")
+        moved += 1
+    return {"status": "ok", "moved": moved}
+
+
 # ============== DOCUMENTS ==============
 
 @router.post("/leads/{lead_id}/documents")
