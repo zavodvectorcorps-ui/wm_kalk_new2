@@ -303,6 +303,7 @@ const ManagersTab = ({ managers, loading }) => {
               <th className="text-center py-3 px-3">Зависших</th>
               <th className="text-center py-3 px-3">Закрытых</th>
               <th className="text-center py-3 px-3">С прогрессом</th>
+              <th className="text-center py-3 px-3 text-amber-700">Не дозвонились</th>
             </tr>
           </thead>
           <tbody>
@@ -331,6 +332,7 @@ const ManagersTab = ({ managers, loading }) => {
                 <td className="text-center py-3 px-3 text-rose-600">{m.stalledCount}</td>
                 <td className="text-center py-3 px-3 text-gray-500">{m.closedLost || 0}</td>
                 <td className="text-center py-3 px-3 text-blue-600">{m.withProgress}</td>
+                <td className="text-center py-3 px-3 text-amber-600 font-medium" data-testid={`mgr-no-answer-${m.userId}`}>{m.noAnswerLeads || 0}</td>
               </tr>
             ))}
           </tbody>
@@ -731,6 +733,23 @@ const SettingsTab = ({ settings, setSettings, onSave, savingSettings }) => {
                 {statuses.map(s => (
                   <Badge key={s.id} variant={(settings.successStageIds || []).includes(s.id) ? 'default' : 'outline'}
                     className="cursor-pointer" onClick={() => toggleArrayField('successStageIds', s.id)}>
+                    {s.name}
+                  </Badge>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border border-amber-300">
+            <CardHeader><CardTitle className="text-base">Этапы «Не дозвонились»</CardTitle></CardHeader>
+            <CardContent>
+              <p className="text-xs text-muted-foreground mb-3">Лид немного обработан, но не доведён (не дозвонились). Не влияет на рейтинг — отслеживается отдельной метрикой в таблице менеджеров.</p>
+              <div className="flex flex-wrap gap-2">
+                {statuses.map(s => (
+                  <Badge key={s.id} variant={(settings.noAnswerStageIds || []).includes(s.id) ? 'default' : 'outline'}
+                    className={`cursor-pointer ${(settings.noAnswerStageIds || []).includes(s.id) ? 'bg-amber-500 hover:bg-amber-600' : ''}`}
+                    data-testid={`no-answer-stage-${s.id}`}
+                    onClick={() => toggleArrayField('noAnswerStageIds', s.id)}>
                     {s.name}
                   </Badge>
                 ))}

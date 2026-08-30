@@ -156,6 +156,7 @@ async def get_crm_settings():
     if not settings:
         settings = get_default_settings()
         await db.sauna_crm_settings.insert_one(settings)
+        settings.pop("_id", None)
     return settings
 
 

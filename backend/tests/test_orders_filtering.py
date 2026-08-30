@@ -32,7 +32,7 @@ class TestOrdersFilteringBalia:
         for order_id in self.created_order_ids:
             try:
                 self.session.delete(f"{BASE_URL}/api/orders/{order_id}")
-            except:
+            except Exception:
                 pass
     
     def test_get_orders_without_params_returns_all(self):
@@ -169,7 +169,7 @@ class TestOrdersFilteringSauna:
         for order_id in self.created_order_ids:
             try:
                 self.session.delete(f"{BASE_URL}/api/sauna/orders/{order_id}")
-            except:
+            except Exception:
                 pass
     
     def test_get_sauna_orders_without_params_returns_all(self):
@@ -251,7 +251,7 @@ class TestAmoCRMNoteSending:
         for order_id in self.created_order_ids:
             try:
                 self.session.delete(f"{BASE_URL}/api/orders/{order_id}")
-            except:
+            except Exception:
                 pass
     
     def test_order_update_with_amocrm_id_triggers_note_code_path(self):

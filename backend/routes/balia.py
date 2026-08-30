@@ -631,7 +631,7 @@ async def create_order(order: Order):
         logger.warning(f"Failed to send Telegram notification with PDF for order: {e}")
         try:
             await notify_new_order(order_dict, order_type='balia', is_web_order=False)
-        except:
+        except Exception:
             pass
     
     # Update order with PDF status
@@ -662,7 +662,7 @@ async def get_orders(username: str = None, role: str = None, for_logistics: bool
     if for_logistics:
         query["$or"] = [
             {"source": "amocrm"},
-            {"amocrm_id": {"$exists": True, "$ne": None, "$ne": ""}},
+            {"amocrm_id": {"$exists": True, "$nin": [None, ""]}},
         ]
     
     orders = await db.orders.find(query, {"_id": 0}).to_list(1000)
@@ -1766,7 +1766,7 @@ async def generate_pdf(request: PDFRequest):
         safe_name = ''.join(c for c in safe_name if c not in '<>:"/\\|?*')
         if not safe_name:
             safe_name = "Klient"
-    except:
+    except Exception:
         safe_name = "Klient"
     
     # Use orderId if provided, otherwise generate timestamp-based ID
@@ -1918,7 +1918,7 @@ async def create_web_order(order: WebOrder):
         # Fallback: try to send without PDF
         try:
             await notify_new_order(order_dict, order_type='balia', is_web_order=True)
-        except:
+        except Exception:
             pass
     
     # Return success without sensitive data
@@ -2038,7 +2038,7 @@ async def transfer_web_order_to_main(order_id: str, updates: dict = None):
     
     return {
         "success": True,
-        "mainOrderId": main_order_id,
+        "mainOrderId": new_id,
         "webOrderId": order_id,
         "message": "Order transferred to main list"
     }

@@ -53,7 +53,7 @@ class TestLayoutVariantsDuplicate:
         def size_to_num(s):
             try:
                 return float(s.replace('m', '').replace(',', '.'))
-            except:
+            except Exception:
                 return 999
         
         numeric_sizes = [size_to_num(s) for s in sizes]

@@ -54,7 +54,7 @@ def is_base64_image(value: str) -> bool:
             clean = re.sub(r'\s', '', value)
             if re.match(r'^[A-Za-z0-9+/]+=*$', clean[:100]):
                 return True
-        except:
+        except Exception:
             pass
     return False
 

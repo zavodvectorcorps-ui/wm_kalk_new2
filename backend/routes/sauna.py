@@ -2548,7 +2548,7 @@ async def generate_sauna_pdf(request: SaunaPDFRequest):
         safe_name = ''.join(c for c in safe_name if c not in '<>:"/\\|?*')
         if not safe_name:
             safe_name = "Klient"
-    except:
+    except Exception:
         safe_name = "Klient"
     
     # Use orderId if provided, otherwise generate timestamp-based ID

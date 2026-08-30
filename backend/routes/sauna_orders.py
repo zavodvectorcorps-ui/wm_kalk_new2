@@ -147,7 +147,7 @@ async def get_sauna_orders(username: str = None, role: str = None, for_logistics
     if for_logistics:
         query["$or"] = [
             {"source": "amocrm"},
-            {"amocrm_id": {"$exists": True, "$ne": None, "$ne": ""}},
+            {"amocrm_id": {"$exists": True, "$nin": [None, ""]}},
         ]
 
     projection = {"_id": 0}
@@ -424,7 +424,7 @@ async def get_order_layout_config(order_id: str):
     if order.get("layoutConfigJson"):
         try:
             canvas_json = json.loads(order["layoutConfigJson"])
-        except:
+        except Exception:
             pass
     
     return {

@@ -338,7 +338,7 @@ async def _run_call_sync(sync_id: str, settings: dict, date_from: str, mode: str
                             ur = await cl.get(f"https://{domain}/api/v4/users/{resp_user_id}", headers=headers)
                         if ur.status_code == 200:
                             users_cache[resp_user_id] = ur.json().get("name", "")
-                    except:
+                    except Exception:
                         users_cache[resp_user_id] = ""
                 manager_name = users_cache.get(resp_user_id, "")
 

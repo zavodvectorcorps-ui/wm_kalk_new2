@@ -227,7 +227,7 @@ async def generate_and_upload_pdf_to_amocrm(order: dict, lead_id: str, section: 
                         break
                 else:
                     base_url = "http://localhost:8001"
-        except:
+        except Exception:
             base_url = "http://localhost:8001"
         
         # Use internal URL for server-to-server calls
@@ -1156,7 +1156,7 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
                         if line.startswith("REACT_APP_BACKEND_URL="):
                             base_url = line.strip().split("=", 1)[1]
                             break
-            except:
+            except Exception:
                 pass
     
     # Theme colors
@@ -1796,7 +1796,7 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
                 else:
                     dt = created_at
                 created_date_str = dt.strftime('%d.%m.%Y %H:%M')
-            except:
+            except Exception:
                 created_date_str = str(created_at)[:16] if created_at else '-'
         
         # Get creator info
@@ -1851,7 +1851,7 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
                 debt = float(debt_from_order)
             else:
                 debt = total_float - received_float
-        except:
+        except Exception:
             total_float = 0
             received_float = 0
             debt = 0
@@ -1860,7 +1860,7 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
             total_formatted = f"{total_float:,.0f}".replace(",", " ")
             received_formatted = f"{received_float:,.0f}".replace(",", " ")
             debt_formatted = f"{debt:,.0f}".replace(",", " ")
-        except:
+        except Exception:
             total_formatted = str(total)
             received_formatted = str(received_amount)
             debt_formatted = "0"
@@ -1904,7 +1904,7 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
                             formatted = dt_obj.strftime('%d.%m.%Y')
                         else:
                             formatted = str(raw)
-                    except:
+                    except Exception:
                         formatted = str(raw)
                     if date_var == "sauna_prepayment_date":
                         sauna_prepayment_date = formatted
@@ -2152,7 +2152,7 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
                 try:
                     dt = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
                     timestamp_str = dt.strftime('%d.%m.%Y %H:%M')
-                except:
+                except Exception:
                     timestamp_str = timestamp[:16] if timestamp else '-'
                 
                 changed_by = entry.get('changedBy', entry.get('action', 'system'))
@@ -2182,7 +2182,7 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
                 try:
                     dt = datetime.fromisoformat(departure_date.replace('Z', '+00:00'))
                     departure_date = dt.strftime('%d.%m.%Y')
-                except:
+                except Exception:
                     pass
             
             trip_status_labels = {
@@ -2235,7 +2235,7 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
                 total_fmt = f"{total_float:,.0f}".replace(",", " ")
                 adv_fmt = f"{adv_float:,.0f}".replace(",", " ")
                 remaining_fmt = f"{remaining_val:,.0f}".replace(",", " ")
-            except:
+            except Exception:
                 total_fmt = str(total_amount)
                 adv_fmt = str(advance)
                 remaining_fmt = "0"
@@ -2248,7 +2248,7 @@ async def _render_embed_widget(lead_id: str, theme: str = "light"):
                     try:
                         dt_obj = datetime.fromisoformat(str(raw_dt).replace('Z', '+00:00'))
                         sauna_dates_nf[df] = dt_obj.strftime('%d.%m.%Y')
-                    except:
+                    except Exception:
                         sauna_dates_nf[df] = str(raw_dt)
             
             sauna_docs_nf = sauna_crm_lead.get("documents", [])
@@ -2487,7 +2487,7 @@ async def get_embed_info():
                         if line.startswith("REACT_APP_BACKEND_URL="):
                             base_url = line.strip().split("=", 1)[1]
                             break
-            except:
+            except Exception:
                 base_url = "https://your-domain.com"
     
     return {
@@ -2542,7 +2542,7 @@ async def salesbot_handler(request: dict = {}):
                     if line.startswith("REACT_APP_BACKEND_URL="):
                         base_url = line.strip().split("=", 1)[1]
                         break
-        except:
+        except Exception:
             base_url = "https://wm-kalkulator.pl"
     
     # Build calculator URLs
@@ -2582,7 +2582,7 @@ async def salesbot_handler_get(lead_id: str = ""):
                     if line.startswith("REACT_APP_BACKEND_URL="):
                         base_url = line.strip().split("=", 1)[1]
                         break
-        except:
+        except Exception:
             base_url = "https://wm-kalkulator.pl"
     
     sauna_url = f"{base_url}/?calc=sauna&amocrm_id={lead_id}"
@@ -2662,7 +2662,7 @@ async def preview_order(lead_id: str):
                 from datetime import datetime
                 dt = datetime.fromisoformat(str(created_at).replace('Z', '+00:00'))
                 created_at = dt.strftime('%d.%m.%Y %H:%M')
-            except:
+            except Exception:
                 pass
         
         # Build selections HTML
@@ -2813,7 +2813,7 @@ async def edit_gifts_page(lead_id: str):
                     if line.startswith("REACT_APP_BACKEND_URL="):
                         base_url = line.strip().split("=", 1)[1]
                         break
-        except:
+        except Exception:
             base_url = "https://wm-kalkulator.pl"
     
     order_id = order.get('id', '-')

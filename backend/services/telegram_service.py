@@ -293,7 +293,7 @@ def format_order_notification(order: Dict[str, Any], order_type: str = 'balia', 
     # Format total with thousands separator
     try:
         total_formatted = f"{float(total):,.0f}".replace(",", " ")
-    except:
+    except Exception:
         total_formatted = str(total)
     
     # Build message

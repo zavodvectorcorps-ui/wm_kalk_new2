@@ -97,6 +97,7 @@ const ManagerTable = ({ managers, loading, onSelectManager }) => {
               <th className="text-center py-3 px-2" title="Доля отвеченных звонков из Binotel">% дозв.</th>
               <th className="text-center py-3 px-2" title="Средняя длительность разговора (сек)">Ср. длит.</th>
               <th className="text-center py-3 px-2">Ср. реакция</th>
+              <th className="text-center py-3 px-2 text-amber-700" title="Сделок в этапах «Не дозвонились» — лид немного обработан, но не доведён. Не влияет на балл.">Не дозвон.</th>
               <th className="text-center py-3 px-2">Проблемных</th>
               <th className="text-center py-3 px-2"></th>
             </tr>
@@ -191,6 +192,7 @@ const ManagerTable = ({ managers, loading, onSelectManager }) => {
                   </span>
                 </td>
                 <td className="text-center py-3 px-2">{formatHours(m.avgReactionHours)}</td>
+                <td className="text-center py-3 px-2 text-amber-600 font-medium" data-testid={`evt-mgr-no-answer-${m.userId}`}>{m.noAnswerLeads || 0}</td>
                 <td className="text-center py-3 px-2 text-red-600">{m.stalledLeads + m.notProcessedLeads}</td>
                 <td className="text-center py-3 px-2"><ArrowRight className="h-4 w-4 text-muted-foreground" /></td>
               </tr>

@@ -24,6 +24,7 @@ class AnalyticsSettings(BaseModel):
     newLeadStageIds: List[str] = []  # stages considered "new lead"
     managerWorkStageIds: List[str] = []  # stages where manager starts working (after bot)
     successStageIds: List[str] = []  # stages considered successful processing
+    noAnswerStageIds: List[str] = []  # stages "не дозвонились" — lead partially worked, tracked separately
     closedLostStageIds: List[str] = []  # stages for "closed/lost" deals — excluded from main stats
     slaFirstActionHours: int = 5
     stalledThresholdHours: int = 24
@@ -464,6 +465,7 @@ def _compute_lead_metrics(lead: dict, events: list, notes: list, tasks: list,
     stalled_hours = settings.get("stalledThresholdHours", 24)
     manager_work_stages = set(str(x) for x in settings.get("managerWorkStageIds", []))  # noqa: F841
     success_stages = set(str(x) for x in settings.get("successStageIds", []))
+    no_answer_stages = set(str(x) for x in settings.get("noAnswerStageIds", []))
     closed_lost_stages = set(str(x) for x in settings.get("closedLostStageIds", []))
     # amoCRM system status 143 = "Закрыто и не реализовано" — always exclude
     closed_lost_stages.add("143")
@@ -585,6 +587,7 @@ def _compute_lead_metrics(lead: dict, events: list, notes: list, tasks: list,
 
     # Processing status
     is_in_success_stage = status_id in success_stages
+    is_no_answer_stage = status_id in no_answer_stages
     is_closed_lost = status_id in closed_lost_stages
     # If responsible user is a bot, treat as not processed by human
     responsible_is_bot = responsible_id in bot_ids
@@ -642,6 +645,7 @@ def _compute_lead_metrics(lead: dict, events: list, notes: list, tasks: list,
         "isStalled": is_stalled,
         "isClosedLost": is_closed_lost,
         "hasProgress": has_progress,
+        "noAnswerStage": is_no_answer_stage,
         "hasStageChanges": has_stage_changes,
         "stageChangeCount": stage_change_count,
         "autoStageChanges": auto_stage_changes,
@@ -688,6 +692,7 @@ async def _compute_manager_stats(sync_id: str, settings: dict):
                 "closedLost": 0,
                 "stalledCount": 0,
                 "withProgress": 0,
+                "noAnswerLeads": 0,
                 "reactionTimes": [],
                 "totalActions": 0,
             }
@@ -713,6 +718,8 @@ async def _compute_manager_stats(sync_id: str, settings: dict):
             m["stalledCount"] += 1
         if lead.get("hasProgress"):
             m["withProgress"] += 1
+        if lead.get("noAnswerStage"):
+            m["noAnswerLeads"] += 1
         if lead.get("timeToFirstActionHours") is not None and status != "closed_lost":
             m["reactionTimes"].append(lead["timeToFirstActionHours"])
         if status != "closed_lost":
@@ -776,6 +783,7 @@ async def get_summary(date_from: str = None, date_to: str = None, date_field: st
     not_processed = sum(1 for ld in active_leads if ld.get("processingStatus") == "not_processed")
     weak = sum(1 for ld in active_leads if ld.get("processingStatus") == "weak_processing")
     stalled = sum(1 for ld in active_leads if ld.get("isStalled"))
+    no_answer = sum(1 for ld in active_leads if ld.get("noAnswerStage"))
 
     reaction_times = [ld["timeToFirstActionHours"] for ld in active_leads if ld.get("timeToFirstActionHours") is not None]
     avg_reaction = round(sum(reaction_times) / len(reaction_times), 2) if reaction_times else None
@@ -793,6 +801,7 @@ async def get_summary(date_from: str = None, date_to: str = None, date_field: st
         "notProcessed": not_processed,
         "weakProcessing": weak,
         "stalledCount": stalled,
+        "noAnswerLeads": no_answer,
         "closedLost": len(closed_lost_leads),
         "totalWithClosed": len(leads),
         "avgReactionHours": avg_reaction,
@@ -839,7 +848,7 @@ async def get_manager_stats(date_from: str = None, date_to: str = None, date_fie
                     "userId": uid, "userName": lead.get("responsibleUserName", ""),
                     "totalLeads": 0, "processedFast": 0, "processedLate": 0,
                     "notProcessed": 0, "weakProcessing": 0, "closedLost": 0,
-                    "stalledCount": 0, "withProgress": 0, "reactionTimes": [], "totalActions": 0,
+                    "stalledCount": 0, "withProgress": 0, "noAnswerLeads": 0, "reactionTimes": [], "totalActions": 0,
                 }
             m = manager_map[uid]
             m["totalLeads"] += 1
@@ -850,6 +859,7 @@ async def get_manager_stats(date_from: str = None, date_to: str = None, date_fie
             elif status == "weak_processing": m["weakProcessing"] += 1
             if lead.get("isStalled"): m["stalledCount"] += 1
             if lead.get("hasProgress"): m["withProgress"] += 1
+            if lead.get("noAnswerStage"): m["noAnswerLeads"] += 1
             if lead.get("timeToFirstActionHours") is not None:
                 m["reactionTimes"].append(lead["timeToFirstActionHours"])
             m["totalActions"] += lead.get("totalActions", 0)

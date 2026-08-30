@@ -271,7 +271,7 @@ async def migrate_images_to_cloudinary():
                 clean = re.sub(r'\s', '', value)
                 if re.match(r'^[A-Za-z0-9+/]+=*$', clean[:100]):
                     return True
-            except:
+            except Exception:
                 pass
         return False
     

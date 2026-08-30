@@ -210,7 +210,7 @@ def parse_amocrm_webhook(body: bytes) -> Dict[str, Any]:
     try:
         # Try JSON first
         return json.loads(body)
-    except:
+    except Exception:
         pass
     
     # Parse as URL-encoded
@@ -1594,7 +1594,7 @@ async def delete_all_section_orders(section: str):
     logistics_filter = {
         "$or": [
             {"source": "amocrm"},
-            {"amocrm_id": {"$exists": True, "$ne": None, "$ne": ""}},
+            {"amocrm_id": {"$exists": True, "$nin": [None, ""]}},
         ]
     }
     
@@ -2356,7 +2356,7 @@ async def upload_calculator_pdf_to_amocrm(
                     if line.startswith("REACT_APP_BACKEND_URL="):
                         base_url = line.strip().split("=", 1)[1]
                         break
-        except:
+        except Exception:
             pass
     if not base_url:
         base_url = "https://wm-kalkulator.pl"
@@ -2716,7 +2716,7 @@ async def test_file_upload_to_amocrm(
                 if upload_resp.status_code in [200, 201, 202]:
                     try:
                         upload_result = upload_resp.json()
-                    except:
+                    except Exception:
                         upload_result = {"raw": upload_resp.text[:500]}
                 
                 debug_log["steps"].append({
@@ -2773,7 +2773,7 @@ async def test_file_upload_to_amocrm(
             attach_result = {}
             try:
                 attach_result = attach_resp.json()
-            except:
+            except Exception:
                 attach_result = {"raw": attach_resp.text[:500]}
             
             debug_log["steps"].append({

@@ -219,6 +219,32 @@ async def add_lesson(course_id: str, lesson: Lesson):
     return lesson_dict
 
 
+@router.put("/courses/{course_id}/lessons/reorder")
+async def reorder_lessons(course_id: str, lesson_ids: List[str]):
+    """Reorder lessons in a course"""
+    course = await db.training_courses.find_one({"id": course_id})
+    if not course:
+        raise HTTPException(status_code=404, detail="Курс не найден")
+    
+    lessons = course.get("lessons", [])
+    lessons_dict = {l["id"]: l for l in lessons}
+    
+    # Reorder based on provided IDs
+    reordered = []
+    for i, lesson_id in enumerate(lesson_ids):
+        if lesson_id in lessons_dict:
+            lesson = lessons_dict[lesson_id]
+            lesson["order"] = i
+            reordered.append(lesson)
+    
+    await db.training_courses.update_one(
+        {"id": course_id},
+        {"$set": {"lessons": reordered, "updatedAt": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {"message": "Порядок уроков обновлён"}
+
+
 @router.put("/courses/{course_id}/lessons/{lesson_id}")
 async def update_lesson(course_id: str, lesson_id: str, lesson: Lesson):
     """Update a lesson"""
@@ -304,7 +330,7 @@ async def upload_lesson_file(course_id: str, lesson_id: str, file: UploadFile = 
         # Try to handle potential encoding issues
         if isinstance(original_filename, bytes):
             original_filename = original_filename.decode('utf-8')
-    except:
+    except Exception:
         pass
     
     # Store file in GridFS
@@ -356,7 +382,7 @@ async def upload_lesson_file(course_id: str, lesson_id: str, file: UploadFile = 
         # Clean up stored file from GridFS
         try:
             await fs_bucket.delete(gridfs_id)
-        except:
+        except Exception:
             pass
         raise HTTPException(status_code=404, detail="Урок не найден")
     
@@ -420,7 +446,7 @@ async def upload_lesson_video(course_id: str, lesson_id: str, file: UploadFile =
     if result.matched_count == 0:
         try:
             await fs_bucket.delete(gridfs_id)
-        except:
+        except Exception:
             pass
         raise HTTPException(status_code=404, detail="Урок не найден")
     
@@ -644,69 +670,6 @@ async def get_lesson_file(file_id: str):
     raise HTTPException(status_code=404, detail="Файл не найден")
 
 
-@router.delete("/courses/{course_id}/lessons/{lesson_id}/files/{file_id}")
-async def delete_lesson_file(course_id: str, lesson_id: str, file_id: str):
-    """Delete a file from a lesson"""
-    # Find the course and lesson
-    course = await db.training_courses.find_one({"id": course_id, "lessons.id": lesson_id})
-    if not course:
-        raise HTTPException(status_code=404, detail="Курс или урок не найден")
-    
-    # Find the lesson and file
-    lesson = next((l for l in course.get("lessons", []) if l["id"] == lesson_id), None)
-    if not lesson:
-        raise HTTPException(status_code=404, detail="Урок не найден")
-    
-    file_record = next((f for f in lesson.get("files", []) if f["id"] == file_id), None)
-    if not file_record:
-        raise HTTPException(status_code=404, detail="Файл не найден")
-    
-    # Delete from GridFS
-    gridfs_id = file_record.get("gridfs_id")
-    if gridfs_id:
-        try:
-            await fs_bucket.delete(ObjectId(gridfs_id))
-        except Exception as e:
-            logger.error(f"Error deleting file from GridFS: {e}")
-    
-    # Remove from lesson
-    await db.training_courses.update_one(
-        {"id": course_id, "lessons.id": lesson_id},
-        {
-            "$pull": {"lessons.$.files": {"id": file_id}},
-            "$set": {"updatedAt": datetime.now(timezone.utc).isoformat()}
-        }
-    )
-    
-    return {"message": "Файл удален"}
-
-
-@router.put("/courses/{course_id}/lessons/reorder")
-async def reorder_lessons(course_id: str, lesson_ids: List[str]):
-    """Reorder lessons in a course"""
-    course = await db.training_courses.find_one({"id": course_id})
-    if not course:
-        raise HTTPException(status_code=404, detail="Курс не найден")
-    
-    lessons = course.get("lessons", [])
-    lessons_dict = {l["id"]: l for l in lessons}
-    
-    # Reorder based on provided IDs
-    reordered = []
-    for i, lesson_id in enumerate(lesson_ids):
-        if lesson_id in lessons_dict:
-            lesson = lessons_dict[lesson_id]
-            lesson["order"] = i
-            reordered.append(lesson)
-    
-    await db.training_courses.update_one(
-        {"id": course_id},
-        {"$set": {"lessons": reordered, "updatedAt": datetime.now(timezone.utc).isoformat()}}
-    )
-    
-    return {"message": "Порядок уроков обновлён"}
-
-
 # ============= User Progress =============
 
 @router.get("/progress/{user_id}")
@@ -737,6 +700,7 @@ async def get_course_progress(user_id: str, course_id: str):
             "isCompleted": False
         }
         await db.training_progress.insert_one(progress)
+        progress.pop("_id", None)
     
     return progress
 

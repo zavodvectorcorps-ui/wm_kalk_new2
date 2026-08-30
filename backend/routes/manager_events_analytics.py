@@ -432,6 +432,7 @@ async def _compute_event_manager_stats(sync_id: str, ts_from: int = None, ts_to:
         weak = sum(1 for l in active_lds if l.get("processingStatus") == "weak_processing")
         stalled = sum(1 for l in active_lds if l.get("isStalled"))
         with_progress = sum(1 for l in active_lds if l.get("hasProgress"))
+        no_answer_leads = sum(1 for l in active_lds if l.get("noAnswerStage"))
         to_success = sum(1 for l in active_lds if l.get("statusId") in success_stages)
         single_action = sum(1 for l in active_lds if l.get("totalActions") == 1)
         no_progress_stage = sum(1 for l in active_lds if not l.get("hasProgress") and l.get("totalActions", 0) > 0)
@@ -501,6 +502,7 @@ async def _compute_event_manager_stats(sync_id: str, ts_from: int = None, ts_to:
             "weakLeads": weak,
             "stalledLeads": stalled,
             "withProgress": with_progress,
+            "noAnswerLeads": no_answer_leads,
             "toSuccessStage": to_success,
             "singleActionLeads": single_action,
             "noProgressStageLeads": no_progress_stage,

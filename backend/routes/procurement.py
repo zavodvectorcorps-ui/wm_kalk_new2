@@ -17,7 +17,7 @@ from __future__ import annotations
 import logging
 import uuid
 from datetime import datetime, timezone, date, timedelta
-from typing import Optional, List
+from typing import Optional, List, Dict
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field

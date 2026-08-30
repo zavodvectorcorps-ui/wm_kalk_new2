@@ -3212,3 +3212,26 @@ stamps `onboardedAt`. Subsequent logins are no-ops.
 - Фикс: total_amount = (total + calculateDeliveryPrice()) при выгрузке КП в amoCRM
   (upload-calculator-pdf). Это влияет на примечание «Сумма: X zł» и на total_amount в версиях КП
   (их показывает виджет). Нужен РЕДЕПЛОЙ PROD.
+
+## Session — Jun 2026: Метрика «Не дозвонились» в аналитике менеджеров + разблокировка линтера
+- **Разблокировка платформы**: исправлены все блокирующие ошибки линтера в бэкенде/SW:
+  balia.py (undefined `main_order_id`→`new_id`; дубль ключа `$ne`→`$nin`),
+  procurement.py (`from typing import Dict`), training.py (удалён дубль `delete_lesson_file`,
+  маршрут `reorder` поднят выше `/{lesson_id}`, `progress.pop("_id")`), pdf_templates.py
+  (маршрут `/images` поднят выше `/{template_id}`), sauna_crm.py + sauna_tech_cards.py
+  (pop `_id` после insert_one), amocrm.py/greenhouse.py/sauna_orders.py (`$ne`×2→`$nin`),
+  sw.js + service-worker.js (`/* global clients */`).
+- **Новая настройка `noAnswerStageIds`** в аналитике лидов (модель `AnalyticsSettings`,
+  routes/lead_analytics.py). По просьбе пользователя: этап «Не дозвонились» — лид немного
+  обработан, но не доведён; НЕ влияет на scoring/`hasProgress`/`processingStatus`, только
+  отдельная метрика.
+- Per-lead флаг `noAnswerStage` (`status_id in noAnswerStageIds`) в `_compute_lead_metrics`.
+- Метрика `noAnswerLeads` на менеджера: в `_compute_manager_stats`, on-the-fly `/managers`,
+  `/summary` (lead_analytics.py) и в events-агрегации (manager_events_analytics.py, вкладка
+  «По событиям»).
+- Frontend: LeadAnalyticsPage — новая карточка настроек «Этапы Не дозвонились» (amber, рядом
+  с success/closed-lost, рендерится когда загружены статусы воронки) + колонка «Не дозвонились»
+  в таблице менеджеров. ManagerEventsAnalytics — колонка «Не дозвон.» в таблице.
+- ⚠️ Проверено: round-trip настроек через curl (поле сохраняется). Полный e2e с реальными
+  этапами невозможен на Preview (amoCRM не настроен → no_settings). Требуется РЕДЕПЛОЙ PROD +
+  выбор этапов в админке.

@@ -1767,7 +1767,7 @@ async def send_backup_to_telegram():
                 if base_url:
                     try:
                         balia_prices = await embed_images_in_data(balia_prices, base_url)
-                    except:
+                    except Exception:
                         pass
                 zip_file.writestr("balia_prices.json", json.dumps(balia_prices, ensure_ascii=False, indent=2))
                 backup_manifest["collections"].append({"name": "balia_prices", "count": 1})
@@ -1782,7 +1782,7 @@ async def send_backup_to_telegram():
                 if base_url:
                     try:
                         sauna_prices = await embed_images_in_data(sauna_prices, base_url)
-                    except:
+                    except Exception:
                         pass
                 zip_file.writestr("sauna_prices.json", json.dumps(sauna_prices, ensure_ascii=False, indent=2))
                 backup_manifest["collections"].append({"name": "sauna_prices", "count": 1})
@@ -1988,7 +1988,7 @@ async def send_backup_to_telegram():
                             with open(filepath, 'rb') as f:
                                 zip_file.writestr(f"uploads/{filename}", f.read())
                                 uploaded_count += 1
-                        except:
+                        except Exception:
                             pass
                 if uploaded_count:
                     backup_manifest["collections"].append({"name": "uploaded_files", "count": uploaded_count})

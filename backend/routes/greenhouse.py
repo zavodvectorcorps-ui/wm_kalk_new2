@@ -80,7 +80,7 @@ async def get_greenhouse_orders(for_logistics: bool = False):
     if for_logistics:
         query["$or"] = [
             {"source": "amocrm"},
-            {"amocrm_id": {"$exists": True, "$ne": None, "$ne": ""}},
+            {"amocrm_id": {"$exists": True, "$nin": [None, ""]}},
         ]
     
     orders = list(greenhouse_orders.find(query, {"_id": 0}))

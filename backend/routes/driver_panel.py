@@ -1419,7 +1419,7 @@ async def get_debug_logs(current_user: dict = Depends(get_current_user)):
                 # Filter for driver panel related logs
                 driver_lines = [l.strip() for l in lines[-200:] if "driver" in l.lower() or "trip" in l.lower() or "order" in l.lower()]
                 driver_logs = driver_lines[-50:]
-    except:
+    except Exception:
         pass
     
     return {

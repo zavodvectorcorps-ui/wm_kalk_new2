@@ -1,4 +1,5 @@
 const CACHE_NAME = 'wm-kalkulator-v1';
+
 const urlsToCache = [
   '/',
   '/index.html',
@@ -109,6 +110,6 @@ self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   
   event.waitUntil(
-    clients.openWindow(event.notification.data.url || '/')
+    self.clients.openWindow(event.notification.data.url || '/')
   );
 });

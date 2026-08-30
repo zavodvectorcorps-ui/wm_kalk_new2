@@ -11,7 +11,7 @@ self.addEventListener('install', (event) => {
 // Activate event
 self.addEventListener('activate', (event) => {
   console.log('Service Worker activated');
-  event.waitUntil(clients.claim());
+  event.waitUntil(self.clients.claim());
 });
 
 // Push notification received
@@ -78,7 +78,7 @@ self.addEventListener('notificationclick', (event) => {
   }
   
   event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true })
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then((windowClients) => {
         // Check if there's already a window open
         for (let client of windowClients) {
@@ -87,8 +87,8 @@ self.addEventListener('notificationclick', (event) => {
           }
         }
         // Open new window
-        if (clients.openWindow) {
-          return clients.openWindow(url);
+        if (self.clients.openWindow) {
+          return self.clients.openWindow(url);
         }
       })
   );

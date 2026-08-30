@@ -154,6 +154,19 @@ async def get_default_template(calculator_type: str):
     return template
 
 
+@router.get("/images")
+async def get_images(image_type: str = None, calculator_type: str = None):
+    """Get list of uploaded images (without data)."""
+    query = {}
+    if image_type:
+        query["image_type"] = image_type
+    if calculator_type:
+        query["calculator_type"] = calculator_type
+    
+    images = list(pdf_images_collection.find(query, {"_id": 0, "data": 0}).sort("createdAt", -1))
+    return images
+
+
 @router.get("/{template_id}")
 async def get_template(template_id: str):
     """Get a specific template by ID."""
@@ -413,19 +426,6 @@ async def upload_image(
         "image_type": image_type,
         "size": len(content)
     }
-
-
-@router.get("/images")
-async def get_images(image_type: str = None, calculator_type: str = None):
-    """Get list of uploaded images (without data)."""
-    query = {}
-    if image_type:
-        query["image_type"] = image_type
-    if calculator_type:
-        query["calculator_type"] = calculator_type
-    
-    images = list(pdf_images_collection.find(query, {"_id": 0, "data": 0}).sort("createdAt", -1))
-    return images
 
 
 @router.get("/images/{image_id}")

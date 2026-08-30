@@ -560,7 +560,7 @@ async def notify_driver_new_trip(trip_id: str, driver_id: str, background_tasks:
         try:
             dt = datetime.fromisoformat(departure_date.replace("Z", "+00:00"))
             departure_date = dt.strftime("%d.%m.%Y")
-        except:
+        except Exception:
             pass
     
     # Build message

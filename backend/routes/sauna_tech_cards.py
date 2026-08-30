@@ -467,7 +467,10 @@ async def upsert_tech_card(body: dict, _: dict = Depends(get_admin_user)):
         await db.sauna_tech_cards.insert_one(doc)
 
     result = await _recompute_and_sync(card_id)
-    return result["card"] if result else doc
+    if result:
+        return result["card"]
+    doc.pop("_id", None)
+    return doc
 
 
 @router.delete("/tech-cards/{card_id}")
